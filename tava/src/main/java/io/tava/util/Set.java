@@ -63,7 +63,6 @@ public interface Set<E> extends java.util.Set<E>, Collection<E> {
         return CollectionOps.splitAt(this, n);
     }
 
-
     @Override
     default <R> Set<R> map(Function1<E, R> action) {
         return CollectionOps.map(this, action);

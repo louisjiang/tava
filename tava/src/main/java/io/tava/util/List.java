@@ -103,6 +103,7 @@ public interface List<E> extends Collection<E>, java.util.List<E> {
         return CollectionOps.intersect(this, that);
     }
 
+    @Override
     default List<E> reverse() {
         return CollectionOps.reverse(this);
     }

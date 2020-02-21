@@ -5,7 +5,6 @@ import io.tava.lang.Tuple2;
 import io.tava.util.List;
 import io.tava.util.Map;
 import io.tava.util.MapOps;
-import io.tava.util.NavigableMap;
 import io.tava.util.builder.ConcurrentSkipListMapBuilder;
 import io.tava.util.builder.MapBuilder;
 
@@ -100,17 +99,17 @@ public class ConcurrentSkipListMap<K, V> extends java.util.concurrent.Concurrent
     }
 
     @Override
-    public Tuple2<? extends ConcurrentSkipListMap<K, V>, ? extends ConcurrentSkipListMap<K, V>> span(Predicate2<K, V> action) {
+    public Tuple2<ConcurrentSkipListMap<K, V>, ConcurrentSkipListMap<K, V>> span(Predicate2<K, V> action) {
         return MapOps.span(this, action);
     }
 
     @Override
-    public Tuple2<? extends ConcurrentSkipListMap<K, V>, ? extends ConcurrentSkipListMap<K, V>> span(Predicate1<Entry<K, V>> action) {
+    public Tuple2<ConcurrentSkipListMap<K, V>, ConcurrentSkipListMap<K, V>> span(Predicate1<Entry<K, V>> action) {
         return MapOps.span(this, action);
     }
 
     @Override
-    public Tuple2<? extends ConcurrentSkipListMap<K, V>, ? extends ConcurrentSkipListMap<K, V>> splitAt(int n) {
+    public Tuple2<ConcurrentSkipListMap<K, V>, ConcurrentSkipListMap<K, V>> splitAt(int n) {
         return MapOps.splitAt(this, n);
     }
 
@@ -145,17 +144,18 @@ public class ConcurrentSkipListMap<K, V> extends java.util.concurrent.Concurrent
     }
 
     @Override
-    public <K0> ConcurrentSkipListMap<K0, ? extends ConcurrentSkipListMap<K, V>> groupBy(Function2<K, V, K0> action) {
-        return (ConcurrentSkipListMap<K0, ? extends ConcurrentSkipListMap<K, V>>) MapOps.groupBy(this, action);
+    public <K0> ConcurrentSkipListMap<K0, ConcurrentSkipListMap<K, V>> groupBy(Function2<K, V, K0> action) {
+        return (ConcurrentSkipListMap<K0, ConcurrentSkipListMap<K, V>>) MapOps.groupBy(this, action);
     }
 
     @Override
-    public <K0> ConcurrentSkipListMap<K0, ? extends ConcurrentSkipListMap<K, V>> groupBy(Function1<Entry<K, V>, K0> action) {
-        return (ConcurrentSkipListMap<K0, ? extends ConcurrentSkipListMap<K, V>>) MapOps.groupBy(this, action);
+    public <K0> ConcurrentSkipListMap<K0, ConcurrentSkipListMap<K, V>> groupBy(Function1<Entry<K, V>, K0> action) {
+        return (ConcurrentSkipListMap<K0, ConcurrentSkipListMap<K, V>>) MapOps.groupBy(this, action);
     }
 
     @Override
     public <K0, R> ConcurrentSkipListMap<K0, List<R>> groupMap(Function1<Entry<K, V>, K0> action, Function1<Entry<K, V>, R> mapAction) {
         return (ConcurrentSkipListMap<K0, List<R>>) MapOps.groupMap(this, action, mapAction);
     }
+
 }

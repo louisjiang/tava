@@ -2,8 +2,8 @@ package io.tava.util;
 
 import io.tava.function.Function1;
 import io.tava.function.IndexedFunction1;
-import io.tava.lang.Tuple2;
 import io.tava.function.Predicate1;
+import io.tava.lang.Tuple2;
 import io.tava.util.builder.CollectionBuilder;
 import io.tava.util.builder.LinkedListBuilder;
 
@@ -88,25 +88,27 @@ public class LinkedList<E> extends java.util.LinkedList<E> implements List<E> {
     }
 
     @Override
-    public Tuple2<? extends LinkedList<E>, ? extends LinkedList<E>> span(Predicate1<E> action) {
+    public Tuple2<LinkedList<E>, LinkedList<E>> span(Predicate1<E> action) {
         return CollectionOps.span(this, action);
     }
 
-    public Tuple2<? extends LinkedList<E>, ? extends LinkedList<E>> splitAt(int n) {
+    @Override
+    public Tuple2<LinkedList<E>, LinkedList<E>> splitAt(int n) {
         return CollectionOps.splitAt(this, n);
     }
 
+    @Override
     public LinkedList<E> reverse() {
         return CollectionOps.reverse(this);
     }
 
     @Override
-    public <K0> Map<K0, ? extends LinkedList<E>> groupBy(Function1<E, K0> action) {
+    public <K0> Map<K0, LinkedList<E>> groupBy(Function1<E, K0> action) {
         return CollectionOps.groupBy(this, action);
     }
 
     @Override
-    public <K0, R> Map<K0, ? extends LinkedList<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
+    public <K0, R> Map<K0, LinkedList<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
         return CollectionOps.groupMap(this, action, mapAction);
     }
 

@@ -80,27 +80,27 @@ public class Properties extends java.util.Properties implements Map<Object, Obje
     }
 
     @Override
-    public Tuple2<? extends Properties, ? extends Properties> span(Predicate2<Object, Object> action) {
+    public Tuple2<Properties, Properties> span(Predicate2<Object, Object> action) {
         return MapOps.span(this, action);
     }
 
     @Override
-    public Tuple2<? extends Properties, ? extends Properties> span(Predicate1<java.util.Map.Entry<Object, Object>> action) {
+    public Tuple2<Properties, Properties> span(Predicate1<java.util.Map.Entry<Object, Object>> action) {
         return MapOps.span(this, action);
     }
 
     @Override
-    public Tuple2<? extends Properties, ? extends Properties> splitAt(int n) {
+    public Tuple2<Properties, Properties> splitAt(int n) {
         return MapOps.splitAt(this, n);
     }
 
     @Override
-    public <K0> Map<K0, ? extends Properties> groupBy(Function2<Object, Object, K0> action) {
+    public <K0> Map<K0, Properties> groupBy(Function2<Object, Object, K0> action) {
         return MapOps.groupBy(this, action);
     }
 
     @Override
-    public <K0> Map<K0, ? extends Properties> groupBy(Function1<java.util.Map.Entry<Object, Object>, K0> action) {
+    public <K0> Map<K0, Properties> groupBy(Function1<java.util.Map.Entry<Object, Object>, K0> action) {
         return MapOps.groupBy(this, action);
     }
 
@@ -108,4 +108,5 @@ public class Properties extends java.util.Properties implements Map<Object, Obje
     public <K0, R> Map<K0, List<R>> groupMap(Function1<java.util.Map.Entry<Object, Object>, K0> action, Function1<java.util.Map.Entry<Object, Object>, R> mapAction) {
         return MapOps.groupMap(this, action, mapAction);
     }
+
 }

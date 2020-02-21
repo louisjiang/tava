@@ -2,8 +2,8 @@ package io.tava.util;
 
 import io.tava.function.Function1;
 import io.tava.function.IndexedFunction1;
-import io.tava.lang.Tuple2;
 import io.tava.function.Predicate1;
+import io.tava.lang.Tuple2;
 import io.tava.util.builder.CollectionBuilder;
 import io.tava.util.builder.LinkedHashSetBuilder;
 
@@ -96,21 +96,22 @@ public class LinkedHashSet<E> extends java.util.LinkedHashSet<E> implements Set<
     }
 
     @Override
-    public Tuple2<? extends LinkedHashSet<E>, ? extends LinkedHashSet<E>> span(Predicate1<E> action) {
+    public Tuple2<LinkedHashSet<E>, LinkedHashSet<E>> span(Predicate1<E> action) {
         return CollectionOps.span(this, action);
     }
 
-    public Tuple2<? extends LinkedHashSet<E>, ? extends LinkedHashSet<E>> splitAt(int n) {
+    @Override
+    public Tuple2<LinkedHashSet<E>, LinkedHashSet<E>> splitAt(int n) {
         return CollectionOps.splitAt(this, n);
     }
 
     @Override
-    public <K0> Map<K0, ? extends LinkedHashSet<E>> groupBy(Function1<E, K0> action) {
+    public <K0> Map<K0, LinkedHashSet<E>> groupBy(Function1<E, K0> action) {
         return CollectionOps.groupBy(this, action);
     }
 
     @Override
-    public <K0, R> Map<K0, ? extends LinkedHashSet<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
+    public <K0, R> Map<K0, LinkedHashSet<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
         return CollectionOps.groupMap(this, action, mapAction);
     }
 
@@ -123,4 +124,5 @@ public class LinkedHashSet<E> extends java.util.LinkedHashSet<E> implements Set<
     public LinkedHashSet<E> intersect(Collection<E> that) {
         return CollectionOps.intersect(this, that);
     }
+
 }

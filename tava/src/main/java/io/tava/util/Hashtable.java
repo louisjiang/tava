@@ -94,17 +94,17 @@ public class Hashtable<K, V> extends java.util.Hashtable<K, V> implements Map<K,
     }
 
     @Override
-    public Tuple2<? extends Hashtable<K, V>, ? extends Hashtable<K, V>> span(Predicate2<K, V> action) {
+    public Tuple2<Hashtable<K, V>, Hashtable<K, V>> span(Predicate2<K, V> action) {
         return MapOps.span(this, action);
     }
 
     @Override
-    public Tuple2<? extends Hashtable<K, V>, ? extends Hashtable<K, V>> span(Predicate1<java.util.Map.Entry<K, V>> action) {
+    public Tuple2<Hashtable<K, V>, Hashtable<K, V>> span(Predicate1<java.util.Map.Entry<K, V>> action) {
         return MapOps.span(this, action);
     }
 
     @Override
-    public Tuple2<? extends Hashtable<K, V>, ? extends Hashtable<K, V>> splitAt(int n) {
+    public Tuple2<Hashtable<K, V>, Hashtable<K, V>> splitAt(int n) {
         return MapOps.splitAt(this, n);
     }
 
@@ -139,17 +139,18 @@ public class Hashtable<K, V> extends java.util.Hashtable<K, V> implements Map<K,
     }
 
     @Override
-    public <K0> Hashtable<K0, ? extends Hashtable<K, V>> groupBy(Function2<K, V, K0> action) {
-        return (Hashtable<K0, ? extends Hashtable<K, V>>) MapOps.groupBy(this, action);
+    public <K0> Hashtable<K0, Hashtable<K, V>> groupBy(Function2<K, V, K0> action) {
+        return (Hashtable<K0, Hashtable<K, V>>) MapOps.groupBy(this, action);
     }
 
     @Override
-    public <K0> Hashtable<K0, ? extends Hashtable<K, V>> groupBy(Function1<java.util.Map.Entry<K, V>, K0> action) {
-        return (Hashtable<K0, ? extends Hashtable<K, V>>) MapOps.groupBy(this, action);
+    public <K0> Hashtable<K0, Hashtable<K, V>> groupBy(Function1<java.util.Map.Entry<K, V>, K0> action) {
+        return (Hashtable<K0, Hashtable<K, V>>) MapOps.groupBy(this, action);
     }
 
     @Override
     public <K0, R> Hashtable<K0, List<R>> groupMap(Function1<java.util.Map.Entry<K, V>, K0> action, Function1<java.util.Map.Entry<K, V>, R> mapAction) {
         return (Hashtable<K0, List<R>>) MapOps.groupMap(this, action, mapAction);
     }
+
 }

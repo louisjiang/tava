@@ -97,17 +97,17 @@ public class TreeMap<K, V> extends java.util.TreeMap<K, V> implements NavigableM
     }
 
     @Override
-    public Tuple2<? extends TreeMap<K, V>, ? extends TreeMap<K, V>> span(Predicate2<K, V> action) {
+    public Tuple2<TreeMap<K, V>, TreeMap<K, V>> span(Predicate2<K, V> action) {
         return MapOps.span(this, action);
     }
 
     @Override
-    public Tuple2<? extends TreeMap<K, V>, ? extends TreeMap<K, V>> span(Predicate1<java.util.Map.Entry<K, V>> action) {
+    public Tuple2<TreeMap<K, V>, TreeMap<K, V>> span(Predicate1<java.util.Map.Entry<K, V>> action) {
         return MapOps.span(this, action);
     }
 
     @Override
-    public Tuple2<? extends TreeMap<K, V>, ? extends TreeMap<K, V>> splitAt(int n) {
+    public Tuple2<TreeMap<K, V>, TreeMap<K, V>> splitAt(int n) {
         return MapOps.splitAt(this, n);
     }
 
@@ -142,17 +142,18 @@ public class TreeMap<K, V> extends java.util.TreeMap<K, V> implements NavigableM
     }
 
     @Override
-    public <K0> TreeMap<K0, ? extends TreeMap<K, V>> groupBy(Function2<K, V, K0> action) {
-        return (TreeMap<K0, ? extends TreeMap<K, V>>) MapOps.groupBy(this, action);
+    public <K0> TreeMap<K0, TreeMap<K, V>> groupBy(Function2<K, V, K0> action) {
+        return (TreeMap<K0, TreeMap<K, V>>) MapOps.groupBy(this, action);
     }
 
     @Override
-    public <K0> TreeMap<K0, ? extends TreeMap<K, V>> groupBy(Function1<java.util.Map.Entry<K, V>, K0> action) {
-        return (TreeMap<K0, ? extends TreeMap<K, V>>) MapOps.groupBy(this, action);
+    public <K0> TreeMap<K0, TreeMap<K, V>> groupBy(Function1<java.util.Map.Entry<K, V>, K0> action) {
+        return (TreeMap<K0, TreeMap<K, V>>) MapOps.groupBy(this, action);
     }
 
     @Override
     public <K0, R> TreeMap<K0, List<R>> groupMap(Function1<java.util.Map.Entry<K, V>, K0> action, Function1<java.util.Map.Entry<K, V>, R> mapAction) {
-        return (TreeMap<K0, List<R>>) MapOps.groupMap(this, action,mapAction);
+        return (TreeMap<K0, List<R>>) MapOps.groupMap(this, action, mapAction);
     }
+
 }

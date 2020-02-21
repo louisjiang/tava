@@ -94,17 +94,17 @@ public class WeakHashMap<K, V> extends java.util.WeakHashMap<K, V> implements Ma
     }
 
     @Override
-    public Tuple2<? extends WeakHashMap<K, V>, ? extends WeakHashMap<K, V>> span(Predicate2<K, V> action) {
+    public Tuple2<WeakHashMap<K, V>, WeakHashMap<K, V>> span(Predicate2<K, V> action) {
         return MapOps.span(this, action);
     }
 
     @Override
-    public Tuple2<? extends WeakHashMap<K, V>, ? extends WeakHashMap<K, V>> span(Predicate1<java.util.Map.Entry<K, V>> action) {
+    public Tuple2<WeakHashMap<K, V>, WeakHashMap<K, V>> span(Predicate1<java.util.Map.Entry<K, V>> action) {
         return MapOps.span(this, action);
     }
 
     @Override
-    public Tuple2<? extends WeakHashMap<K, V>, ? extends WeakHashMap<K, V>> splitAt(int n) {
+    public Tuple2<WeakHashMap<K, V>, WeakHashMap<K, V>> splitAt(int n) {
         return MapOps.splitAt(this, n);
     }
 
@@ -139,13 +139,13 @@ public class WeakHashMap<K, V> extends java.util.WeakHashMap<K, V> implements Ma
     }
 
     @Override
-    public <K0> WeakHashMap<K0, ? extends WeakHashMap<K, V>> groupBy(Function2<K, V, K0> action) {
-        return (WeakHashMap<K0, ? extends WeakHashMap<K, V>>) MapOps.groupBy(this, action);
+    public <K0> WeakHashMap<K0, WeakHashMap<K, V>> groupBy(Function2<K, V, K0> action) {
+        return (WeakHashMap<K0, WeakHashMap<K, V>>) MapOps.groupBy(this, action);
     }
 
     @Override
-    public <K0> WeakHashMap<K0, ? extends WeakHashMap<K, V>> groupBy(Function1<java.util.Map.Entry<K, V>, K0> action) {
-        return (WeakHashMap<K0, ? extends WeakHashMap<K, V>>) MapOps.groupBy(this, action);
+    public <K0> WeakHashMap<K0, WeakHashMap<K, V>> groupBy(Function1<java.util.Map.Entry<K, V>, K0> action) {
+        return (WeakHashMap<K0, WeakHashMap<K, V>>) MapOps.groupBy(this, action);
     }
 
     @Override

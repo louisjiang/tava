@@ -90,17 +90,17 @@ public class IdentityHashMap<K, V> extends java.util.IdentityHashMap<K, V> imple
     }
 
     @Override
-    public Tuple2<? extends IdentityHashMap<K, V>, ? extends IdentityHashMap<K, V>> span(Predicate2<K, V> action) {
+    public Tuple2<IdentityHashMap<K, V>, IdentityHashMap<K, V>> span(Predicate2<K, V> action) {
         return MapOps.span(this, action);
     }
 
     @Override
-    public Tuple2<? extends IdentityHashMap<K, V>, ? extends IdentityHashMap<K, V>> span(Predicate1<Entry<K, V>> action) {
+    public Tuple2<IdentityHashMap<K, V>, IdentityHashMap<K, V>> span(Predicate1<Entry<K, V>> action) {
         return MapOps.span(this, action);
     }
 
     @Override
-    public Tuple2<? extends IdentityHashMap<K, V>, ? extends IdentityHashMap<K, V>> splitAt(int n) {
+    public Tuple2<IdentityHashMap<K, V>, IdentityHashMap<K, V>> splitAt(int n) {
         return MapOps.splitAt(this, n);
     }
 
@@ -134,19 +134,19 @@ public class IdentityHashMap<K, V> extends java.util.IdentityHashMap<K, V> imple
         return MapOps.flatMap(this, action);
     }
 
-
     @Override
-    public <K0> IdentityHashMap<K0, ? extends IdentityHashMap<K, V>> groupBy(Function2<K, V, K0> action) {
-        return (IdentityHashMap<K0, ? extends IdentityHashMap<K, V>>) MapOps.groupBy(this, action);
+    public <K0> IdentityHashMap<K0, IdentityHashMap<K, V>> groupBy(Function2<K, V, K0> action) {
+        return (IdentityHashMap<K0, IdentityHashMap<K, V>>) MapOps.groupBy(this, action);
     }
 
     @Override
-    public <K0> IdentityHashMap<K0, ? extends IdentityHashMap<K, V>> groupBy(Function1<Entry<K, V>, K0> action) {
-        return (IdentityHashMap<K0, ? extends IdentityHashMap<K, V>>) MapOps.groupBy(this, action);
+    public <K0> IdentityHashMap<K0, IdentityHashMap<K, V>> groupBy(Function1<Entry<K, V>, K0> action) {
+        return (IdentityHashMap<K0, IdentityHashMap<K, V>>) MapOps.groupBy(this, action);
     }
 
     @Override
     public <K0, R> IdentityHashMap<K0, List<R>> groupMap(Function1<Entry<K, V>, K0> action, Function1<Entry<K, V>, R> mapAction) {
         return (IdentityHashMap<K0, List<R>>) MapOps.groupMap(this, action, mapAction);
     }
+
 }

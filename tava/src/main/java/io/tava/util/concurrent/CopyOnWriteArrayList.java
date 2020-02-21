@@ -2,14 +2,14 @@ package io.tava.util.concurrent;
 
 import io.tava.function.Function1;
 import io.tava.function.IndexedFunction1;
-import io.tava.lang.Tuple2;
-import io.tava.util.Map;
-import io.tava.util.builder.CopyOnWriteArrayListBuilder;
 import io.tava.function.Predicate1;
+import io.tava.lang.Tuple2;
 import io.tava.util.Collection;
 import io.tava.util.CollectionOps;
 import io.tava.util.List;
+import io.tava.util.Map;
 import io.tava.util.builder.CollectionBuilder;
+import io.tava.util.builder.CopyOnWriteArrayListBuilder;
 
 public class CopyOnWriteArrayList<E> extends java.util.concurrent.CopyOnWriteArrayList<E> implements List<E> {
 
@@ -24,7 +24,6 @@ public class CopyOnWriteArrayList<E> extends java.util.concurrent.CopyOnWriteArr
     public CopyOnWriteArrayList(E[] toCopyIn) {
         super(toCopyIn);
     }
-
 
     @Override
     public <E0, C0 extends Collection<E0>> CollectionBuilder<E0, C0> builder() {
@@ -98,11 +97,11 @@ public class CopyOnWriteArrayList<E> extends java.util.concurrent.CopyOnWriteArr
 
 
     @Override
-    public Tuple2<? extends CopyOnWriteArrayList<E>, ? extends CopyOnWriteArrayList<E>> span(Predicate1<E> action) {
+    public Tuple2<CopyOnWriteArrayList<E>, CopyOnWriteArrayList<E>> span(Predicate1<E> action) {
         return CollectionOps.span(this, action);
     }
 
-    public Tuple2<? extends CopyOnWriteArrayList<E>, ? extends CopyOnWriteArrayList<E>> splitAt(int n) {
+    public Tuple2<CopyOnWriteArrayList<E>, CopyOnWriteArrayList<E>> splitAt(int n) {
         return CollectionOps.splitAt(this, n);
     }
 
@@ -112,12 +111,12 @@ public class CopyOnWriteArrayList<E> extends java.util.concurrent.CopyOnWriteArr
     }
 
     @Override
-    public <K0> Map<K0, ? extends CopyOnWriteArrayList<E>> groupBy(Function1<E, K0> action) {
+    public <K0> Map<K0, CopyOnWriteArrayList<E>> groupBy(Function1<E, K0> action) {
         return CollectionOps.groupBy(this, action);
     }
 
     @Override
-    public <K0, R> Map<K0, ? extends CopyOnWriteArrayList<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
+    public <K0, R> Map<K0, CopyOnWriteArrayList<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
         return CollectionOps.groupMap(this, action, mapAction);
     }
 

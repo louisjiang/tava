@@ -140,6 +140,7 @@ public interface Map<K, V> extends java.util.Map<K, V>, Traversable<java.util.Ma
         return MapOps.flatMap(this, action);
     }
 
+    @Override
     default Collection<Tuple2<Entry<K, V>, Integer>> zipWithIndex() {
         return MapOps.zipWithIndex(this);
     }

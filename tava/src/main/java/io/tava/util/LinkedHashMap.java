@@ -23,9 +23,7 @@ public class LinkedHashMap<K, V> extends java.util.LinkedHashMap<K, V> implement
         super(m);
     }
 
-    public LinkedHashMap(int initialCapacity,
-                         float loadFactor,
-                         boolean accessOrder) {
+    public LinkedHashMap(int initialCapacity, float loadFactor, boolean accessOrder) {
         super(initialCapacity, loadFactor, accessOrder);
     }
 
@@ -100,17 +98,17 @@ public class LinkedHashMap<K, V> extends java.util.LinkedHashMap<K, V> implement
     }
 
     @Override
-    public Tuple2<? extends LinkedHashMap<K, V>, ? extends LinkedHashMap<K, V>> span(Predicate2<K, V> action) {
+    public Tuple2<LinkedHashMap<K, V>, LinkedHashMap<K, V>> span(Predicate2<K, V> action) {
         return MapOps.span(this, action);
     }
 
     @Override
-    public Tuple2<? extends LinkedHashMap<K, V>, ? extends LinkedHashMap<K, V>> span(Predicate1<java.util.Map.Entry<K, V>> action) {
+    public Tuple2<LinkedHashMap<K, V>, LinkedHashMap<K, V>> span(Predicate1<java.util.Map.Entry<K, V>> action) {
         return MapOps.span(this, action);
     }
 
     @Override
-    public Tuple2<? extends LinkedHashMap<K, V>, ? extends LinkedHashMap<K, V>> splitAt(int n) {
+    public Tuple2<LinkedHashMap<K, V>, LinkedHashMap<K, V>> splitAt(int n) {
         return MapOps.splitAt(this, n);
     }
 
@@ -145,17 +143,18 @@ public class LinkedHashMap<K, V> extends java.util.LinkedHashMap<K, V> implement
     }
 
     @Override
-    public <K0> LinkedHashMap<K0, ? extends LinkedHashMap<K, V>> groupBy(Function2<K, V, K0> action) {
-        return (LinkedHashMap<K0, ? extends LinkedHashMap<K, V>>) MapOps.groupBy(this, action);
+    public <K0> LinkedHashMap<K0, LinkedHashMap<K, V>> groupBy(Function2<K, V, K0> action) {
+        return (LinkedHashMap<K0, LinkedHashMap<K, V>>) MapOps.groupBy(this, action);
     }
 
     @Override
-    public <K0> LinkedHashMap<K0, ? extends LinkedHashMap<K, V>> groupBy(Function1<java.util.Map.Entry<K, V>, K0> action) {
-        return (LinkedHashMap<K0, ? extends LinkedHashMap<K, V>>) MapOps.groupBy(this, action);
+    public <K0> LinkedHashMap<K0, LinkedHashMap<K, V>> groupBy(Function1<java.util.Map.Entry<K, V>, K0> action) {
+        return (LinkedHashMap<K0, LinkedHashMap<K, V>>) MapOps.groupBy(this, action);
     }
 
     @Override
     public <K0, R> LinkedHashMap<K0, List<R>> groupMap(Function1<java.util.Map.Entry<K, V>, K0> action, Function1<java.util.Map.Entry<K, V>, R> mapAction) {
         return (LinkedHashMap<K0, List<R>>) MapOps.groupMap(this, action, mapAction);
     }
+
 }

@@ -88,25 +88,22 @@ public class CopyOnWriteArraySet<E> extends java.util.concurrent.CopyOnWriteArra
         return CollectionOps.zipWithIndex(this);
     }
 
-
     @Override
-    public Tuple2<? extends CopyOnWriteArraySet<E>, ? extends CopyOnWriteArraySet<E>> span(Predicate1<E> action) {
+    public Tuple2<CopyOnWriteArraySet<E>, CopyOnWriteArraySet<E>> span(Predicate1<E> action) {
         return CollectionOps.span(this, action);
     }
 
-    public Tuple2<? extends CopyOnWriteArraySet<E>, ? extends CopyOnWriteArraySet<E>> splitAt(int n) {
+    public Tuple2<CopyOnWriteArraySet<E>, CopyOnWriteArraySet<E>> splitAt(int n) {
         return CollectionOps.splitAt(this, n);
     }
 
-
     @Override
-    public <K0> Map<K0, ? extends CopyOnWriteArraySet<E>> groupBy(Function1<E, K0> action) {
+    public <K0> Map<K0, CopyOnWriteArraySet<E>> groupBy(Function1<E, K0> action) {
         return CollectionOps.groupBy(this, action);
     }
 
-
     @Override
-    public <K0, R> Map<K0, ? extends CopyOnWriteArraySet<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
+    public <K0, R> Map<K0, CopyOnWriteArraySet<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
         return CollectionOps.groupMap(this, action, mapAction);
     }
 
@@ -119,4 +116,5 @@ public class CopyOnWriteArraySet<E> extends java.util.concurrent.CopyOnWriteArra
     public CopyOnWriteArraySet<E> intersect(Collection<E> that) {
         return CollectionOps.intersect(this, that);
     }
+
 }

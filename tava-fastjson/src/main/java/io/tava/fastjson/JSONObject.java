@@ -101,53 +101,53 @@ public class JSONObject extends com.alibaba.fastjson.JSONObject implements Map<S
     }
 
     @Override
-    public Tuple2<? extends JSONObject, ? extends JSONObject> span(Predicate2<String, Object> action) {
+    public Tuple2<JSONObject, JSONObject> span(Predicate2<String, Object> action) {
         return MapOps.span(this, action);
     }
 
     @Override
-    public Tuple2<? extends JSONObject, ? extends JSONObject> span(Predicate1<Entry<String, Object>> action) {
+    public Tuple2<JSONObject, JSONObject> span(Predicate1<Entry<String, Object>> action) {
         return MapOps.span(this, action);
     }
 
     @Override
-    public Tuple2<? extends JSONObject, ? extends JSONObject> splitAt(int n) {
+    public Tuple2<JSONObject, JSONObject> splitAt(int n) {
         return MapOps.splitAt(this, n);
     }
 
     @Override
     public <K0, V0> Map<K0, V0> map(Function2<String, Object, Tuple2<K0, V0>> action) {
-        return null;
+        return MapOps.map(this, action);
     }
 
     @Override
     public <K0, V0> Map<K0, V0> mapWithIndex(IndexedFunction2<String, Object, Entry<K0, V0>> action) {
-        return null;
+        return MapOps.mapWithIndex(this, action);
     }
 
     @Override
     public <K0, V0> Map<K0, V0> flatMap(Function1<Entry<String, Object>, Map<K0, V0>> action) {
-        return null;
+        return MapOps.flatMap(this, action);
     }
 
     @Override
     public <K0, V0> Map<K0, V0> flatMap(Function2<String, Object, Map<K0, V0>> action) {
-        return null;
+        return MapOps.flatMap(this, action);
     }
 
     @Override
-    public <K0> Map<K0, ? extends JSONObject> groupBy(Function2<String, Object, K0> action) {
+    public <K0> Map<K0, JSONObject> groupBy(Function2<String, Object, K0> action) {
         return MapOps.groupBy(this, action);
     }
 
     @Override
-    public <K0> Map<K0, ? extends JSONObject> groupBy(Function1<Entry<String, Object>, K0> action) {
+    public <K0> Map<K0, JSONObject> groupBy(Function1<Entry<String, Object>, K0> action) {
         return MapOps.groupBy(this, action);
     }
 
     @Override
     public <K0, R> Map<K0, List<R>> groupMap(Function1<Entry<String, Object>, K0> action, Function1<Entry<String, Object>, R> mapAction) {
-        return MapOps.groupMap(this,action,mapAction);
+        return MapOps.groupMap(this, action, mapAction);
     }
 
 }

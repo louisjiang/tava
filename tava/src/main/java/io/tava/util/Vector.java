@@ -2,10 +2,10 @@ package io.tava.util;
 
 import io.tava.function.Function1;
 import io.tava.function.IndexedFunction1;
-import io.tava.lang.Tuple2;
-import io.tava.util.builder.VectorBuilder;
 import io.tava.function.Predicate1;
+import io.tava.lang.Tuple2;
 import io.tava.util.builder.CollectionBuilder;
+import io.tava.util.builder.VectorBuilder;
 
 public class Vector<E> extends java.util.Vector<E> implements List<E> {
 
@@ -97,12 +97,12 @@ public class Vector<E> extends java.util.Vector<E> implements List<E> {
 
 
     @Override
-    public Tuple2<? extends Vector<E>, ? extends Vector<E>> span(Predicate1<E> action) {
+    public Tuple2<Vector<E>, Vector<E>> span(Predicate1<E> action) {
         return CollectionOps.span(this, action);
     }
 
     @Override
-    public Tuple2<? extends Vector<E>, ? extends Vector<E>> splitAt(int n) {
+    public Tuple2<Vector<E>, Vector<E>> splitAt(int n) {
         return CollectionOps.splitAt(this, n);
     }
 
@@ -112,12 +112,12 @@ public class Vector<E> extends java.util.Vector<E> implements List<E> {
     }
 
     @Override
-    public <K0> Map<K0, ? extends Vector<E>> groupBy(Function1<E, K0> action) {
+    public <K0> Map<K0, Vector<E>> groupBy(Function1<E, K0> action) {
         return CollectionOps.groupBy(this, action);
     }
 
     @Override
-    public <K0, R> Map<K0, ? extends Vector<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
+    public <K0, R> Map<K0, Vector<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
         return CollectionOps.groupMap(this, action, mapAction);
     }
 

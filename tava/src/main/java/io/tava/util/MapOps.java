@@ -181,11 +181,11 @@ public final class MapOps {
         return take(drop(map, lo), until - lo);
     }
 
-    public static <K, V, M extends Map<K, V>> Tuple2<? extends M, ? extends M> span(M map, Predicate2<K, V> action) {
+    public static <K, V, M extends Map<K, V>> Tuple2<M, M> span(M map, Predicate2<K, V> action) {
         return span(map, entry -> action.test(entry.getKey(), entry.getValue()));
     }
 
-    public static <K, V, M extends Map<K, V>> Tuple2<? extends M, ? extends M> span(M map, Predicate1<java.util.Map.Entry<K, V>> action) {
+    public static <K, V, M extends Map<K, V>> Tuple2<M, M> span(M map, Predicate1<java.util.Map.Entry<K, V>> action) {
         MapBuilder<K, V, M> leftBuilder = map.builder();
         MapBuilder<K, V, M> rightBuilder = map.builder();
         if (map.isEmpty()) {
@@ -208,7 +208,7 @@ public final class MapOps {
         return Tuple.of(leftBuilder.build(), rightBuilder.build());
     }
 
-    public static <K, V, M extends Map<K, V>> Tuple2<? extends M, ? extends M> splitAt(M map, int n) {
+    public static <K, V, M extends Map<K, V>> Tuple2<M, M> splitAt(M map, int n) {
         MapBuilder<K, V, M> leftBuilder = map.builder();
         MapBuilder<K, V, M> rightBuilder = map.builder();
         if (map.isEmpty()) {

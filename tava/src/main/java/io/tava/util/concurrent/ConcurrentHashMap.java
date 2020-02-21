@@ -18,11 +18,9 @@ public class ConcurrentHashMap<K, V> extends java.util.concurrent.ConcurrentHash
         super(initialCapacity);
     }
 
-
     public ConcurrentHashMap(java.util.Map<? extends K, ? extends V> m) {
         super(m);
     }
-
 
     public ConcurrentHashMap(int initialCapacity, float loadFactor) {
         super(initialCapacity, loadFactor);
@@ -103,17 +101,17 @@ public class ConcurrentHashMap<K, V> extends java.util.concurrent.ConcurrentHash
     }
 
     @Override
-    public Tuple2<? extends ConcurrentHashMap<K, V>, ? extends ConcurrentHashMap<K, V>> span(Predicate2<K, V> action) {
+    public Tuple2<ConcurrentHashMap<K, V>, ConcurrentHashMap<K, V>> span(Predicate2<K, V> action) {
         return MapOps.span(this, action);
     }
 
     @Override
-    public Tuple2<? extends ConcurrentHashMap<K, V>, ? extends ConcurrentHashMap<K, V>> span(Predicate1<Entry<K, V>> action) {
+    public Tuple2<ConcurrentHashMap<K, V>, ConcurrentHashMap<K, V>> span(Predicate1<Entry<K, V>> action) {
         return MapOps.span(this, action);
     }
 
     @Override
-    public Tuple2<? extends ConcurrentHashMap<K, V>, ? extends ConcurrentHashMap<K, V>> splitAt(int n) {
+    public Tuple2<ConcurrentHashMap<K, V>, ConcurrentHashMap<K, V>> splitAt(int n) {
         return MapOps.splitAt(this, n);
     }
 
@@ -148,13 +146,13 @@ public class ConcurrentHashMap<K, V> extends java.util.concurrent.ConcurrentHash
     }
 
     @Override
-    public <K0> ConcurrentHashMap<K0, ? extends ConcurrentHashMap<K, V>> groupBy(Function2<K, V, K0> action) {
-        return (ConcurrentHashMap<K0, ? extends ConcurrentHashMap<K, V>>) MapOps.groupBy(this, action);
+    public <K0> ConcurrentHashMap<K0, ConcurrentHashMap<K, V>> groupBy(Function2<K, V, K0> action) {
+        return (ConcurrentHashMap<K0, ConcurrentHashMap<K, V>>) MapOps.groupBy(this, action);
     }
 
     @Override
-    public <K0> ConcurrentHashMap<K0, ? extends ConcurrentHashMap<K, V>> groupBy(Function1<Entry<K, V>, K0> action) {
-        return (ConcurrentHashMap<K0, ? extends ConcurrentHashMap<K, V>>) MapOps.groupBy(this, action);
+    public <K0> ConcurrentHashMap<K0, ConcurrentHashMap<K, V>> groupBy(Function1<Entry<K, V>, K0> action) {
+        return (ConcurrentHashMap<K0, ConcurrentHashMap<K, V>>) MapOps.groupBy(this, action);
     }
 
     @Override

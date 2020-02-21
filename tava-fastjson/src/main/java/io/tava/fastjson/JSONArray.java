@@ -76,7 +76,6 @@ public class JSONArray extends com.alibaba.fastjson.JSONArray implements List<Ob
         return CollectionOps.slice(this, from, until);
     }
 
-
     @Override
     public <R> List<R> map(Function1<Object, R> action) {
         return CollectionOps.map(this, action);
@@ -97,13 +96,12 @@ public class JSONArray extends com.alibaba.fastjson.JSONArray implements List<Ob
         return CollectionOps.zipWithIndex(this);
     }
 
-
     @Override
-    public Tuple2<? extends JSONArray, ? extends JSONArray> span(Predicate1<Object> action) {
+    public Tuple2<JSONArray, JSONArray> span(Predicate1<Object> action) {
         return CollectionOps.span(this, action);
     }
 
-    public Tuple2<? extends JSONArray, ? extends JSONArray> splitAt(int n) {
+    public Tuple2<JSONArray, JSONArray> splitAt(int n) {
         return CollectionOps.splitAt(this, n);
     }
 
@@ -112,7 +110,7 @@ public class JSONArray extends com.alibaba.fastjson.JSONArray implements List<Ob
     }
 
     @Override
-    public <K> Map<K, ? extends JSONArray> groupBy(Function1<Object, K> action) {
+    public <K> Map<K, JSONArray> groupBy(Function1<Object, K> action) {
         return CollectionOps.groupBy(this, action);
     }
 

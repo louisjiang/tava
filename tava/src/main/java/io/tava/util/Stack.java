@@ -83,14 +83,13 @@ public class Stack<E> extends java.util.Stack<E> implements List<E> {
         return CollectionOps.zipWithIndex(this);
     }
 
-
     @Override
-    public Tuple2<? extends Stack<E>, ? extends Stack<E>> span(Predicate1<E> action) {
+    public Tuple2<Stack<E>, Stack<E>> span(Predicate1<E> action) {
         return CollectionOps.span(this, action);
     }
 
     @Override
-    public Tuple2<? extends Stack<E>, ? extends Stack<E>> splitAt(int n) {
+    public Tuple2<Stack<E>, Stack<E>> splitAt(int n) {
         return CollectionOps.splitAt(this, n);
     }
 
@@ -100,12 +99,12 @@ public class Stack<E> extends java.util.Stack<E> implements List<E> {
     }
 
     @Override
-    public <K0> Map<K0, ? extends Stack<E>> groupBy(Function1<E, K0> action) {
+    public <K0> Map<K0, Stack<E>> groupBy(Function1<E, K0> action) {
         return CollectionOps.groupBy(this, action);
     }
 
     @Override
-    public <K0, R> Map<K0, ? extends Stack<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
+    public <K0, R> Map<K0, Stack<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
         return CollectionOps.groupMap(this, action, mapAction);
     }
 

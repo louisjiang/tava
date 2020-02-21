@@ -95,23 +95,23 @@ public class HashSet<E> extends java.util.HashSet<E> implements Set<E> {
         return CollectionOps.zipWithIndex(this);
     }
 
-
     @Override
-    public Tuple2<? extends HashSet<E>, ? extends HashSet<E>> span(Predicate1<E> action) {
+    public Tuple2<HashSet<E>, HashSet<E>> span(Predicate1<E> action) {
         return CollectionOps.span(this, action);
     }
 
-    public Tuple2<? extends HashSet<E>, ? extends HashSet<E>> splitAt(int n) {
+    @Override
+    public Tuple2<HashSet<E>, HashSet<E>> splitAt(int n) {
         return CollectionOps.splitAt(this, n);
     }
 
     @Override
-    public <K0> Map<K0, ? extends HashSet<E>> groupBy(Function1<E, K0> action) {
+    public <K0> Map<K0, HashSet<E>> groupBy(Function1<E, K0> action) {
         return CollectionOps.groupBy(this, action);
     }
 
     @Override
-    public <K0, R> Map<K0, ? extends HashSet<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
+    public <K0, R> Map<K0, HashSet<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
         return CollectionOps.groupMap(this, action, mapAction);
     }
 
@@ -124,4 +124,5 @@ public class HashSet<E> extends java.util.HashSet<E> implements Set<E> {
     public HashSet<E> intersect(Collection<E> that) {
         return CollectionOps.intersect(this, that);
     }
+
 }

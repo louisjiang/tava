@@ -98,21 +98,22 @@ public class TreeSet<E> extends java.util.TreeSet<E> implements NavigableSet<E> 
     }
 
     @Override
-    public Tuple2<? extends TreeSet<E>, ? extends TreeSet<E>> span(Predicate1<E> action) {
+    public Tuple2<TreeSet<E>, TreeSet<E>> span(Predicate1<E> action) {
         return CollectionOps.span(this, action);
     }
 
-    public Tuple2<? extends TreeSet<E>, ? extends TreeSet<E>> splitAt(int n) {
+    @Override
+    public Tuple2<TreeSet<E>, TreeSet<E>> splitAt(int n) {
         return CollectionOps.splitAt(this, n);
     }
 
     @Override
-    public <K0> Map<K0, ? extends TreeSet<E>> groupBy(Function1<E, K0> action) {
+    public <K0> Map<K0, TreeSet<E>> groupBy(Function1<E, K0> action) {
         return CollectionOps.groupBy(this, action);
     }
 
     @Override
-    public <K0, R> Map<K0, ? extends TreeSet<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
+    public <K0, R> Map<K0, TreeSet<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
         return CollectionOps.groupMap(this, action, mapAction);
     }
 

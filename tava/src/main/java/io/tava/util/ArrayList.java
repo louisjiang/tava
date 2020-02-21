@@ -91,14 +91,13 @@ public class ArrayList<E> extends java.util.ArrayList<E> implements List<E> {
         return CollectionOps.zipWithIndex(this);
     }
 
-
     @Override
-    public Tuple2<? extends ArrayList<E>, ? extends ArrayList<E>> span(Predicate1<E> action) {
+    public Tuple2<ArrayList<E>, ArrayList<E>> span(Predicate1<E> action) {
         return CollectionOps.span(this, action);
     }
 
     @Override
-    public Tuple2<? extends ArrayList<E>, ? extends ArrayList<E>> splitAt(int n) {
+    public Tuple2<ArrayList<E>, ArrayList<E>> splitAt(int n) {
         return CollectionOps.splitAt(this, n);
     }
 
@@ -108,12 +107,12 @@ public class ArrayList<E> extends java.util.ArrayList<E> implements List<E> {
     }
 
     @Override
-    public <K0> Map<K0, ? extends ArrayList<E>> groupBy(Function1<E, K0> action) {
+    public <K0> Map<K0, ArrayList<E>> groupBy(Function1<E, K0> action) {
         return CollectionOps.groupBy(this, action);
     }
 
     @Override
-    public <K0, R> Map<K0, ? extends ArrayList<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
+    public <K0, R> Map<K0, ArrayList<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
         return CollectionOps.groupMap(this, action, mapAction);
     }
 

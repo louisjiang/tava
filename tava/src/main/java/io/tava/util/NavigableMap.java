@@ -127,6 +127,7 @@ public interface NavigableMap<K, V> extends java.util.NavigableMap<K, V>, Sorted
 
     @Override
     default <K0, R> NavigableMap<K0, List<R>> groupMap(Function1<Entry<K, V>, K0> action, Function1<Entry<K, V>, R> mapAction) {
-        return (NavigableMap<K0, List<R>>) MapOps.groupMap(this, action,mapAction);
+        return (NavigableMap<K0, List<R>>) MapOps.groupMap(this, action, mapAction);
     }
+
 }

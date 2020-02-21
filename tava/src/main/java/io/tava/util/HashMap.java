@@ -94,20 +94,19 @@ public class HashMap<K, V> extends java.util.HashMap<K, V> implements Map<K, V> 
     }
 
     @Override
-    public Tuple2<? extends HashMap<K, V>, ? extends HashMap<K, V>> span(Predicate2<K, V> action) {
+    public Tuple2<HashMap<K, V>, HashMap<K, V>> span(Predicate2<K, V> action) {
         return MapOps.span(this, action);
     }
 
     @Override
-    public Tuple2<? extends HashMap<K, V>, ? extends HashMap<K, V>> span(Predicate1<Entry<K, V>> action) {
+    public Tuple2<HashMap<K, V>, HashMap<K, V>> span(Predicate1<Entry<K, V>> action) {
         return MapOps.span(this, action);
     }
 
     @Override
-    public Tuple2<? extends HashMap<K, V>, ? extends HashMap<K, V>> splitAt(int n) {
+    public Tuple2<HashMap<K, V>, HashMap<K, V>> splitAt(int n) {
         return MapOps.splitAt(this, n);
     }
-
 
     @Override
     public <K0, V0> HashMap<K0, V0> map(Function1<Entry<K, V>, Tuple2<K0, V0>> action) {
@@ -140,13 +139,13 @@ public class HashMap<K, V> extends java.util.HashMap<K, V> implements Map<K, V> 
     }
 
     @Override
-    public <K0> HashMap<K0, ? extends HashMap<K, V>> groupBy(Function2<K, V, K0> action) {
-        return (HashMap<K0, ? extends HashMap<K, V>>) MapOps.groupBy(this, action);
+    public <K0> HashMap<K0, HashMap<K, V>> groupBy(Function2<K, V, K0> action) {
+        return (HashMap<K0, HashMap<K, V>>) MapOps.groupBy(this, action);
     }
 
     @Override
-    public <K0> HashMap<K0, ? extends HashMap<K, V>> groupBy(Function1<Entry<K, V>, K0> action) {
-        return (HashMap<K0, ? extends HashMap<K, V>>) MapOps.groupBy(this, action);
+    public <K0> HashMap<K0, HashMap<K, V>> groupBy(Function1<Entry<K, V>, K0> action) {
+        return (HashMap<K0, HashMap<K, V>>) MapOps.groupBy(this, action);
     }
 
     @Override

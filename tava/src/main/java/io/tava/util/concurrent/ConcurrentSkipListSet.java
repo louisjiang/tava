@@ -103,21 +103,22 @@ public class ConcurrentSkipListSet<E> extends java.util.concurrent.ConcurrentSki
     }
 
     @Override
-    public Tuple2<? extends ConcurrentSkipListSet<E>, ? extends ConcurrentSkipListSet<E>> span(Predicate1<E> action) {
+    public Tuple2<ConcurrentSkipListSet<E>, ConcurrentSkipListSet<E>> span(Predicate1<E> action) {
         return CollectionOps.span(this, action);
     }
 
-    public Tuple2<? extends ConcurrentSkipListSet<E>, ? extends ConcurrentSkipListSet<E>> splitAt(int n) {
+    @Override
+    public Tuple2<ConcurrentSkipListSet<E>, ConcurrentSkipListSet<E>> splitAt(int n) {
         return CollectionOps.splitAt(this, n);
     }
 
     @Override
-    public <K0> Map<K0, ? extends ConcurrentSkipListSet<E>> groupBy(Function1<E, K0> action) {
+    public <K0> Map<K0, ConcurrentSkipListSet<E>> groupBy(Function1<E, K0> action) {
         return CollectionOps.groupBy(this, action);
     }
 
     @Override
-    public <K0, R> Map<K0, ? extends ConcurrentSkipListSet<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
+    public <K0, R> Map<K0, ConcurrentSkipListSet<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
         return CollectionOps.groupMap(this, action, mapAction);
     }
 
@@ -130,4 +131,5 @@ public class ConcurrentSkipListSet<E> extends java.util.concurrent.ConcurrentSki
     public ConcurrentSkipListSet<E> intersect(Collection<E> that) {
         return CollectionOps.intersect(this, that);
     }
+
 }
