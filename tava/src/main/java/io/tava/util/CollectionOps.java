@@ -2,6 +2,7 @@ package io.tava.util;
 
 import io.tava.function.*;
 import io.tava.lang.Option;
+import io.tava.lang.Tuple;
 import io.tava.lang.Tuple2;
 import io.tava.util.builder.CollectionBuilder;
 
@@ -335,4 +336,30 @@ public final class CollectionOps {
     }
 
 
+    public static <E, C extends Collection<E>> C diff(C collection, Collection<E> that) {
+        Map<E, Integer> map = that.groupBy(item -> item).map((key, values) -> Tuple.of(key, values.size()));
+        CollectionBuilder<E, C> builder = collection.builder();
+        for (E e : collection) {
+            Integer count = map.get(e);
+            if (count == null || count == 0) {
+                builder.add(e);
+            } else {
+                map.put(e, --count);
+            }
+        }
+        return builder.build();
+    }
+
+    public static <E, C extends Collection<E>> C intersect(C collection, Collection<E> that) {
+        Map<E, Integer> map = that.groupBy(item -> item).map((key, values) -> Tuple.of(key, values.size()));
+        CollectionBuilder<E, C> builder = collection.builder();
+        for (E e : collection) {
+            Integer count = map.get(e);
+            if (count != null && count > 0) {
+                builder.add(e);
+                map.put(e, --count);
+            }
+        }
+        return builder.build();
+    }
 }

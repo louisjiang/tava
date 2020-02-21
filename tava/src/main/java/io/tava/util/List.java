@@ -88,6 +88,21 @@ public interface List<E> extends Collection<E>, java.util.List<E> {
         return CollectionOps.groupBy(this, action);
     }
 
+    @Override
+    default <K0, R> Map<K0, ? extends List<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
+        return CollectionOps.groupMap(this, action, mapAction);
+    }
+
+    @Override
+    default List<E> diff(Collection<E> that) {
+        return CollectionOps.diff(this, that);
+    }
+
+    @Override
+    default List<E> intersect(Collection<E> that) {
+        return CollectionOps.intersect(this, that);
+    }
+
     default List<E> reverse() {
         return CollectionOps.reverse(this);
     }

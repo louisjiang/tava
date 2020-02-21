@@ -139,17 +139,17 @@ public class WeakHashMap<K, V> extends java.util.WeakHashMap<K, V> implements Ma
     }
 
     @Override
-    public <K0> Map<K0, ? extends WeakHashMap<K, V>> groupBy(Function2<K, V, K0> action) {
-        return MapOps.groupBy(this, action);
+    public <K0> WeakHashMap<K0, ? extends WeakHashMap<K, V>> groupBy(Function2<K, V, K0> action) {
+        return (WeakHashMap<K0, ? extends WeakHashMap<K, V>>) MapOps.groupBy(this, action);
     }
 
     @Override
-    public <K0> Map<K0, ? extends WeakHashMap<K, V>> groupBy(Function1<java.util.Map.Entry<K, V>, K0> action) {
-        return MapOps.groupBy(this, action);
+    public <K0> WeakHashMap<K0, ? extends WeakHashMap<K, V>> groupBy(Function1<java.util.Map.Entry<K, V>, K0> action) {
+        return (WeakHashMap<K0, ? extends WeakHashMap<K, V>>) MapOps.groupBy(this, action);
     }
 
     @Override
-    public <K0, R> Map<K0, List<R>> groupMap(Function1<java.util.Map.Entry<K, V>, K0> action, Function1<java.util.Map.Entry<K, V>, R> mapAction) {
-        return MapOps.groupMap(this, action, mapAction);
+    public <K0, R> WeakHashMap<K0, List<R>> groupMap(Function1<java.util.Map.Entry<K, V>, K0> action, Function1<java.util.Map.Entry<K, V>, R> mapAction) {
+        return (WeakHashMap<K0, List<R>>) MapOps.groupMap(this, action, mapAction);
     }
 }

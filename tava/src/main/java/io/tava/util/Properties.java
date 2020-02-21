@@ -94,4 +94,18 @@ public class Properties extends java.util.Properties implements Map<Object, Obje
         return MapOps.splitAt(this, n);
     }
 
+    @Override
+    public <K0> Map<K0, ? extends Properties> groupBy(Function2<Object, Object, K0> action) {
+        return MapOps.groupBy(this, action);
+    }
+
+    @Override
+    public <K0> Map<K0, ? extends Properties> groupBy(Function1<java.util.Map.Entry<Object, Object>, K0> action) {
+        return MapOps.groupBy(this, action);
+    }
+
+    @Override
+    public <K0, R> Map<K0, List<R>> groupMap(Function1<java.util.Map.Entry<Object, Object>, K0> action, Function1<java.util.Map.Entry<Object, Object>, R> mapAction) {
+        return MapOps.groupMap(this, action, mapAction);
+    }
 }

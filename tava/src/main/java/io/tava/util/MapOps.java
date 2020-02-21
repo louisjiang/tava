@@ -387,12 +387,12 @@ public final class MapOps {
         return entry0;
     }
 
-    public static <K, V, M extends Map<K, V>, K0> Map<K0, M> groupBy(M map, Function2<K, V, K0> action) {
+    public static <K, V, M extends Map<K, V>, K0, M0 extends Map<K0, M>> M0 groupBy(M map, Function2<K, V, K0> action) {
         return groupBy(map, entry -> action.apply(entry.getKey(), entry.getValue()));
     }
 
-    public static <K, V, M extends Map<K, V>, K0> Map<K0, M> groupBy(M map, Function1<java.util.Map.Entry<K, V>, K0> action) {
-        Map<K0, M> map0 = map.<K0, M, Map<K0, M>>builder().build();
+    public static <K, V, M extends Map<K, V>, K0, M0 extends Map<K0, M>> M0 groupBy(M map, Function1<java.util.Map.Entry<K, V>, K0> action) {
+        M0 map0 = map.<K0, M, M0>builder().build();
         java.util.Set<java.util.Map.Entry<K, V>> entries = map.entrySet();
         for (java.util.Map.Entry<K, V> entry : entries) {
             K0 key = action.apply(entry);

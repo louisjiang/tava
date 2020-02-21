@@ -103,4 +103,20 @@ public class Stack<E> extends java.util.Stack<E> implements List<E> {
     public <K0> Map<K0, ? extends Stack<E>> groupBy(Function1<E, K0> action) {
         return CollectionOps.groupBy(this, action);
     }
+
+    @Override
+    public <K0, R> Map<K0, ? extends Stack<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
+        return CollectionOps.groupMap(this, action, mapAction);
+    }
+
+    @Override
+    public Stack<E> diff(Collection<E> that) {
+        return CollectionOps.diff(this, that);
+    }
+
+    @Override
+    public Stack<E> intersect(Collection<E> that) {
+        return CollectionOps.intersect(this, that);
+    }
+
 }

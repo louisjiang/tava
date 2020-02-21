@@ -1,14 +1,10 @@
 package io.tava.util.concurrent;
 
 import io.tava.function.*;
-import io.tava.lang.Option;
 import io.tava.lang.Tuple2;
-import io.tava.util.Collection;
+import io.tava.util.List;
 import io.tava.util.Map;
 import io.tava.util.MapOps;
-import io.tava.util.NavigableMap;
-
-import java.util.Optional;
 
 public interface ConcurrentMap<K, V> extends java.util.concurrent.ConcurrentMap<K, V>, Map<K, V> {
 
@@ -122,4 +118,18 @@ public interface ConcurrentMap<K, V> extends java.util.concurrent.ConcurrentMap<
         return MapOps.flatMap(this, action);
     }
 
+    @Override
+    default <K0> ConcurrentMap<K0, ? extends ConcurrentMap<K, V>> groupBy(Function2<K, V, K0> action) {
+        return (ConcurrentMap<K0, ? extends ConcurrentMap<K, V>>) MapOps.groupBy(this, action);
+    }
+
+    @Override
+    default <K0> ConcurrentMap<K0, ? extends ConcurrentMap<K, V>> groupBy(Function1<Entry<K, V>, K0> action) {
+        return (ConcurrentMap<K0, ? extends ConcurrentMap<K, V>>) MapOps.groupBy(this, action);
+    }
+
+    @Override
+    default <K0, R> ConcurrentMap<K0, List<R>> groupMap(Function1<Entry<K, V>, K0> action, Function1<Entry<K, V>, R> mapAction) {
+        return (ConcurrentMap<K0, List<R>>) MapOps.groupMap(this, action, mapAction);
+    }
 }

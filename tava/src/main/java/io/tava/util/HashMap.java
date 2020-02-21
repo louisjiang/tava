@@ -139,4 +139,19 @@ public class HashMap<K, V> extends java.util.HashMap<K, V> implements Map<K, V> 
         return MapOps.flatMap(this, action);
     }
 
+    @Override
+    public <K0> HashMap<K0, ? extends HashMap<K, V>> groupBy(Function2<K, V, K0> action) {
+        return (HashMap<K0, ? extends HashMap<K, V>>) MapOps.groupBy(this, action);
+    }
+
+    @Override
+    public <K0> HashMap<K0, ? extends HashMap<K, V>> groupBy(Function1<Entry<K, V>, K0> action) {
+        return (HashMap<K0, ? extends HashMap<K, V>>) MapOps.groupBy(this, action);
+    }
+
+    @Override
+    public <K0, R> HashMap<K0, List<R>> groupMap(Function1<Entry<K, V>, K0> action, Function1<Entry<K, V>, R> mapAction) {
+        return (HashMap<K0, List<R>>) MapOps.groupMap(this, action, mapAction);
+    }
+
 }

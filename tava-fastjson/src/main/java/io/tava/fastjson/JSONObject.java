@@ -3,6 +3,7 @@ package io.tava.fastjson;
 import io.tava.fastjson.builder.JSONObjectBuilder;
 import io.tava.function.*;
 import io.tava.lang.Tuple2;
+import io.tava.util.List;
 import io.tava.util.Map;
 import io.tava.util.MapOps;
 import io.tava.util.builder.MapBuilder;
@@ -132,6 +133,21 @@ public class JSONObject extends com.alibaba.fastjson.JSONObject implements Map<S
     @Override
     public <K0, V0> Map<K0, V0> flatMap(Function2<String, Object, Map<K0, V0>> action) {
         return null;
+    }
+
+    @Override
+    public <K0> Map<K0, ? extends JSONObject> groupBy(Function2<String, Object, K0> action) {
+        return MapOps.groupBy(this, action);
+    }
+
+    @Override
+    public <K0> Map<K0, ? extends JSONObject> groupBy(Function1<Entry<String, Object>, K0> action) {
+        return MapOps.groupBy(this, action);
+    }
+
+    @Override
+    public <K0, R> Map<K0, List<R>> groupMap(Function1<Entry<String, Object>, K0> action, Function1<Entry<String, Object>, R> mapAction) {
+        return MapOps.groupMap(this,action,mapAction);
     }
 
 }

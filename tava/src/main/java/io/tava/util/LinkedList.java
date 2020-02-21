@@ -104,4 +104,20 @@ public class LinkedList<E> extends java.util.LinkedList<E> implements List<E> {
     public <K0> Map<K0, ? extends LinkedList<E>> groupBy(Function1<E, K0> action) {
         return CollectionOps.groupBy(this, action);
     }
+
+    @Override
+    public <K0, R> Map<K0, ? extends LinkedList<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
+        return CollectionOps.groupMap(this, action, mapAction);
+    }
+
+    @Override
+    public LinkedList<E> diff(Collection<E> that) {
+        return CollectionOps.diff(this, that);
+    }
+
+    @Override
+    public LinkedList<E> intersect(Collection<E> that) {
+        return CollectionOps.intersect(this, that);
+    }
+
 }

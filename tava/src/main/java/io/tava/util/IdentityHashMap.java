@@ -134,4 +134,19 @@ public class IdentityHashMap<K, V> extends java.util.IdentityHashMap<K, V> imple
         return MapOps.flatMap(this, action);
     }
 
+
+    @Override
+    public <K0> IdentityHashMap<K0, ? extends IdentityHashMap<K, V>> groupBy(Function2<K, V, K0> action) {
+        return (IdentityHashMap<K0, ? extends IdentityHashMap<K, V>>) MapOps.groupBy(this, action);
+    }
+
+    @Override
+    public <K0> IdentityHashMap<K0, ? extends IdentityHashMap<K, V>> groupBy(Function1<Entry<K, V>, K0> action) {
+        return (IdentityHashMap<K0, ? extends IdentityHashMap<K, V>>) MapOps.groupBy(this, action);
+    }
+
+    @Override
+    public <K0, R> IdentityHashMap<K0, List<R>> groupMap(Function1<Entry<K, V>, K0> action, Function1<Entry<K, V>, R> mapAction) {
+        return (IdentityHashMap<K0, List<R>>) MapOps.groupMap(this, action, mapAction);
+    }
 }

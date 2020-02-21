@@ -1,17 +1,13 @@
 package io.tave.test;
 
-import io.tava.function.Function1;
+import io.tava.function.Function2;
 import io.tava.lang.Option;
 import io.tava.lang.Tuple;
 import io.tava.lang.Tuple2;
-import io.tava.util.ArrayList;
-import io.tava.util.List;
-import io.tava.util.Map;
+import io.tava.util.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.util.Optional;
 
 public class ListTest {
 
@@ -29,6 +25,60 @@ public class ListTest {
         list.add("e");
         list.add("e");
     }
+
+    @Test
+    public void testIntersect() {
+        List<String> list1 = new ArrayList<>();
+        list1.add("a");
+        list1.add("a");
+        list1.add("b");
+        list1.add("vb");
+
+        list1.groupBy(item -> item).map((key, values) -> Tuple.of(key, values.size()));
+
+
+        Collection<String> intersect = list.intersect(list1);
+        Collection<String> intersect1 = list1.intersect(list);
+
+
+        List<String> a = new ArrayList<>();
+        a.add("a");
+        a.add("a");
+        a.add("b");
+
+        Assertions.assertIterableEquals(intersect, a);
+        Assertions.assertIterableEquals(intersect1, a);
+
+
+    }
+
+    @Test
+    public void testDiff() {
+        List<String> list1 = new ArrayList<>();
+        list1.add("a");
+        list1.add("a");
+        list1.add("b");
+        list1.add("vb");
+
+        Collection<String> diff = list.diff(list1);
+        List<String> a = new ArrayList<>();
+        a.add("a");
+        a.add("c");
+        a.add("d");
+        a.add("a");
+        a.add("e");
+        a.add("e");
+        Assertions.assertIterableEquals(diff, a);
+
+        Collection<String> diff1 = list1.diff(list);
+        List<String> a1 = new ArrayList<>();
+        a1.add("vb");
+
+        Assertions.assertIterableEquals(diff1, a1);
+
+
+    }
+
 
     @Test
     public void testFilter() {

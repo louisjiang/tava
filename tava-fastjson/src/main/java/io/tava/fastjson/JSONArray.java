@@ -9,6 +9,7 @@ import io.tava.lang.Tuple2;
 import io.tava.util.Collection;
 import io.tava.util.CollectionOps;
 import io.tava.util.List;
+import io.tava.util.Map;
 import io.tava.util.builder.CollectionBuilder;
 
 public class JSONArray extends com.alibaba.fastjson.JSONArray implements List<Object> {
@@ -110,4 +111,23 @@ public class JSONArray extends com.alibaba.fastjson.JSONArray implements List<Ob
         return CollectionOps.reverse(this);
     }
 
+    @Override
+    public <K> Map<K, ? extends JSONArray> groupBy(Function1<Object, K> action) {
+        return CollectionOps.groupBy(this, action);
+    }
+
+    @Override
+    public <K0, R> Map<K0, ? extends List<R>> groupMap(Function1<Object, K0> action, Function1<Object, R> mapAction) {
+        return CollectionOps.groupMap(this, action, mapAction);
+    }
+
+    @Override
+    public JSONArray diff(Collection<Object> that) {
+        return CollectionOps.diff(this, that);
+    }
+
+    @Override
+    public JSONArray intersect(Collection<Object> that) {
+        return CollectionOps.intersect(this, that);
+    }
 }

@@ -116,4 +116,18 @@ public class ConcurrentSkipListSet<E> extends java.util.concurrent.ConcurrentSki
         return CollectionOps.groupBy(this, action);
     }
 
+    @Override
+    public <K0, R> Map<K0, ? extends ConcurrentSkipListSet<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
+        return CollectionOps.groupMap(this, action, mapAction);
+    }
+
+    @Override
+    public ConcurrentSkipListSet<E> diff(Collection<E> that) {
+        return CollectionOps.diff(this, that);
+    }
+
+    @Override
+    public ConcurrentSkipListSet<E> intersect(Collection<E> that) {
+        return CollectionOps.intersect(this, that);
+    }
 }

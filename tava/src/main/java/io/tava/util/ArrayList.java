@@ -112,4 +112,19 @@ public class ArrayList<E> extends java.util.ArrayList<E> implements List<E> {
         return CollectionOps.groupBy(this, action);
     }
 
+    @Override
+    public <K0, R> Map<K0, ? extends ArrayList<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
+        return CollectionOps.groupMap(this, action, mapAction);
+    }
+
+    @Override
+    public ArrayList<E> diff(Collection<E> that) {
+        return CollectionOps.diff(this, that);
+    }
+
+    @Override
+    public ArrayList<E> intersect(Collection<E> that) {
+        return CollectionOps.intersect(this, that);
+    }
+
 }

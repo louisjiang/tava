@@ -109,4 +109,19 @@ public class HashSet<E> extends java.util.HashSet<E> implements Set<E> {
     public <K0> Map<K0, ? extends HashSet<E>> groupBy(Function1<E, K0> action) {
         return CollectionOps.groupBy(this, action);
     }
+
+    @Override
+    public <K0, R> Map<K0, ? extends HashSet<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
+        return CollectionOps.groupMap(this, action, mapAction);
+    }
+
+    @Override
+    public HashSet<E> diff(Collection<E> that) {
+        return CollectionOps.diff(this, that);
+    }
+
+    @Override
+    public HashSet<E> intersect(Collection<E> that) {
+        return CollectionOps.intersect(this, that);
+    }
 }

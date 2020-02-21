@@ -144,4 +144,18 @@ public class LinkedHashMap<K, V> extends java.util.LinkedHashMap<K, V> implement
         return MapOps.flatMap(this, action);
     }
 
+    @Override
+    public <K0> LinkedHashMap<K0, ? extends LinkedHashMap<K, V>> groupBy(Function2<K, V, K0> action) {
+        return (LinkedHashMap<K0, ? extends LinkedHashMap<K, V>>) MapOps.groupBy(this, action);
+    }
+
+    @Override
+    public <K0> LinkedHashMap<K0, ? extends LinkedHashMap<K, V>> groupBy(Function1<java.util.Map.Entry<K, V>, K0> action) {
+        return (LinkedHashMap<K0, ? extends LinkedHashMap<K, V>>) MapOps.groupBy(this, action);
+    }
+
+    @Override
+    public <K0, R> LinkedHashMap<K0, List<R>> groupMap(Function1<java.util.Map.Entry<K, V>, K0> action, Function1<java.util.Map.Entry<K, V>, R> mapAction) {
+        return (LinkedHashMap<K0, List<R>>) MapOps.groupMap(this, action, mapAction);
+    }
 }

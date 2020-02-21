@@ -115,4 +115,18 @@ public interface NavigableMap<K, V> extends java.util.NavigableMap<K, V>, Sorted
         return MapOps.flatMap(this, action);
     }
 
+    @Override
+    default <K0> NavigableMap<K0, ? extends NavigableMap<K, V>> groupBy(Function2<K, V, K0> action) {
+        return (NavigableMap<K0, ? extends NavigableMap<K, V>>) MapOps.groupBy(this, action);
+    }
+
+    @Override
+    default <K0> NavigableMap<K0, ? extends NavigableMap<K, V>> groupBy(Function1<Entry<K, V>, K0> action) {
+        return (NavigableMap<K0, ? extends NavigableMap<K, V>>) MapOps.groupBy(this, action);
+    }
+
+    @Override
+    default <K0, R> NavigableMap<K0, List<R>> groupMap(Function1<Entry<K, V>, K0> action, Function1<Entry<K, V>, R> mapAction) {
+        return (NavigableMap<K0, List<R>>) MapOps.groupMap(this, action,mapAction);
+    }
 }

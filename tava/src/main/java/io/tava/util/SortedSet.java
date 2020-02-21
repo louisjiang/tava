@@ -5,6 +5,8 @@ import io.tava.function.IndexedFunction1;
 import io.tava.function.Predicate1;
 import io.tava.lang.Tuple2;
 
+import java.awt.image.ConvolveOp;
+
 
 public interface SortedSet<E> extends java.util.SortedSet<E>, Set<E> {
 
@@ -87,4 +89,20 @@ public interface SortedSet<E> extends java.util.SortedSet<E>, Set<E> {
     default <K0> Map<K0, ? extends SortedSet<E>> groupBy(Function1<E, K0> action) {
         return CollectionOps.groupBy(this, action);
     }
+
+    @Override
+    default <K0, R> Map<K0, ? extends SortedSet<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
+        return CollectionOps.groupMap(this, action, mapAction);
+    }
+
+    @Override
+    default SortedSet<E> diff(Collection<E> that) {
+        return CollectionOps.diff(this, that);
+    }
+
+    @Override
+    default SortedSet<E> intersect(Collection<E> that) {
+        return CollectionOps.intersect(this, that);
+    }
+
 }

@@ -191,16 +191,6 @@ public interface Map<K, V> extends java.util.Map<K, V>, Traversable<java.util.Ma
     }
 
     @Override
-    default <R> R foldRight(R zero, Function2<R, Entry<K, V>, R> action) {
-        return MapOps.foldRight(this, zero, action);
-    }
-
-    @Override
-    default <R> R foldRightWithIndex(R zero, IndexedFunction2<R, Entry<K, V>, R> action) {
-        return MapOps.foldRightWithIndex(this, zero, action);
-    }
-
-    @Override
     default Entry<K, V> reduceLeft(Function2<? super Entry<K, V>, ? super Entry<K, V>, ? extends Entry<K, V>> action) {
         return MapOps.reduceLeft(this, action);
     }
@@ -228,5 +218,32 @@ public interface Map<K, V> extends java.util.Map<K, V>, Traversable<java.util.Ma
         }
         return list;
     }
+
+    default <R> Set<R> toSet(Function2<K, V, R> action) {
+        return toSet(entry -> action.apply(entry.getKey(), entry.getValue()));
+    }
+
+    default <R> Set<R> toSet(Function1<Entry<K, V>, R> action) {
+        Set<R> set = new HashSet<>();
+        Set<Entry<K, V>> entries = entrySet();
+        for (Entry<K, V> entry : entries) {
+            set.add(action.apply(entry));
+        }
+        return set;
+    }
+
+    default <R> List<R> toList(Function2<K, V, R> action) {
+        return toList(entry -> action.apply(entry.getKey(), entry.getValue()));
+    }
+
+    default <R> List<R> toList(Function1<Entry<K, V>, R> action) {
+        List<R> list = new ArrayList<>();
+        Set<Entry<K, V>> entries = entrySet();
+        for (Entry<K, V> entry : entries) {
+            list.add(action.apply(entry));
+        }
+        return list;
+    }
+
 
 }

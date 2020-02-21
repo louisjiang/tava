@@ -54,9 +54,13 @@ public interface Traversable<E> {
 
     <R> R foldLeftWithIndex(R zero, IndexedFunction2<R, E, R> action);
 
-    <R> R foldRight(R zero, Function2<R, E, R> action);
+    default <R> R foldRightWithIndex(R zero, IndexedFunction2<R, E, R> action) {
+        return reverse().foldLeftWithIndex(zero, action);
+    }
 
-    <R> R foldRightWithIndex(R zero, IndexedFunction2<R, E, R> action);
+    default <R> R foldRight(R zero, Function2<R, E, R> action) {
+        return reverse().foldLeft(zero, action);
+    }
 
     default E reduce(Function2<? super E, ? super E, ? extends E> action) {
         return reduceLeft(action);

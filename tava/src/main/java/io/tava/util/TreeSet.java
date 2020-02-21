@@ -110,4 +110,20 @@ public class TreeSet<E> extends java.util.TreeSet<E> implements NavigableSet<E> 
     public <K0> Map<K0, ? extends TreeSet<E>> groupBy(Function1<E, K0> action) {
         return CollectionOps.groupBy(this, action);
     }
+
+    @Override
+    public <K0, R> Map<K0, ? extends TreeSet<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
+        return CollectionOps.groupMap(this, action, mapAction);
+    }
+
+    @Override
+    public TreeSet<E> diff(Collection<E> that) {
+        return CollectionOps.diff(this, that);
+    }
+
+    @Override
+    public TreeSet<E> intersect(Collection<E> that) {
+        return CollectionOps.intersect(this, that);
+    }
+
 }

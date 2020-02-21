@@ -2,8 +2,10 @@ package io.tava.util.concurrent;
 
 import io.tava.function.*;
 import io.tava.lang.Tuple2;
+import io.tava.util.List;
 import io.tava.util.Map;
 import io.tava.util.MapOps;
+import io.tava.util.NavigableMap;
 import io.tava.util.builder.ConcurrentSkipListMapBuilder;
 import io.tava.util.builder.MapBuilder;
 
@@ -142,5 +144,18 @@ public class ConcurrentSkipListMap<K, V> extends java.util.concurrent.Concurrent
         return MapOps.flatMap(this, action);
     }
 
+    @Override
+    public <K0> ConcurrentSkipListMap<K0, ? extends ConcurrentSkipListMap<K, V>> groupBy(Function2<K, V, K0> action) {
+        return (ConcurrentSkipListMap<K0, ? extends ConcurrentSkipListMap<K, V>>) MapOps.groupBy(this, action);
+    }
 
+    @Override
+    public <K0> ConcurrentSkipListMap<K0, ? extends ConcurrentSkipListMap<K, V>> groupBy(Function1<Entry<K, V>, K0> action) {
+        return (ConcurrentSkipListMap<K0, ? extends ConcurrentSkipListMap<K, V>>) MapOps.groupBy(this, action);
+    }
+
+    @Override
+    public <K0, R> ConcurrentSkipListMap<K0, List<R>> groupMap(Function1<Entry<K, V>, K0> action, Function1<Entry<K, V>, R> mapAction) {
+        return (ConcurrentSkipListMap<K0, List<R>>) MapOps.groupMap(this, action, mapAction);
+    }
 }

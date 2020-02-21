@@ -83,7 +83,23 @@ public interface NavigableSet<E> extends java.util.NavigableSet<E>, SortedSet<E>
     }
 
     @Override
-    default <K0> Map<K0, ? extends SortedSet<E>> groupBy(Function1<E, K0> action) {
+    default <K0> Map<K0, ? extends NavigableSet<E>> groupBy(Function1<E, K0> action) {
         return CollectionOps.groupBy(this, action);
     }
+
+    @Override
+    default <K0, R> Map<K0, ? extends NavigableSet<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
+        return CollectionOps.groupMap(this, action, mapAction);
+    }
+
+    @Override
+    default NavigableSet<E> diff(Collection<E> that) {
+        return CollectionOps.diff(this, that);
+    }
+
+    @Override
+    default NavigableSet<E> intersect(Collection<E> that) {
+        return CollectionOps.intersect(this, that);
+    }
+
 }

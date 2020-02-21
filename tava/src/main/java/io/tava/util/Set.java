@@ -89,6 +89,21 @@ public interface Set<E> extends java.util.Set<E>, Collection<E> {
         return CollectionOps.groupBy(this, action);
     }
 
+    @Override
+    default <K0, R> Map<K0, ? extends Set<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
+        return CollectionOps.groupMap(this, action, mapAction);
+    }
+
+    @Override
+    default Set<E> diff(Collection<E> that) {
+        return CollectionOps.diff(this, that);
+    }
+
+    @Override
+    default Set<E> intersect(Collection<E> that) {
+        return CollectionOps.intersect(this, that);
+    }
+
     default List<E> toList() {
         return new ArrayList<>(this);
     }

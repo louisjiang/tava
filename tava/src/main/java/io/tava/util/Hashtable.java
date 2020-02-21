@@ -138,4 +138,18 @@ public class Hashtable<K, V> extends java.util.Hashtable<K, V> implements Map<K,
         return MapOps.flatMap(this, action);
     }
 
+    @Override
+    public <K0> Hashtable<K0, ? extends Hashtable<K, V>> groupBy(Function2<K, V, K0> action) {
+        return (Hashtable<K0, ? extends Hashtable<K, V>>) MapOps.groupBy(this, action);
+    }
+
+    @Override
+    public <K0> Hashtable<K0, ? extends Hashtable<K, V>> groupBy(Function1<java.util.Map.Entry<K, V>, K0> action) {
+        return (Hashtable<K0, ? extends Hashtable<K, V>>) MapOps.groupBy(this, action);
+    }
+
+    @Override
+    public <K0, R> Hashtable<K0, List<R>> groupMap(Function1<java.util.Map.Entry<K, V>, K0> action, Function1<java.util.Map.Entry<K, V>, R> mapAction) {
+        return (Hashtable<K0, List<R>>) MapOps.groupMap(this, action, mapAction);
+    }
 }

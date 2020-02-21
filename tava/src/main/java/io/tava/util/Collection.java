@@ -80,14 +80,6 @@ public interface Collection<E> extends java.util.Collection<E>, Traversable<E> {
         return CollectionOps.foldLeftWithIndex(this, zero, action);
     }
 
-    default <R> R foldRight(R zero, Function2<R, E, R> action) {
-        return reverse().foldLeft(zero, action);
-    }
-
-    default <R> R foldRightWithIndex(R zero, IndexedFunction2<R, E, R> action) {
-        return reverse().foldLeftWithIndex(zero, action);
-    }
-
     @Override
     default E reduceLeft(Function2<? super E, ? super E, ? extends E> action) {
         return CollectionOps.reduceLeft(this, action);
@@ -110,6 +102,14 @@ public interface Collection<E> extends java.util.Collection<E>, Traversable<E> {
             list.addFirst(e);
         }
         return list;
+    }
+
+    default Collection<E> diff(Collection<E> that) {
+        return CollectionOps.diff(this, that);
+    }
+
+    default Collection<E> intersect(Collection<E> that) {
+        return CollectionOps.intersect(this, that);
     }
 
 }

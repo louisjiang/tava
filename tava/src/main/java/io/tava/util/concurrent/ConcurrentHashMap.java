@@ -2,6 +2,7 @@ package io.tava.util.concurrent;
 
 import io.tava.function.*;
 import io.tava.lang.Tuple2;
+import io.tava.util.List;
 import io.tava.util.Map;
 import io.tava.util.MapOps;
 import io.tava.util.builder.ConcurrentHashMapBuilder;
@@ -146,4 +147,18 @@ public class ConcurrentHashMap<K, V> extends java.util.concurrent.ConcurrentHash
         return MapOps.flatMap(this, action);
     }
 
+    @Override
+    public <K0> ConcurrentHashMap<K0, ? extends ConcurrentHashMap<K, V>> groupBy(Function2<K, V, K0> action) {
+        return (ConcurrentHashMap<K0, ? extends ConcurrentHashMap<K, V>>) MapOps.groupBy(this, action);
+    }
+
+    @Override
+    public <K0> ConcurrentHashMap<K0, ? extends ConcurrentHashMap<K, V>> groupBy(Function1<Entry<K, V>, K0> action) {
+        return (ConcurrentHashMap<K0, ? extends ConcurrentHashMap<K, V>>) MapOps.groupBy(this, action);
+    }
+
+    @Override
+    public <K0, R> ConcurrentHashMap<K0, List<R>> groupMap(Function1<Entry<K, V>, K0> action, Function1<Entry<K, V>, R> mapAction) {
+        return (ConcurrentHashMap<K0, List<R>>) MapOps.groupMap(this, action, mapAction);
+    }
 }

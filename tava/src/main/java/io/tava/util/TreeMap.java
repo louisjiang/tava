@@ -141,4 +141,18 @@ public class TreeMap<K, V> extends java.util.TreeMap<K, V> implements NavigableM
         return MapOps.flatMap(this, action);
     }
 
+    @Override
+    public <K0> TreeMap<K0, ? extends TreeMap<K, V>> groupBy(Function2<K, V, K0> action) {
+        return (TreeMap<K0, ? extends TreeMap<K, V>>) MapOps.groupBy(this, action);
+    }
+
+    @Override
+    public <K0> TreeMap<K0, ? extends TreeMap<K, V>> groupBy(Function1<java.util.Map.Entry<K, V>, K0> action) {
+        return (TreeMap<K0, ? extends TreeMap<K, V>>) MapOps.groupBy(this, action);
+    }
+
+    @Override
+    public <K0, R> TreeMap<K0, List<R>> groupMap(Function1<java.util.Map.Entry<K, V>, K0> action, Function1<java.util.Map.Entry<K, V>, R> mapAction) {
+        return (TreeMap<K0, List<R>>) MapOps.groupMap(this, action,mapAction);
+    }
 }
