@@ -1,11 +1,11 @@
 package io.tava.util;
 
-import io.tava.util.builder.StackBuilder;
 import io.tava.function.Function1;
 import io.tava.function.IndexedFunction1;
 import io.tava.function.Predicate1;
 import io.tava.lang.Tuple2;
 import io.tava.util.builder.CollectionBuilder;
+import io.tava.util.builder.StackBuilder;
 
 public class Stack<E> extends java.util.Stack<E> implements List<E> {
 

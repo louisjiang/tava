@@ -1,11 +1,12 @@
 package io.tava.util;
 
-import io.tava.function.*;
+import io.tava.function.Function1;
+import io.tava.function.Function2;
+import io.tava.function.Predicate1;
+import io.tava.function.Predicate2;
 import io.tava.lang.Tuple2;
-import io.tava.util.builder.PropertiesBuilder;
 import io.tava.util.builder.MapBuilder;
-
-import java.util.Optional;
+import io.tava.util.builder.PropertiesBuilder;
 
 public class Properties extends java.util.Properties implements Map<Object, Object> {
 

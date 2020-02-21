@@ -5,8 +5,6 @@ import io.tava.function.IndexedFunction1;
 import io.tava.function.Predicate1;
 import io.tava.lang.Tuple2;
 
-import java.awt.image.ConvolveOp;
-
 
 public interface SortedSet<E> extends java.util.SortedSet<E>, Set<E> {
 

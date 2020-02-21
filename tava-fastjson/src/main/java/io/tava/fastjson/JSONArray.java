@@ -11,7 +11,6 @@ import io.tava.util.CollectionOps;
 import io.tava.util.List;
 import io.tava.util.Map;
 import io.tava.util.builder.CollectionBuilder;
-import io.tava.util.concurrent.ConcurrentSkipListSet;
 
 public class JSONArray extends com.alibaba.fastjson.JSONArray implements List<Object> {
 

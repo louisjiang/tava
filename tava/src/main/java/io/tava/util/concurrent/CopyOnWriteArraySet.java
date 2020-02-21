@@ -4,7 +4,10 @@ import io.tava.function.Function1;
 import io.tava.function.IndexedFunction1;
 import io.tava.function.Predicate1;
 import io.tava.lang.Tuple2;
-import io.tava.util.*;
+import io.tava.util.Collection;
+import io.tava.util.CollectionOps;
+import io.tava.util.Map;
+import io.tava.util.Set;
 import io.tava.util.builder.CollectionBuilder;
 import io.tava.util.builder.CopyOnWriteArraySetBuilder;
 

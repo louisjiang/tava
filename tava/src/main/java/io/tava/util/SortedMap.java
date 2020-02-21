@@ -3,8 +3,6 @@ package io.tava.util;
 import io.tava.function.*;
 import io.tava.lang.Tuple2;
 
-import java.util.Optional;
-
 public interface SortedMap<K, V> extends java.util.SortedMap<K, V>, Map<K, V> {
 
     @Override

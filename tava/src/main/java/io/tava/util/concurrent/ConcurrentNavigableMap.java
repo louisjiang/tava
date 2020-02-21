@@ -1,7 +1,6 @@
 package io.tava.util.concurrent;
 
 import io.tava.function.*;
-import io.tava.lang.Option;
 import io.tava.lang.Tuple2;
 import io.tava.util.List;
 import io.tava.util.Map;

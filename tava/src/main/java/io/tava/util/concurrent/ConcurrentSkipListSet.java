@@ -1,9 +1,9 @@
 package io.tava.util.concurrent;
 
 import io.tava.function.Function1;
-import io.tava.lang.Tuple2;
 import io.tava.function.IndexedFunction1;
 import io.tava.function.Predicate1;
+import io.tava.lang.Tuple2;
 import io.tava.util.Collection;
 import io.tava.util.CollectionOps;
 import io.tava.util.Map;

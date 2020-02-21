@@ -1,9 +1,9 @@
 package io.tava.util;
 
 import io.tava.function.Function1;
-import io.tava.lang.Tuple2;
 import io.tava.function.IndexedFunction1;
 import io.tava.function.Predicate1;
+import io.tava.lang.Tuple2;
 
 
 public interface Set<E> extends java.util.Set<E>, Collection<E> {
