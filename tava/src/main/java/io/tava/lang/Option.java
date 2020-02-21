@@ -23,6 +23,13 @@ public interface Option<T> {
         return None.getInstance();
     }
 
+    static <V> Option<V> option(V value) {
+        if (value == null) {
+            return none();
+        }
+        return some(value);
+    }
+
     class Some<T> implements Option<T> {
 
         private final T value;

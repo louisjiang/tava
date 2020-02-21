@@ -86,6 +86,11 @@ public interface SortedSet<E> extends java.util.SortedSet<E>, Set<E> {
     }
 
     @Override
+    default <B> SortedSet<Tuple2<E, B>> zip(Collection<B> that) {
+        return CollectionOps.zip(this, that);
+    }
+
+    @Override
     default <K0> Map<K0, ? extends SortedSet<E>> groupBy(Function1<E, K0> action) {
         return CollectionOps.groupBy(this, action);
     }

@@ -103,6 +103,11 @@ public class ConcurrentSkipListSet<E> extends java.util.concurrent.ConcurrentSki
     }
 
     @Override
+    public <B> ConcurrentSkipListSet<Tuple2<E, B>> zip(Collection<B> that) {
+        return CollectionOps.zip(this, that);
+    }
+
+    @Override
     public Tuple2<ConcurrentSkipListSet<E>, ConcurrentSkipListSet<E>> span(Predicate1<E> action) {
         return CollectionOps.span(this, action);
     }

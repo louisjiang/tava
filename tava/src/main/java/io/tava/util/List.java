@@ -74,6 +74,11 @@ public interface List<E> extends Collection<E>, java.util.List<E> {
     }
 
     @Override
+    default <B> List<Tuple2<E, B>> zip(Collection<B> that) {
+        return CollectionOps.zip(this, that);
+    }
+
+    @Override
     default Tuple2<? extends List<E>, ? extends List<E>> span(Predicate1<E> action) {
         return CollectionOps.span(this, action);
     }

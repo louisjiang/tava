@@ -9,6 +9,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Comparator;
+
 public class ListTest {
 
     List<String> list = new ArrayList<>();
@@ -28,6 +30,12 @@ public class ListTest {
 
     @Test
     public void testIntersect() {
+
+        List<Integer> l = new ArrayList<>();
+        l.add(1);
+        Integer max = l.max((o1, o2) -> o1 - o2);
+        Integer min = l.min((o1, o2) -> o1 - o2);
+
         List<String> list1 = new ArrayList<>();
         list1.add("a");
         list1.add("a");

@@ -95,6 +95,10 @@ public class Vector<E> extends java.util.Vector<E> implements List<E> {
         return CollectionOps.zipWithIndex(this);
     }
 
+    @Override
+    public <B> Vector<Tuple2<E, B>> zip(Collection<B> that) {
+        return CollectionOps.zip(this, that);
+    }
 
     @Override
     public Tuple2<Vector<E>, Vector<E>> span(Predicate1<E> action) {
@@ -123,12 +127,12 @@ public class Vector<E> extends java.util.Vector<E> implements List<E> {
 
     @Override
     public Vector<E> diff(Collection<E> that) {
-        return CollectionOps.diff(this,that);
+        return CollectionOps.diff(this, that);
     }
 
     @Override
     public Vector<E> intersect(Collection<E> that) {
-        return CollectionOps.intersect(this,that);
+        return CollectionOps.intersect(this, that);
     }
 
 }

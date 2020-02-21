@@ -11,6 +11,7 @@ import io.tava.util.CollectionOps;
 import io.tava.util.List;
 import io.tava.util.Map;
 import io.tava.util.builder.CollectionBuilder;
+import io.tava.util.concurrent.ConcurrentSkipListSet;
 
 public class JSONArray extends com.alibaba.fastjson.JSONArray implements List<Object> {
 
@@ -94,6 +95,11 @@ public class JSONArray extends com.alibaba.fastjson.JSONArray implements List<Ob
     @Override
     public List<Tuple2<Object, Integer>> zipWithIndex() {
         return CollectionOps.zipWithIndex(this);
+    }
+
+    @Override
+    public <B> List<Tuple2<Object, B>> zip(Collection<B> that) {
+        return CollectionOps.zip(this, that);
     }
 
     @Override

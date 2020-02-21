@@ -6,6 +6,9 @@ import io.tava.lang.Tuple;
 import io.tava.lang.Tuple2;
 import io.tava.util.builder.CollectionBuilder;
 
+import java.util.Comparator;
+import java.util.Iterator;
+
 public final class CollectionOps {
 
     private CollectionOps() {
@@ -176,13 +179,23 @@ public final class CollectionOps {
         CollectionBuilder<R, RC> builder = collection.builder();
         for (E e : collection) {
             Collection<R> c = action.apply(e);
-            builder.add(c);
+            builder.addAll(c);
         }
         return builder.build();
     }
 
-    public static <E, C extends Collection<E>, R extends Collection<Tuple2<E, Integer>>> R zipWithIndex(C collection) {
+    public static <E, C extends Collection<E>, RC extends Collection<Tuple2<E, Integer>>> RC zipWithIndex(C collection) {
         return mapWithIndex(collection, (index, e) -> new Tuple2<>(e, index));
+    }
+
+    public static <E, B, C extends Collection<E>, EBC extends Collection<Tuple2<E, B>>> EBC zip(C collection, Collection<B> that) {
+        CollectionBuilder<Tuple2<E, B>, EBC> builder = collection.builder();
+        Iterator<E> iterator1 = collection.iterator();
+        Iterator<B> iterator2 = that.iterator();
+        while (iterator1.hasNext() && iterator2.hasNext()) {
+            builder.add(Tuple.of(iterator1.next(), iterator2.next()));
+        }
+        return builder.build();
     }
 
     public static <E, C extends Collection<E>> boolean forall(C collection, Predicate1<E> action) {
@@ -362,4 +375,34 @@ public final class CollectionOps {
         }
         return builder.build();
     }
+
+    public static <E, C extends Collection<E>> E min(C collection, Comparator<? super E> comparator) {
+        E result = null;
+        for (E e : collection) {
+            if (result == null) {
+                result = e;
+                continue;
+            }
+            if (comparator.compare(result, e) > 0) {
+                result = e;
+            }
+        }
+        return result;
+    }
+
+    public static <E, C extends Collection<E>> E max(C collection, Comparator<? super E> comparator) {
+        E result = null;
+        for (E e : collection) {
+            if (result == null) {
+                result = e;
+                continue;
+            }
+            if (comparator.compare(result, e) < 0) {
+                result = e;
+            }
+        }
+        return result;
+    }
+
+
 }

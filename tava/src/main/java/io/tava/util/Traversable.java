@@ -4,6 +4,8 @@ import io.tava.function.*;
 import io.tava.lang.Option;
 import io.tava.lang.Tuple2;
 
+import java.util.Comparator;
+
 public interface Traversable<E> {
 
     default void println() {
@@ -13,6 +15,8 @@ public interface Traversable<E> {
     void foreach(Consumer1<E> action);
 
     void foreachWithIndex(IndexedConsumer1<E> action);
+
+    boolean isEmpty();
 
     Traversable<E> filter(Predicate1<E> action);
 
@@ -37,6 +41,8 @@ public interface Traversable<E> {
     Tuple2<? extends Traversable<E>, ? extends Traversable<E>> splitAt(int n);
 
     Traversable<Tuple2<E, Integer>> zipWithIndex();
+
+    <B> Traversable<Tuple2<E, B>> zip(Collection<B> that);
 
     boolean forall(Predicate1<E> action);
 
@@ -95,6 +101,24 @@ public interface Traversable<E> {
     <K0> Map<K0, ? extends Traversable<E>> groupBy(Function1<E, K0> action);
 
     <K0, R> Map<K0, ? extends Traversable<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction);
+
+    default Option<E> minOption(Comparator<? super E> comparator) {
+        if (isEmpty()) {
+            return Option.none();
+        }
+        return Option.some(min(comparator));
+    }
+
+    E min(Comparator<? super E> comparator);
+
+    default Option<E> maxOption(Comparator<? super E> comparator) {
+        if (isEmpty()) {
+            return Option.none();
+        }
+        return Option.some(max(comparator));
+    }
+
+    E max(Comparator<? super E> comparator);
 
     Traversable<E> reverse();
 

@@ -84,6 +84,11 @@ public class Stack<E> extends java.util.Stack<E> implements List<E> {
     }
 
     @Override
+    public <B> Stack<Tuple2<E, B>> zip(Collection<B> that) {
+        return CollectionOps.zip(this,that);
+    }
+
+    @Override
     public Tuple2<Stack<E>, Stack<E>> span(Predicate1<E> action) {
         return CollectionOps.span(this, action);
     }

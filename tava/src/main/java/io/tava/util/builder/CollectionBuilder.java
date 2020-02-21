@@ -9,7 +9,7 @@ public interface CollectionBuilder<E, C extends Collection<E>> {
         return this;
     }
 
-    default CollectionBuilder<E, C> add(java.util.Collection<? extends E> collection) {
+    default CollectionBuilder<E, C> addAll(java.util.Collection<? extends E> collection) {
         build().addAll(collection);
         return this;
     }

@@ -5,6 +5,7 @@ import io.tava.lang.Option;
 import io.tava.lang.Tuple2;
 import io.tava.util.builder.MapBuilder;
 
+import java.util.Comparator;
 import java.util.Set;
 
 
@@ -141,8 +142,13 @@ public interface Map<K, V> extends java.util.Map<K, V>, Traversable<java.util.Ma
     }
 
     @Override
-    default Collection<Tuple2<Entry<K, V>, Integer>> zipWithIndex() {
+    default List<Tuple2<Entry<K, V>, Integer>> zipWithIndex() {
         return MapOps.zipWithIndex(this);
+    }
+
+    @Override
+    default <B> List<Tuple2<Entry<K, V>, B>> zip(Collection<B> that) {
+        return MapOps.zip(this, that);
     }
 
     default boolean forall(Predicate2<K, V> action) {
@@ -218,6 +224,16 @@ public interface Map<K, V> extends java.util.Map<K, V>, Traversable<java.util.Ma
             list.addFirst(entry);
         }
         return list;
+    }
+
+    @Override
+    default Entry<K, V> min(Comparator<? super Entry<K, V>> comparator) {
+        return null;
+    }
+
+    @Override
+    default Entry<K, V> max(Comparator<? super Entry<K, V>> comparator) {
+        return null;
     }
 
     default <R> Set<R> toSet(Function2<K, V, R> action) {

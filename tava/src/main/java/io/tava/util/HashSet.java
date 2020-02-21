@@ -96,6 +96,11 @@ public class HashSet<E> extends java.util.HashSet<E> implements Set<E> {
     }
 
     @Override
+    public <B> HashSet<Tuple2<E, B>> zip(Collection<B> that) {
+        return CollectionOps.zip(this, that);
+    }
+
+    @Override
     public Tuple2<HashSet<E>, HashSet<E>> span(Predicate1<E> action) {
         return CollectionOps.span(this, action);
     }

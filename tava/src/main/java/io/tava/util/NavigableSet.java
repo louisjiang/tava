@@ -83,6 +83,11 @@ public interface NavigableSet<E> extends java.util.NavigableSet<E>, SortedSet<E>
     }
 
     @Override
+    default <B> NavigableSet<Tuple2<E, B>> zip(Collection<B> that) {
+        return CollectionOps.zip(this,that);
+    }
+
+    @Override
     default <K0> Map<K0, ? extends NavigableSet<E>> groupBy(Function1<E, K0> action) {
         return CollectionOps.groupBy(this, action);
     }

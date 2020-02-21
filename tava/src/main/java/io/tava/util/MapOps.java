@@ -6,6 +6,8 @@ import io.tava.lang.Tuple;
 import io.tava.lang.Tuple2;
 import io.tava.util.builder.MapBuilder;
 
+import java.util.Iterator;
+
 
 public final class MapOps {
 
@@ -276,12 +278,22 @@ public final class MapOps {
         return builder.build();
     }
 
-    public static <K, V, M extends Map<K, V>> Collection<Tuple2<java.util.Map.Entry<K, V>, Integer>> zipWithIndex(M map) {
+    public static <K, V, M extends Map<K, V>> List<Tuple2<java.util.Map.Entry<K, V>, Integer>> zipWithIndex(M map) {
         java.util.Set<java.util.Map.Entry<K, V>> entries = map.entrySet();
         List<Tuple2<java.util.Map.Entry<K, V>, Integer>> list = new ArrayList<>();
         int index = 0;
         for (java.util.Map.Entry<K, V> entry : entries) {
             list.add(Tuple.of(entry, index++));
+        }
+        return list;
+    }
+
+    public static <K, V, M extends Map<K, V>, B> List<Tuple2<java.util.Map.Entry<K, V>, B>> zip(M map, Collection<B> that) {
+        Iterator<java.util.Map.Entry<K, V>> iterator1 = map.entrySet().iterator();
+        Iterator<B> iterator2 = that.iterator();
+        List<Tuple2<java.util.Map.Entry<K, V>, B>> list = new ArrayList<>();
+        while (iterator1.hasNext() && iterator2.hasNext()) {
+            list.add(Tuple.of(iterator1.next(), iterator2.next()));
         }
         return list;
     }

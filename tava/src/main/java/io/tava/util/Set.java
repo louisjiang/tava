@@ -84,6 +84,11 @@ public interface Set<E> extends java.util.Set<E>, Collection<E> {
     }
 
     @Override
+    default <B> Set<Tuple2<E, B>> zip(Collection<B> that) {
+        return CollectionOps.zip(this, that);
+    }
+
+    @Override
     default <K0> Map<K0, ? extends Set<E>> groupBy(Function1<E, K0> action) {
         return CollectionOps.groupBy(this, action);
     }

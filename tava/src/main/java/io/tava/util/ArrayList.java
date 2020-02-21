@@ -92,6 +92,11 @@ public class ArrayList<E> extends java.util.ArrayList<E> implements List<E> {
     }
 
     @Override
+    public <B> ArrayList<Tuple2<E, B>> zip(Collection<B> that) {
+        return CollectionOps.zip(this, that);
+    }
+
+    @Override
     public Tuple2<ArrayList<E>, ArrayList<E>> span(Predicate1<E> action) {
         return CollectionOps.span(this, action);
     }

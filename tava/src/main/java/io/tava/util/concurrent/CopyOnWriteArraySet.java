@@ -89,6 +89,11 @@ public class CopyOnWriteArraySet<E> extends java.util.concurrent.CopyOnWriteArra
     }
 
     @Override
+    public <B> CopyOnWriteArraySet<Tuple2<E, B>> zip(Collection<B> that) {
+        return CollectionOps.zip(this, that);
+    }
+
+    @Override
     public Tuple2<CopyOnWriteArraySet<E>, CopyOnWriteArraySet<E>> span(Predicate1<E> action) {
         return CollectionOps.span(this, action);
     }

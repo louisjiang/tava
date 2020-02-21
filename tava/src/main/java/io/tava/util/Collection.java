@@ -5,6 +5,8 @@ import io.tava.lang.Option;
 import io.tava.lang.Tuple2;
 import io.tava.util.builder.CollectionBuilder;
 
+import java.util.Comparator;
+
 public interface Collection<E> extends java.util.Collection<E>, Traversable<E> {
 
     <E0, C0 extends Collection<E0>> CollectionBuilder<E0, C0> builder();
@@ -71,6 +73,9 @@ public interface Collection<E> extends java.util.Collection<E>, Traversable<E> {
     Collection<Tuple2<E, Integer>> zipWithIndex();
 
     @Override
+    <B> Collection<Tuple2<E, B>> zip(Collection<B> that);
+
+    @Override
     default boolean forall(Predicate1<E> action) {
         return CollectionOps.forall(this, action);
     }
@@ -106,14 +111,10 @@ public interface Collection<E> extends java.util.Collection<E>, Traversable<E> {
     }
 
     @Override
-    default <K0> Map<K0, ? extends Collection<E>> groupBy(Function1<E, K0> action) {
-        return CollectionOps.groupBy(this, action);
-    }
+    <K0> Map<K0, ? extends Collection<E>> groupBy(Function1<E, K0> action);
 
     @Override
-    default <K0, R> Map<K0, ? extends Collection<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction) {
-        return CollectionOps.groupMap(this, action, mapAction);
-    }
+    <K0, R> Map<K0, ? extends Collection<R>> groupMap(Function1<E, K0> action, Function1<E, R> mapAction);
 
     @Override
     default Collection<E> reverse() {
@@ -124,12 +125,18 @@ public interface Collection<E> extends java.util.Collection<E>, Traversable<E> {
         return list;
     }
 
-    default Collection<E> diff(Collection<E> that) {
-        return CollectionOps.diff(this, that);
+    Collection<E> diff(Collection<E> that);
+
+    Collection<E> intersect(Collection<E> that);
+
+    @Override
+    default E min(Comparator<? super E> comparator) {
+        return CollectionOps.min(this, comparator);
     }
 
-    default Collection<E> intersect(Collection<E> that) {
-        return CollectionOps.intersect(this, that);
+    @Override
+    default E max(Comparator<? super E> comparator) {
+        return CollectionOps.max(this, comparator);
     }
 
 }

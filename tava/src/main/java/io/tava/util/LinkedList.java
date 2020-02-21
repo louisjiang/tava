@@ -88,6 +88,11 @@ public class LinkedList<E> extends java.util.LinkedList<E> implements List<E> {
     }
 
     @Override
+    public <B> LinkedList<Tuple2<E, B>> zip(Collection<B> that) {
+        return CollectionOps.zip(this,that);
+    }
+
+    @Override
     public Tuple2<LinkedList<E>, LinkedList<E>> span(Predicate1<E> action) {
         return CollectionOps.span(this, action);
     }

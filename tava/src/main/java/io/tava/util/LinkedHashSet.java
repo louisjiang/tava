@@ -96,6 +96,11 @@ public class LinkedHashSet<E> extends java.util.LinkedHashSet<E> implements Set<
     }
 
     @Override
+    public <B> LinkedHashSet<Tuple2<E, B>> zip(Collection<B> that) {
+        return CollectionOps.zip(this, that);
+    }
+
+    @Override
     public Tuple2<LinkedHashSet<E>, LinkedHashSet<E>> span(Predicate1<E> action) {
         return CollectionOps.span(this, action);
     }
