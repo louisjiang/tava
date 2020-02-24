@@ -79,6 +79,11 @@ public interface List<E> extends Collection<E>, java.util.List<E> {
     }
 
     @Override
+    default <A, B> Tuple2<? extends List<A>, ? extends List<B>> unzip(Function1<E, Tuple2<A, B>> action) {
+        return CollectionOps.unzip(this, action);
+    }
+
+    @Override
     default Tuple2<? extends List<E>, ? extends List<E>> span(Predicate1<E> action) {
         return CollectionOps.span(this, action);
     }

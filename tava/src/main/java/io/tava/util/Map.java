@@ -151,6 +151,11 @@ public interface Map<K, V> extends java.util.Map<K, V>, Traversable<java.util.Ma
         return MapOps.zip(this, that);
     }
 
+    @Override
+    default <A, B> Tuple2<List<A>, List<B>> unzip(Function1<Entry<K, V>, Tuple2<A, B>> action) {
+        return MapOps.unzip(this, action);
+    }
+
     default boolean forall(Predicate2<K, V> action) {
         return MapOps.forall(this, action);
     }

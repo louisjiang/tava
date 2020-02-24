@@ -298,6 +298,18 @@ public final class MapOps {
         return list;
     }
 
+    public static <K, V, M extends Map<K, V>, A, B> Tuple2<List<A>, List<B>> unzip(M map, Function1<java.util.Map.Entry<K, V>, Tuple2<A, B>> action) {
+        java.util.Set<java.util.Map.Entry<K, V>> entries = map.entrySet();
+        List<A> left = new ArrayList<>();
+        List<B> right = new ArrayList<>();
+        for (java.util.Map.Entry<K, V> entry : entries) {
+            Tuple2<A, B> tuple2 = action.apply(entry);
+            left.add(tuple2.getValue1());
+            right.add(tuple2.getValue2());
+        }
+        return Tuple.of(left, right);
+    }
+
     public static <K, V, M extends Map<K, V>> boolean forall(M map, Predicate2<K, V> action) {
         return forall(map, entry -> action.test(entry.getKey(), entry.getValue()));
     }

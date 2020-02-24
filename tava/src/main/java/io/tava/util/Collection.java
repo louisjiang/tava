@@ -76,6 +76,9 @@ public interface Collection<E> extends java.util.Collection<E>, Traversable<E> {
     <B> Collection<Tuple2<E, B>> zip(Collection<B> that);
 
     @Override
+    <A, B> Tuple2<? extends Collection<A>, ? extends Collection<B>> unzip(Function1<E, Tuple2<A, B>> action);
+
+    @Override
     default boolean forall(Predicate1<E> action) {
         return CollectionOps.forall(this, action);
     }
@@ -127,7 +130,7 @@ public interface Collection<E> extends java.util.Collection<E>, Traversable<E> {
 
     Collection<E> diff(Collection<E> that);
 
-    Collection<E> intersect(Collection<E> that);
+    Collection<E> intersect(Collection<E> that); 
 
     @Override
     default E min(Comparator<? super E> comparator) {

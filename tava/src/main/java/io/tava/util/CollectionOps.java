@@ -198,6 +198,18 @@ public final class CollectionOps {
         return builder.build();
     }
 
+
+    public static <A, B, E, EC extends Collection<E>, AC extends Collection<A>, BC extends Collection<B>> Tuple2<AC, BC> unzip(EC collection, Function1<E, Tuple2<A, B>> action) {
+        CollectionBuilder<A, AC> leftBuilder = collection.builder();
+        CollectionBuilder<B, BC> rightBuilder = collection.builder();
+        for (E e : collection) {
+            Tuple2<A, B> tuple2 = action.apply(e);
+            leftBuilder.add(tuple2.getValue1());
+            rightBuilder.add(tuple2.getValue2());
+        }
+        return Tuple.of(leftBuilder.build(), rightBuilder.build());
+    }
+
     public static <E, C extends Collection<E>> boolean forall(C collection, Predicate1<E> action) {
         boolean result = false;
         for (E e : collection) {

@@ -44,6 +44,8 @@ public interface Traversable<E> {
 
     <B> Traversable<Tuple2<E, B>> zip(Collection<B> that);
 
+    <A, B> Tuple2<? extends Traversable<A>, ? extends Traversable<B>> unzip(Function1<E, Tuple2<A, B>> action);
+
     boolean forall(Predicate1<E> action);
 
     boolean exists(Predicate1<E> action);
