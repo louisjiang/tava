@@ -1,15 +1,13 @@
 package io.tave.test;
 
 import io.tava.lang.Option;
-import io.tava.lang.Tuple;
+import io.tava.lang.Tuples;
 import io.tava.lang.Tuple2;
 import io.tava.util.HashSet;
 import io.tava.util.Set;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.util.Optional;
 
 public class SetTest {
 
@@ -186,11 +184,11 @@ public class SetTest {
     public void testZipWithIndex() {
         Set<Tuple2<String, Integer>> actual = this.set.zipWithIndex();
         Set<Tuple2<String, Integer>> expected = new HashSet<>();
-        expected.add(Tuple.of("a", 0));
-        expected.add(Tuple.of("b", 1));
-        expected.add(Tuple.of("c", 2));
-        expected.add(Tuple.of("d", 3));
-        expected.add(Tuple.of("e", 4));
+        expected.add(Tuples.of("a", 0));
+        expected.add(Tuples.of("b", 1));
+        expected.add(Tuples.of("c", 2));
+        expected.add(Tuples.of("d", 3));
+        expected.add(Tuples.of("e", 4));
 
         Assertions.assertIterableEquals(expected, actual);
 
@@ -210,7 +208,7 @@ public class SetTest {
         list2.add("c");
         list2.add("d");
         list2.add("e");
-        Assertions.assertEquals(Tuple.of(list1, list2), actual);
+        Assertions.assertEquals(Tuples.of(list1, list2), actual);
 
     }
 
@@ -226,7 +224,7 @@ public class SetTest {
         list2.add("d");
         list2.add("e");
 
-        Assertions.assertEquals(Tuple.of(list1, list2), actual);
+        Assertions.assertEquals(Tuples.of(list1, list2), actual);
     }
 
     @Test

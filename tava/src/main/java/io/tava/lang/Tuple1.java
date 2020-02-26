@@ -2,7 +2,7 @@ package io.tava.lang;
 
 import io.tava.function.Function1;
 
-public class Tuple1<T1> {
+public class Tuple1<T1> implements Tuple {
 
 	private final T1 value1;
 

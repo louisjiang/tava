@@ -1,15 +1,12 @@
 package io.tave.test;
 
-import io.tava.function.Function2;
 import io.tava.lang.Option;
-import io.tava.lang.Tuple;
+import io.tava.lang.Tuples;
 import io.tava.lang.Tuple2;
 import io.tava.util.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.util.Comparator;
 
 public class ListTest {
 
@@ -42,7 +39,7 @@ public class ListTest {
         list1.add("b");
         list1.add("vb");
 
-        list1.groupBy(item -> item).map((key, values) -> Tuple.of(key, values.size()));
+        list1.groupBy(item -> item).map((key, values) -> Tuples.of(key, values.size()));
 
 
         Collection<String> intersect = list.intersect(list1);
@@ -283,15 +280,15 @@ public class ListTest {
     public void testZipWithIndex() {
         List<Tuple2<String, Integer>> actual = this.list.zipWithIndex();
         List<Tuple2<String, Integer>> expected = new ArrayList<>();
-        expected.add(Tuple.of("a", 0));
-        expected.add(Tuple.of("a", 1));
-        expected.add(Tuple.of("b", 2));
-        expected.add(Tuple.of("a", 3));
-        expected.add(Tuple.of("c", 4));
-        expected.add(Tuple.of("d", 5));
-        expected.add(Tuple.of("a", 6));
-        expected.add(Tuple.of("e", 7));
-        expected.add(Tuple.of("e", 8));
+        expected.add(Tuples.of("a", 0));
+        expected.add(Tuples.of("a", 1));
+        expected.add(Tuples.of("b", 2));
+        expected.add(Tuples.of("a", 3));
+        expected.add(Tuples.of("c", 4));
+        expected.add(Tuples.of("d", 5));
+        expected.add(Tuples.of("a", 6));
+        expected.add(Tuples.of("e", 7));
+        expected.add(Tuples.of("e", 8));
 
         Assertions.assertIterableEquals(expected, actual);
 
@@ -314,7 +311,7 @@ public class ListTest {
         list2.add("a");
         list2.add("e");
         list2.add("e");
-        Assertions.assertEquals(Tuple.of(list1, list2), actual);
+        Assertions.assertEquals(Tuples.of(list1, list2), actual);
 
     }
 
@@ -333,7 +330,7 @@ public class ListTest {
         list2.add("e");
         list2.add("e");
 
-        Assertions.assertEquals(Tuple.of(list1, list2), actual);
+        Assertions.assertEquals(Tuples.of(list1, list2), actual);
     }
 
     @Test

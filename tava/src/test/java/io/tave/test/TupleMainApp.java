@@ -1,21 +1,19 @@
 package io.tave.test;
 
-import io.tava.function.Function2;
-import io.tava.lang.Tuple;
-import io.tava.lang.Tuple2;
+import io.tava.lang.Tuples;
 import io.tava.util.Map;
 import io.tava.util.Properties;
 
 import java.io.FileWriter;
 import java.io.IOException;
 
-public class MainApp {
+public class TupleMainApp {
 
     public static void main(String[] args) throws IOException {
 
         Properties properties = new Properties();
         properties.put("a", "a");
-        Map<Object, Object> map = properties.map((key, value) -> Tuple.of(key + "@" + key, value + "@" + value));
+        Map<Object, Object> map = properties.map((key, value) -> Tuples.of(key + "@" + key, value + "@" + value));
         System.out.println(map);
 
         for (int i = 1; i <= 22; i++) {
@@ -32,7 +30,7 @@ public class MainApp {
                 }
             }
 
-            code.append("> {\n\n");
+            code.append("> implements Tuple {\n\n");
             for (int j = 1; j <= i; j++) {
 
                 code.append("\tprivate final T").append(j).append(" value").append(j).append(";\n\n");
@@ -122,7 +120,7 @@ public class MainApp {
 
         StringBuilder sb = new StringBuilder();
         sb.append("package io.tava.lang;\n\n");
-        sb.append("public class Tuple { \n\n");
+        sb.append("public class Tuples { \n\n");
         for (int i = 1; i <= 22; i++) {
             StringBuilder sb1 = new StringBuilder();
             sb1.append("<");
@@ -158,7 +156,7 @@ public class MainApp {
 
         }
         sb.append("}");
-        FileWriter writer = new FileWriter("D:\\totem-framework\\tava-parent\\tava\\src\\main\\java\\io\\tava\\lang\\Tuple.java");
+        FileWriter writer = new FileWriter("D:\\totem-framework\\tava-parent\\tava\\src\\main\\java\\io\\tava\\lang\\Tuples.java");
         writer.write(sb.toString());
         writer.flush();
         writer.close();

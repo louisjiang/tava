@@ -2,7 +2,7 @@ package io.tava.util;
 
 import io.tava.function.*;
 import io.tava.lang.Option;
-import io.tava.lang.Tuple;
+import io.tava.lang.Tuples;
 import io.tava.lang.Tuple2;
 import io.tava.util.builder.MapBuilder;
 
@@ -191,7 +191,7 @@ public final class MapOps {
         MapBuilder<K, V, M> leftBuilder = map.builder();
         MapBuilder<K, V, M> rightBuilder = map.builder();
         if (map.isEmpty()) {
-            return Tuple.of(leftBuilder.build(), rightBuilder.build());
+            return Tuples.of(leftBuilder.build(), rightBuilder.build());
         }
 
         java.util.Set<java.util.Map.Entry<K, V>> entries = map.entrySet();
@@ -207,14 +207,14 @@ public final class MapOps {
             }
         }
 
-        return Tuple.of(leftBuilder.build(), rightBuilder.build());
+        return Tuples.of(leftBuilder.build(), rightBuilder.build());
     }
 
     public static <K, V, M extends Map<K, V>> Tuple2<M, M> splitAt(M map, int n) {
         MapBuilder<K, V, M> leftBuilder = map.builder();
         MapBuilder<K, V, M> rightBuilder = map.builder();
         if (map.isEmpty()) {
-            return Tuple.of(leftBuilder.build(), rightBuilder.build());
+            return Tuples.of(leftBuilder.build(), rightBuilder.build());
         }
 
         java.util.Set<java.util.Map.Entry<K, V>> entries = map.entrySet();
@@ -226,7 +226,7 @@ public final class MapOps {
                 rightBuilder.put(entry);
             }
         }
-        return Tuple.of(leftBuilder.build(), rightBuilder.build());
+        return Tuples.of(leftBuilder.build(), rightBuilder.build());
     }
 
     public static <K, V, M extends Map<K, V>, K0, V0, M0 extends Map<K0, V0>> M0 mapWithIndex(M map, IndexedFunction2<K, V, java.util.Map.Entry<K0, V0>> action) {
@@ -283,7 +283,7 @@ public final class MapOps {
         List<Tuple2<java.util.Map.Entry<K, V>, Integer>> list = new ArrayList<>();
         int index = 0;
         for (java.util.Map.Entry<K, V> entry : entries) {
-            list.add(Tuple.of(entry, index++));
+            list.add(Tuples.of(entry, index++));
         }
         return list;
     }
@@ -293,7 +293,7 @@ public final class MapOps {
         Iterator<B> iterator2 = that.iterator();
         List<Tuple2<java.util.Map.Entry<K, V>, B>> list = new ArrayList<>();
         while (iterator1.hasNext() && iterator2.hasNext()) {
-            list.add(Tuple.of(iterator1.next(), iterator2.next()));
+            list.add(Tuples.of(iterator1.next(), iterator2.next()));
         }
         return list;
     }
@@ -307,7 +307,7 @@ public final class MapOps {
             left.add(tuple2.getValue1());
             right.add(tuple2.getValue2());
         }
-        return Tuple.of(left, right);
+        return Tuples.of(left, right);
     }
 
     public static <K, V, M extends Map<K, V>> boolean forall(M map, Predicate2<K, V> action) {

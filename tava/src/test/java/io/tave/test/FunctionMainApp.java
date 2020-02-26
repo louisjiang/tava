@@ -1,9 +1,9 @@
-package io.tava.function;
+package io.tave.test;
 
 import java.io.FileWriter;
 import java.io.IOException;
 
-public class MainApp {
+public class FunctionMainApp {
 
     public static void main(String[] args) throws IOException {
 

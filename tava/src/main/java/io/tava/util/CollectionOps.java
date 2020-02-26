@@ -2,7 +2,7 @@ package io.tava.util;
 
 import io.tava.function.*;
 import io.tava.lang.Option;
-import io.tava.lang.Tuple;
+import io.tava.lang.Tuples;
 import io.tava.lang.Tuple2;
 import io.tava.util.builder.CollectionBuilder;
 
@@ -193,7 +193,7 @@ public final class CollectionOps {
         Iterator<E> iterator1 = collection.iterator();
         Iterator<B> iterator2 = that.iterator();
         while (iterator1.hasNext() && iterator2.hasNext()) {
-            builder.add(Tuple.of(iterator1.next(), iterator2.next()));
+            builder.add(Tuples.of(iterator1.next(), iterator2.next()));
         }
         return builder.build();
     }
@@ -207,7 +207,7 @@ public final class CollectionOps {
             leftBuilder.add(tuple2.getValue1());
             rightBuilder.add(tuple2.getValue2());
         }
-        return Tuple.of(leftBuilder.build(), rightBuilder.build());
+        return Tuples.of(leftBuilder.build(), rightBuilder.build());
     }
 
     public static <E, C extends Collection<E>> boolean forall(C collection, Predicate1<E> action) {
@@ -362,7 +362,7 @@ public final class CollectionOps {
 
 
     public static <E, C extends Collection<E>> C diff(C collection, Collection<E> that) {
-        Map<E, Integer> map = that.groupBy(item -> item).map((key, values) -> Tuple.of(key, values.size()));
+        Map<E, Integer> map = that.groupBy(item -> item).map((key, values) -> Tuples.of(key, values.size()));
         CollectionBuilder<E, C> builder = collection.builder();
         for (E e : collection) {
             Integer count = map.get(e);
@@ -376,7 +376,7 @@ public final class CollectionOps {
     }
 
     public static <E, C extends Collection<E>> C intersect(C collection, Collection<E> that) {
-        Map<E, Integer> map = that.groupBy(item -> item).map((key, values) -> Tuple.of(key, values.size()));
+        Map<E, Integer> map = that.groupBy(item -> item).map((key, values) -> Tuples.of(key, values.size()));
         CollectionBuilder<E, C> builder = collection.builder();
         for (E e : collection) {
             Integer count = map.get(e);
