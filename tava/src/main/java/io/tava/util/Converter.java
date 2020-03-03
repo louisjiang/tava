@@ -11,23 +11,22 @@ import java.util.Iterator;
  * @author louisjiang <493509534@qq.com>
  * @version 2020-03-03 12:00:26
  */
-public final class FunctionWrapper {
+public final class Converter {
 
-    private FunctionWrapper() {
+    private Converter() {
     }
 
-    public static <E> List<E> wrap(java.util.List<E> list) {
+    public static <E> List<E> asList(java.util.List<E> list) {
         return new ListWrapper<>(list);
     }
 
-    public static <E> Set<E> wrap(java.util.Set<E> set) {
+    public static <E> Set<E> asSet(java.util.Set<E> set) {
         return new SetWrapper<>(set);
     }
 
-    public static <K, V> Map<K, V> warp(java.util.Map<K, V> map) {
+    public static <K, V> Map<K, V> asMap(java.util.Map<K, V> map) {
         return new MapWrapper<>(map);
     }
-
 
     private static class ListWrapper<E> extends AbstractList<E> implements List<E> {
 
@@ -95,5 +94,5 @@ public final class FunctionWrapper {
             return map.entrySet();
         }
     }
-    
+
 }
