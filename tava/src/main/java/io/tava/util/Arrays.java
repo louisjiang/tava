@@ -23,6 +23,9 @@ public class Arrays {
 
         @Override
         public E get(int index) {
+            if (index >= size()) {
+                throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + size());
+            }
             return array[index];
         }
 
