@@ -11,28 +11,28 @@ import java.util.Iterator;
  * @author louisjiang <493509534@qq.com>
  * @version 2020-03-03 12:00:26
  */
-public final class Converter {
+public final class Adapter {
 
-    private Converter() {
+    private Adapter() {
     }
 
-    public static <E> List<E> asList(java.util.List<E> list) {
-        return new ListWrapper<>(list);
+    public static <E> List<E> list(java.util.List<E> list) {
+        return new ListAdapter<>(list);
     }
 
-    public static <E> Set<E> asSet(java.util.Set<E> set) {
-        return new SetWrapper<>(set);
+    public static <E> Set<E> set(java.util.Set<E> set) {
+        return new SetAdapter<>(set);
     }
 
-    public static <K, V> Map<K, V> asMap(java.util.Map<K, V> map) {
-        return new MapWrapper<>(map);
+    public static <K, V> Map<K, V> map(java.util.Map<K, V> map) {
+        return new MapAdapter<>(map);
     }
 
-    private static class ListWrapper<E> extends AbstractList<E> implements List<E> {
+    private static class ListAdapter<E> extends AbstractList<E> implements List<E> {
 
         private java.util.List<E> list;
 
-        ListWrapper(java.util.List<E> list) {
+        ListAdapter(java.util.List<E> list) {
             this.list = list;
         }
 
@@ -52,11 +52,11 @@ public final class Converter {
         }
     }
 
-    private static class SetWrapper<E> extends AbstractSet<E> implements Set<E> {
+    private static class SetAdapter<E> extends AbstractSet<E> implements Set<E> {
 
         private final java.util.Set<E> set;
 
-        SetWrapper(java.util.Set<E> set) {
+        SetAdapter(java.util.Set<E> set) {
             this.set = set;
         }
 
@@ -76,11 +76,11 @@ public final class Converter {
         }
     }
 
-    private static class MapWrapper<K, V> extends AbstractMap<K, V> implements Map<K, V> {
+    private static class MapAdapter<K, V> extends AbstractMap<K, V> implements Map<K, V> {
 
         private final java.util.Map<K, V> map;
 
-        MapWrapper(java.util.Map<K, V> map) {
+        MapAdapter(java.util.Map<K, V> map) {
             this.map = map;
         }
 
