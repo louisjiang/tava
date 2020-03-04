@@ -15,13 +15,21 @@
     </modules>
 
     <distributionManagement>
+        <!--        <repository>-->
+        <!--            <id>totem-releases</id>-->
+        <!--            <url>http://10.58.197.1:8082/repository/maven-releases/</url>-->
+        <!--        </repository>-->
+        <!--        <snapshotRepository>-->
+        <!--            <id>totem-snapshots</id>-->
+        <!--            <url>http://10.58.197.1:8082/repository/maven-snapshots/</url>-->
+        <!--        </snapshotRepository>-->
         <repository>
-            <id>totem-releases</id>
-            <url>http://10.58.197.1:8082/repository/maven-releases/</url>
+            <id>nexus</id>
+            <url>http://maven.ds.gome.com.cn/nexus/content/repositories/releases</url>
         </repository>
         <snapshotRepository>
-            <id>totem-snapshots</id>
-            <url>http://10.58.197.1:8082/repository/maven-snapshots/</url>
+            <id>snapshots</id>
+            <url>http://maven.ds.gome.com.cn/nexus/content/repositories/snapshots</url>
         </snapshotRepository>
     </distributionManagement>
 
