@@ -18,7 +18,7 @@ public class Arrays {
         private E[] array;
 
         ArrayList(E[] array) {
-            array = Objects.requireNonNull(array);
+            this.array = Objects.requireNonNull(array);
         }
 
         @Override
