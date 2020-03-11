@@ -1,5 +1,6 @@
 package io.tava.lang;
 
+import io.tava.function.Function0;
 import io.tava.function.Function1;
 
 import java.util.NoSuchElementException;
@@ -8,6 +9,20 @@ import java.util.Optional;
 public interface Option<T> {
 
     T get();
+
+    default T getOrElse(Function0<T> defaultValue) {
+        if (hasValue()) {
+            return get();
+        }
+        return defaultValue.apply();
+    }
+
+    default T getOrElse(T defaultValue) {
+        if (hasValue()) {
+            return get();
+        }
+        return defaultValue;
+    }
 
     boolean hasValue();
 

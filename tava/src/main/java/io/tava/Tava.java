@@ -2,10 +2,7 @@ package io.tava;
 
 import io.tava.function.CheckedFunction0;
 import io.tava.lang.*;
-import io.tava.util.Adapter;
-import io.tava.util.List;
-import io.tava.util.Map;
-import io.tava.util.Set;
+import io.tava.util.*;
 
 /**
  * @author louisjiang <493509534@qq.com>
@@ -35,6 +32,10 @@ public class Tava {
 
     public static <L, R> Either.Right<L, R> right(R value) {
         return Either.right(value);
+    }
+
+    public static <E> List<E> list(E[] array) {
+        return Arrays.asList(array);
     }
 
     public static <E> List<E> list(java.util.List<E> list) {
