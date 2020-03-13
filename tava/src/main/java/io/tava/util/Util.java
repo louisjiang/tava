@@ -1,4 +1,4 @@
-package io.tava.lang;
+package io.tava.util;
 
 import java.util.Collection;
 import java.util.Map;
