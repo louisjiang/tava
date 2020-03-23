@@ -15,7 +15,9 @@ public interface Util {
         }
         StringBuilder stringBuilder = new StringBuilder();
         for (Object value : values) {
-            stringBuilder.append(value.toString());
+            if (value != null) {
+                stringBuilder.append(value);
+            }
         }
         return stringBuilder.toString();
     }
@@ -78,7 +80,8 @@ public interface Util {
         if (value instanceof boolean[]) {
             return ((boolean[]) value).length == 0;
         }
-        throw new UnsupportedOperationException("error:" + value.getClass());
+
+        return value == null;
     }
 
 
