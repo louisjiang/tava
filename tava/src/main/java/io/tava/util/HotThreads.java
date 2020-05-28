@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 public class HotThreads {
 
     private long interval = 1000;
-    private int busiestThreads = 3;
+    private int busiestThreads = 10;
     private int threadElementsSnapshotDelay = 10;
     private int threadElementsSnapshotCount = 10;
     private String type = "cpu";
