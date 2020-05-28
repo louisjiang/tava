@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author louisjiang <493509534@qq.com>
@@ -208,8 +207,8 @@ public class HotThreads {
             if (threadName == null) {
                 continue; // thread is not alive yet or died before the first snapshot - ignore it!
             }
-            double percent = (((double) time) / interval * 1000 * 1000) * 100;
-            builder.append(String.format(Locale.ROOT, "%n%4.1f%% (%s out of %s) %s usage by thread '%s'%n", percent, TimeUnit.NANOSECONDS.toNanos(time), interval, type, threadName));
+            double percent = (((double) time) / (interval * 1000 * 1000)) * 100;
+            builder.append(String.format(Locale.ROOT, "%n%4.1f%% (%s out of %s) %s usage by thread '%s'%n", percent, time / 1000 / 1000, interval, type, threadName));
             // for each snapshot (2nd array index) find later snapshot for same thread with max number of
             // identical StackTraceElements (starting from end of each)
             boolean[] done = new boolean[threadElementsSnapshotCount];
