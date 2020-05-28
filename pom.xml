@@ -12,6 +12,7 @@
     <modules>
         <module>tava</module>
         <module>tava-fastjson</module>
+        <module>tava-web</module>
     </modules>
 
     <distributionManagement>

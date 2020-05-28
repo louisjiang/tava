@@ -25,38 +25,32 @@ public class HotThreads {
     private String type = "cpu";
     private boolean ignoreIdleThreads = true;
 
-    public HotThreads interval(long interval) {
+    public void setInterval(long interval) {
         this.interval = interval;
-        return this;
     }
 
-    public HotThreads busiestThreads(int busiestThreads) {
+    public void setBusiestThreads(int busiestThreads) {
         this.busiestThreads = busiestThreads;
-        return this;
     }
 
-    public HotThreads ignoreIdleThreads(boolean ignoreIdleThreads) {
+    public void setIgnoreIdleThreads(boolean ignoreIdleThreads) {
         this.ignoreIdleThreads = ignoreIdleThreads;
-        return this;
     }
 
-    public HotThreads threadElementsSnapshotDelay(int threadElementsSnapshotDelay) {
+    public void setThreadElementsSnapshotDelay(int threadElementsSnapshotDelay) {
         this.threadElementsSnapshotDelay = threadElementsSnapshotDelay;
-        return this;
     }
 
-    public HotThreads threadElementsSnapshotCount(int threadElementsSnapshotCount) {
+    public void setThreadElementsSnapshotCount(int threadElementsSnapshotCount) {
         this.threadElementsSnapshotCount = threadElementsSnapshotCount;
-        return this;
     }
 
-    public HotThreads type(String type) {
+    public void setType(String type) {
         if ("cpu".equals(type) || "wait".equals(type) || "block".equals(type)) {
             this.type = type;
         } else {
             throw new IllegalArgumentException("type not supported [" + type + "]");
         }
-        return this;
     }
 
     public String detect() throws Exception {
@@ -69,7 +63,7 @@ public class HotThreads {
         // NOTE: these are likely JVM dependent
         if (threadName.equals("Signal Dispatcher") ||
                 threadName.equals("Finalizer") ||
-                threadName.equals("Reference Handler")) {
+                threadName.equals("Reference Handler") || threadName.equals("DestroyJavaVM")) {
             return true;
         }
 
@@ -107,16 +101,22 @@ public class HotThreads {
             throw new RuntimeException("thread CPU time is not supported on this JDK");
         }
 
-        StringBuilder sb = new StringBuilder();
-        sb.append("Hot threads at ");
-        sb.append(new DateTime().toString("yyyy-MM-dd HH:mm:ss.SSS"));
-        sb.append(", interval=");
-        sb.append(interval);
-        sb.append(", busiestThreads=");
-        sb.append(busiestThreads);
-        sb.append(", ignoreIdleThreads=");
-        sb.append(ignoreIdleThreads);
-        sb.append(":\n");
+        StringBuilder builder = new StringBuilder();
+        builder.append("Hot threads at ");
+        builder.append(new DateTime().toString("yyyy-MM-dd HH:mm:ss.SSS"));
+        builder.append(", type=");
+        builder.append(type);
+        builder.append(", interval=");
+        builder.append(interval);
+        builder.append(", busiestThreads=");
+        builder.append(busiestThreads);
+        builder.append(", ignoreIdleThreads=");
+        builder.append(ignoreIdleThreads);
+        builder.append(", threadElementsSnapshotDelay=");
+        builder.append(threadElementsSnapshotDelay);
+        builder.append(", threadElementsSnapshotCount=");
+        builder.append(threadElementsSnapshotCount);
+        builder.append("\n");
 
         Map<Long, MyThreadInfo> threadInfos = new HashMap<>();
         for (long threadId : threadBean.getAllThreadIds()) {
@@ -209,7 +209,7 @@ public class HotThreads {
                 continue; // thread is not alive yet or died before the first snapshot - ignore it!
             }
             double percent = (((double) time) / interval * 1000 * 1000) * 100;
-            sb.append(String.format(Locale.ROOT, "%n%4.1f%% (%s out of %s) %s usage by thread '%s'%n", percent, TimeUnit.NANOSECONDS.toNanos(time), interval, type, threadName));
+            builder.append(String.format(Locale.ROOT, "%n%4.1f%% (%s out of %s) %s usage by thread '%s'%n", percent, TimeUnit.NANOSECONDS.toNanos(time), interval, type, threadName));
             // for each snapshot (2nd array index) find later snapshot for same thread with max number of
             // identical StackTraceElements (starting from end of each)
             boolean[] done = new boolean[threadElementsSnapshotCount];
@@ -237,20 +237,22 @@ public class HotThreads {
                 if (allInfos[i][t] != null) {
                     final StackTraceElement[] show = allInfos[i][t].getStackTrace();
                     if (count == 1) {
-                        sb.append(String.format(Locale.ROOT, "  unique snapshot%n"));
-                        for (StackTraceElement stackTraceElement : show) {
-                            sb.append(String.format(Locale.ROOT, "    %s%n", stackTraceElement));
+                        if (show.length > 0) {
+                            builder.append(String.format(Locale.ROOT, "  unique snapshot%n"));
+                            for (StackTraceElement stackTraceElement : show) {
+                                builder.append(String.format(Locale.ROOT, "    %s%n", stackTraceElement));
+                            }
                         }
                     } else {
-                        sb.append(String.format(Locale.ROOT, "  %d/%d snapshots sharing following %d elements%n", count, threadElementsSnapshotCount, maxSim));
+                        builder.append(String.format(Locale.ROOT, "  %d/%d snapshots sharing following %d elements%n", count, threadElementsSnapshotCount, maxSim));
                         for (int l = show.length - maxSim; l < show.length; l++) {
-                            sb.append(String.format(Locale.ROOT, "    %s%n", show[l]));
+                            builder.append(String.format(Locale.ROOT, "    %s%n", show[l]));
                         }
                     }
                 }
             }
         }
-        return sb.toString();
+        return builder.toString();
     }
 
     private static final StackTraceElement[] EMPTY = new StackTraceElement[0];
