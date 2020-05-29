@@ -62,7 +62,9 @@ public class HotThreads {
         // NOTE: these are likely JVM dependent
         if (threadName.equals("Signal Dispatcher") ||
                 threadName.equals("Finalizer") ||
-                threadName.equals("Reference Handler") || threadName.equals("DestroyJavaVM")) {
+                threadName.equals("Reference Handler") ||
+                threadName.equals("DestroyJavaVM") ||
+                threadName.equals("Attach Listener")) {
             return true;
         }
 
@@ -77,16 +79,11 @@ public class HotThreads {
                     methodName.equals("select")) {
                 return true;
             }
-            if (className.equals("org.elasticsearch.threadpool.ThreadPool$EstimatedTimeThread") &&
-                    methodName.equals("run")) {
-                return true;
-            }
-            if (className.equals("org.elasticsearch.indices.ttl.IndicesTTLService$Notifier") &&
-                    methodName.equals("await")) {
-                return true;
-            }
             if (className.equals("java.util.concurrent.LinkedTransferQueue") &&
                     methodName.equals("poll")) {
+                return true;
+            }
+            if (className.equals("sun.misc.Unsafe") && methodName.equals("park")) {
                 return true;
             }
         }
