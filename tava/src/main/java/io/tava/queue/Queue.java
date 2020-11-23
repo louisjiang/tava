@@ -36,7 +36,7 @@ public class Queue<T> {
                  WaitStrategy waitStrategy,
                  String threadPrefix) {
         this.disruptor = new Disruptor<>(new EventFactory<>(), ringBufferSize, new NamedThreadFactory(threadPrefix), producerType, waitStrategy);
-        disruptor.setDefaultExceptionHandler(new ExceptionHandler<Event<T>>() {
+        this.disruptor.setDefaultExceptionHandler(new ExceptionHandler<Event<T>>() {
             @Override
             public void handleEventException(Throwable cause, long sequence, Event<T> event) {
                 logger.error("handleEventException", cause);
@@ -52,21 +52,23 @@ public class Queue<T> {
                 logger.error("handleOnShutdownException", cause);
             }
         });
-        if (factory instanceof EventHandlerFactory) {
+        if (factory instanceof EventHandlerFactory<?>) {
             EventHandlerFactory<T> eventHandlerFactory = (EventHandlerFactory<T>) factory;
             List<EventHandler<T>> handlers = handlers(eventHandlerFactory);
-            disruptor.handleEventsWith(handlers.toArray(new EventHandler[0]));
-        } else if (factory instanceof WorkHandlerFactory) {
+            this.disruptor.handleEventsWith(handlers.toArray(new EventHandler[0]));
+        } else if (factory instanceof WorkHandlerFactory<?>) {
             WorkHandlerFactory<T> workHandlerFactory = (WorkHandlerFactory<T>) factory;
             List<WorkHandler<T>> handlers = handlers(workHandlerFactory);
-            disruptor.handleEventsWithWorkerPool(handlers.toArray(new WorkHandler[0]));
+            this.disruptor.handleEventsWithWorkerPool(handlers.toArray(new WorkHandler[0]));
+        } else {
+            throw new IllegalArgumentException("factory:" + factory.getClass() + " is error");
         }
-        this.ringBuffer = disruptor.start();
+        this.ringBuffer = this.disruptor.start();
     }
 
 
     public void publish(T value) {
-        ringBuffer.publishEvent(eventTranslator, value);
+        this.ringBuffer.publishEvent(this.eventTranslator, value);
     }
 
     public void shutdown() {
