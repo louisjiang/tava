@@ -6,7 +6,7 @@ package io.tava.queue;
  */
 public interface Handler<T> {
 
-    default void onHandle(Event<T> event) throws Exception{
+    default void onHandle(Event<T> event) throws Exception {
         handle(event.getValue());
     }
 
