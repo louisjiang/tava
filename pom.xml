@@ -13,16 +13,18 @@
         <module>tava</module>
         <module>tava-fastjson</module>
         <module>tava-web</module>
+        <module>tava-queue</module>
+        <module>tava-reflect</module>
     </modules>
 
     <distributionManagement>
         <repository>
-            <id>totem-releases</id>
-            <url>http://10.58.197.1:8082/repository/maven-releases/</url>
+            <id>releases</id>
+            <url>http://maven.ds.gome.com.cn/nexus/content/repositories/releases/</url>
         </repository>
         <snapshotRepository>
-            <id>totem-snapshots</id>
-            <url>http://10.58.197.1:8082/repository/maven-snapshots/</url>
+            <id>snapshots</id>
+            <url>http://maven.ds.gome.com.cn/nexus/content/repositories/snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
 
