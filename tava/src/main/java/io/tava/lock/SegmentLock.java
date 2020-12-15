@@ -2,7 +2,6 @@ package io.tava.lock;
 
 
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -10,7 +9,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author louisjiang <493509534@qq.com>
  * @version 2020-12-14 16:13
  */
-public class SegmentLock<T> {
+public class SegmentLock<T> implements Lock<T> {
 
     private final Map<Integer, ReentrantLock> locks = new ConcurrentHashMap<>();
     private final int segments;
@@ -40,23 +39,5 @@ public class SegmentLock<T> {
         this.locks.get((key.hashCode() >>> 1) % this.segments).unlock();
     }
 
-
-    public void doWithLock(T key, Runnable runnable) {
-        try {
-            lock(key);
-            runnable.run();
-        } finally {
-            unlock(key);
-        }
-    }
-
-    public <R> R doWithLock(T key, Callable<R> callable) throws Exception {
-        try {
-            lock(key);
-            return callable.call();
-        } finally {
-            unlock(key);
-        }
-    }
 
 }

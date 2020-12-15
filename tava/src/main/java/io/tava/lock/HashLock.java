@@ -1,7 +1,9 @@
 package io.tava.lock;
 
+import io.tava.function.Consumer0;
+import io.tava.function.Function0;
+
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
@@ -10,7 +12,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author louisjiang <493509534@qq.com>
  * @version 2020-12-14 16:10
  */
-public class HashLock<T> {
+public class HashLock<T> implements Lock<T> {
 
     private final SegmentLock<T> segmentLock = new SegmentLock<>();
     private final Map<T, LockInfo> locks = new ConcurrentHashMap<>();
@@ -23,7 +25,6 @@ public class HashLock<T> {
     public HashLock(boolean fair) {
         this.fair = fair;
     }
-
 
     public void lock(T key) {
         this.segmentLock.lock(key);
@@ -50,24 +51,6 @@ public class HashLock<T> {
         }
         lockInfo.decrementAndGet();
         lockInfo.unlock();
-    }
-
-    public void doWithLock(T key, Runnable runnable) {
-        try {
-            lock(key);
-            runnable.run();
-        } finally {
-            unlock(key);
-        }
-    }
-
-    public <R> R doWithLock(T key, Callable<R> callable) throws Exception {
-        try {
-            lock(key);
-            return callable.call();
-        } finally {
-            unlock(key);
-        }
     }
 
 

@@ -1,7 +1,5 @@
 package io.tava.hash;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.SortedMap;
@@ -13,7 +11,7 @@ public class ConsistentHash<T extends Node> {
     private final HashFunction hashFunction;
 
     public ConsistentHash(Collection<T> pNodes, int vNodeCount) {
-        this(pNodes, vNodeCount, new MD5Hash());
+        this(pNodes, vNodeCount, new MD5HashFunction());
     }
 
 
@@ -71,31 +69,6 @@ public class ConsistentHash<T extends Node> {
             }
         }
         return replicas;
-    }
-
-    private static class MD5Hash implements HashFunction {
-        MessageDigest instance;
-
-        public MD5Hash() {
-            try {
-                instance = MessageDigest.getInstance("MD5");
-            } catch (NoSuchAlgorithmException e) {
-            }
-        }
-
-        @Override
-        public long hash(String key) {
-            instance.reset();
-            instance.update(key.getBytes());
-            byte[] digest = instance.digest();
-
-            long h = 0;
-            for (int i = 0; i < 4; i++) {
-                h <<= 8;
-                h |= ((int) digest[i]) & 0xFF;
-            }
-            return h;
-        }
     }
 
 }
