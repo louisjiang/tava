@@ -35,6 +35,12 @@ public class Queue<T> {
                  ProducerType producerType,
                  WaitStrategy waitStrategy,
                  String threadPrefix) {
+        if (ringBufferSize < 1) {
+            throw new IllegalArgumentException("ringBufferSize must not be less than 1");
+        }
+        if (Integer.bitCount(ringBufferSize) != 1) {
+            throw new IllegalArgumentException("ringBufferSize must be a power of 2");
+        }
         this.disruptor = new Disruptor<>(new EventFactory<>(), ringBufferSize, new NamedThreadFactory(threadPrefix), producerType, waitStrategy);
         this.disruptor.setDefaultExceptionHandler(new ExceptionHandler<Event<T>>() {
             @Override
@@ -76,11 +82,10 @@ public class Queue<T> {
     }
 
     private <H extends Handler<T>> List<H> handlers(HandlerFactory<T, H> factory) {
-        H handler = factory.newInstance();
         List<H> handlers = new ArrayList<>();
-        int number = factory.threadNumber();
-        for (int i = 0; i < number; i++) {
-            handlers.add(handler);
+        int threadNumber = factory.threadNumber();
+        for (int i = 0; i < threadNumber; i++) {
+            handlers.add(factory.newInstance());
         }
         return handlers;
     }

@@ -35,7 +35,8 @@ public class ConsistentHashTest {
         int v1 = 0;
         int v2 = 0;
 
-        for (int i = 0; i < 10000; i++) {
+        long l = System.currentTimeMillis();
+        for (int i = 0; i < 5000000; i++) {
             TestNode testNode = consistentHash.hashNode("key" + i);
             String key = testNode.geValue();
             if (key.equals("value1")) {
@@ -46,6 +47,7 @@ public class ConsistentHashTest {
         }
         System.out.println(v1);
         System.out.println(v2);
+        System.out.println(System.currentTimeMillis() - l);
 
     }
 
