@@ -39,14 +39,14 @@ public class Threads implements Util {
             threadInfoList.add(info);
         }
         StringBuilder builder = new StringBuilder();
-        builder.append("peak thread:").append(threadBean.getPeakThreadCount());
-        builder.append(",daemon thread:").append(threadBean.getDaemonThreadCount());
-        builder.append(",total started thread:").append(threadBean.getTotalStartedThreadCount());
-        builder.append(",thread:").append(threadBean.getThreadCount());
-        builder.append(",blocked:").append(threadInfoList.count(threadInfo -> threadInfo.getThreadState().equals(Thread.State.BLOCKED)));
-        builder.append(",runnable:").append(threadInfoList.count(threadInfo -> threadInfo.getThreadState().equals(Thread.State.RUNNABLE)));
-        builder.append(",waiting:").append(threadInfoList.count(threadInfo -> threadInfo.getThreadState().equals(Thread.State.WAITING)));
-        builder.append(",timed_waiting:").append(threadInfoList.count(threadInfo -> threadInfo.getThreadState().equals(Thread.State.TIMED_WAITING)));
+        builder.append("PEAK THREAD:").append(threadBean.getPeakThreadCount());
+        builder.append(",DAEMON THREAD:").append(threadBean.getDaemonThreadCount());
+        builder.append(",TOTAL STARTED THREAD:").append(threadBean.getTotalStartedThreadCount());
+        builder.append(",THREAD:").append(threadBean.getThreadCount());
+        builder.append(",BLOCKED:").append(threadInfoList.count(threadInfo -> threadInfo.getThreadState().equals(Thread.State.BLOCKED)));
+        builder.append(",RUNNABLE:").append(threadInfoList.count(threadInfo -> threadInfo.getThreadState().equals(Thread.State.RUNNABLE)));
+        builder.append(",WAITING:").append(threadInfoList.count(threadInfo -> threadInfo.getThreadState().equals(Thread.State.WAITING)));
+        builder.append(",TIMED_WAITING:").append(threadInfoList.count(threadInfo -> threadInfo.getThreadState().equals(Thread.State.TIMED_WAITING)));
         builder.append("\r\n\r\n");
         for (ThreadInfo info : threadInfoList) {
             builder.append("\"").append(info.getThreadName()).append("\"");
@@ -72,14 +72,17 @@ public class Threads implements Util {
             int length = stackTraces.length;
             int index = 0;
             while (index < length) {
+                if (index == 0) {
+                    builder.append("\tjava.lang.Thread.State: ").append(threadState).append("\r\n");
+                }
                 StackTraceElement stackTrace = stackTraces[index];
-                builder.append("\t").append(stackTrace.toString()).append("\r\n");
+                builder.append("\t\t").append(stackTrace.toString()).append("\r\n");
                 if (index == 0 && info.getLockInfo() != null) {
-                    builder.append("\t- ").append(threadState).append(" on ").append(info.getLockInfo()).append("\r\n");
+                    builder.append("\t\t- ").append(threadState).append(" on ").append(info.getLockInfo()).append("\r\n");
                 }
                 for (MonitorInfo lockedMonitor : info.getLockedMonitors()) {
                     if (lockedMonitor.getLockedStackDepth() == index) {
-                        builder.append("\t- LOCKED MONITOR on").append(lockedMonitor).append(",locked stack frame:").append(lockedMonitor.getLockedStackFrame().toString()).append("\r\n");
+                        builder.append("\t\t- LOCKED MONITOR on").append(lockedMonitor).append(",locked stack frame:").append(lockedMonitor.getLockedStackFrame().toString()).append("\r\n");
                     }
                 }
                 index++;
