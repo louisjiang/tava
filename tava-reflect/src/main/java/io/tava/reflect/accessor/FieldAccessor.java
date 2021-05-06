@@ -17,22 +17,35 @@ public interface FieldAccessor {
 
     void set(Object instance, Object argument) throws ReflectionException;
 
-
     class StaticFieldAccessor implements FieldAccessor {
+
+        private final Field targetField;
+
+        public StaticFieldAccessor(Field targetField) {
+            this.targetField = targetField;
+        }
 
         @Override
         public Field targetField() {
-            return null;
+            return targetField;
         }
 
         @Override
         public Object get(Object instance) throws ReflectionException {
-            return null;
+            try {
+                return targetField.get(null);
+            } catch (IllegalAccessException e) {
+                throw new ReflectionException("get:" + targetField, e);
+            }
         }
 
         @Override
         public void set(Object instance, Object argument) throws ReflectionException {
-
+            try {
+                targetField.set(null, argument);
+            } catch (IllegalAccessException e) {
+                throw new ReflectionException("set:" + targetField, e);
+            }
         }
     }
 
@@ -48,6 +61,7 @@ public interface FieldAccessor {
             this.targetField = targetField;
             this.getMethodAccessor = getMethodAccessor;
             this.setMethodAccessor = setMethodAccessor;
+            this.targetField.setAccessible(true);
         }
 
         @Override
@@ -71,6 +85,7 @@ public interface FieldAccessor {
         public void set(Object instance, Object argument) throws ReflectionException {
             if (this.setMethodAccessor.hasValue()) {
                 this.setMethodAccessor.get().invoke(instance, new Object[]{argument});
+                return;
             }
             try {
                 this.targetField.set(instance, argument);

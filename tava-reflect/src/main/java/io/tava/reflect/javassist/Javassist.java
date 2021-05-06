@@ -37,39 +37,39 @@ public class Javassist {
 
     public String unbox(Class<?> clazz, String value) {
         String name = clazz.getName();
-        if (name.equals("void")) {
+        if ("void".equals(name)) {
             return value;
         }
 
-        if (name.equals("int")) {
+        if ("int".equals(name)) {
             return value + " instanceof Integer ? ((Integer) " + value + ").intValue() : Integer.parseInt(" + value + ".toString())";
         }
 
-        if (name.equals("long")) {
+        if ("long".equals(name)) {
             return value + " instanceof Long ? ((Long) " + value + ").longValue() : Long.parseLong(" + value + ".toString())";
         }
 
-        if (name.equals("double")) {
+        if ("double".equals(name)) {
             return value + " instanceof Double ? ((Double) " + value + ").doubleValue() : Double.parseDouble(" + value + ".toString())";
         }
 
-        if (name.equals("float")) {
+        if ("float".equals(name)) {
             return value + " instanceof Float ? ((Float) " + value + ").floatValue() : Float.parseFloat(" + value + ".toString())";
         }
 
-        if (name.equals("boolean")) {
+        if ("boolean".equals(name)) {
             return value + " instanceof Boolean ? ((Boolean) " + value + ").booleanValue() : Boolean.parseBoolean(" + value + ".toString())";
         }
 
-        if (name.equals("char")) {
+        if ("char".equals(name)) {
             return value + " instanceof Character ? ((Character) " + value + ").charValue() : " + value + ".toString().toCharArray()[0]";
         }
 
-        if (name.equals("short")) {
+        if ("short".equals(name)) {
             return value + " instanceof Short ? ((Short) " + value + ").shortValue() : Short.parseShort(" + value + ".toString())";
         }
 
-        if (name.equals("byte")) {
+        if ("byte".equals(name)) {
             return value + " instanceof Byte ? ((Byte) " + value + ").byteValue() : Byte.parseByte(" + value + ".toString())";
         }
 
@@ -82,35 +82,35 @@ public class Javassist {
 
     public String box(Class<?> clazz, String value) {
         String name = clazz.getName();
-        if (name.equals("int")) {
+        if ("int".equals(name)) {
             return "Integer.valueOf(" + value + ")";
         }
 
-        if (name.equals("long")) {
+        if ("long".equals(name)) {
             return "Long.valueOf(" + value + ")";
         }
 
-        if (name.equals("double")) {
+        if ("double".equals(name)) {
             return "Double.valueOf(" + value + ")";
         }
 
-        if (name.equals("float")) {
+        if ("float".equals(name)) {
             return "Float.valueOf(" + value + ")";
         }
 
-        if (name.equals("boolean")) {
+        if ("boolean".equals(name)) {
             return "Boolean.valueOf(" + value + ")";
         }
 
-        if (name.equals("char")) {
+        if ("char".equals(name)) {
             return "Character.valueOf(" + value + ")";
         }
 
-        if (name.equals("short")) {
+        if ("short".equals(name)) {
             return "Short.valueOf(" + value + ")";
         }
 
-        if (name.equals("byte")) {
+        if ("byte".equals(name)) {
             return "Byte.valueOf(" + value + ")";
         }
 

@@ -38,4 +38,27 @@ public interface MethodAccessor {
         }
     }
 
+    class StaticMethodAccessor implements MethodAccessor {
+
+        private final Method targetMethod;
+
+        public StaticMethodAccessor(Method targetMethod) {
+            this.targetMethod = targetMethod;
+        }
+
+        @Override
+        public Method targetMethod() {
+            return this.targetMethod;
+        }
+
+        @Override
+        public Object invoke(Object instance, Object[] arguments) throws ReflectionException {
+            try {
+                return this.targetMethod.invoke(null, arguments);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                throw new ReflectionException("invoke:" + targetMethod, e);
+            }
+        }
+    }
+
 }

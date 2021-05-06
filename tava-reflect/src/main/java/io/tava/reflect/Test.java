@@ -7,6 +7,7 @@ package io.tava.reflect;
 public class Test {
 
     private String a;
+    public String b;
 
     public Test(String a) {
         this.a = a;

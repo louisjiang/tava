@@ -1,5 +1,7 @@
 package io.tava.util;
 
+import io.tava.function.Function1;
+
 import java.util.Collection;
 import java.util.Map;
 
@@ -135,5 +137,51 @@ public interface Util {
         return value == null;
     }
 
+
+    default String toCase(String value, int startIndex, int endIndex, Function1<Character, Character> transform) {
+        if (isEmpty(value)) {
+            return value;
+        }
+        char[] chars = value.toCharArray();
+        int length = chars.length;
+        if (startIndex > length) {
+            throw new StringIndexOutOfBoundsException(startIndex + " > " + length);
+        }
+        if (endIndex > length) {
+            throw new StringIndexOutOfBoundsException(endIndex + " > " + length);
+        }
+        int index = startIndex;
+        while (index < endIndex) {
+            chars[index] = transform.apply(chars[index]);
+            index++;
+        }
+        return new String(chars);
+    }
+
+    default String toLowerCase(String value, int startIndex, int endIndex) {
+        return toCase(value, startIndex, endIndex, character -> {
+            if (character >= 'A' && character <= 'Z') {
+                return (char) (character + 32);
+            }
+            return character;
+        });
+    }
+
+    default String toUpperCase(String value, int startIndex, int endIndex) {
+        return toCase(value, startIndex, endIndex, character -> {
+            if (character >= 'a' && character <= 'z') {
+                return (char) (character - 32);
+            }
+            return character;
+        });
+    }
+
+    default String firstUpperCase(String value) {
+        return toUpperCase(value, 0, 1);
+    }
+
+    default String firstLowerCase(String value) {
+        return toLowerCase(value, 0, 1);
+    }
 
 }
