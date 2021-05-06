@@ -9,17 +9,68 @@ import java.util.Map;
  */
 public interface Util {
 
-    default String toString(Object... values) {
+    default <T> String mkString(java.util.List<T> values, String separator) {
+        return mkString(values, null, separator, null);
+    }
+
+    default <T> String mkString(java.util.List<T> values, String start, String separator, String end) {
+        StringBuilder builder = new StringBuilder();
+        if (nonEmpty(start)) {
+            builder.append(start);
+        }
+        boolean appendSeparator = false;
+        for (Object value : values) {
+            appendSeparator = append_(separator, builder, appendSeparator, value);
+        }
+        if (nonEmpty(end)) {
+            builder.append(end);
+        }
+        return builder.toString();
+    }
+
+    default <T> String mkString(T[] values, String separator) {
+        return mkString(values, null, separator, null);
+    }
+
+    default <T> String mkString(T[] values, String start, String separator, String end) {
+        StringBuilder builder = new StringBuilder();
+        if (nonEmpty(start)) {
+            builder.append(start);
+        }
+        boolean appendSeparator = false;
+        for (Object value : values) {
+            appendSeparator = append_(separator, builder, appendSeparator, value);
+        }
+        if (nonEmpty(end)) {
+            builder.append(end);
+        }
+        return builder.toString();
+    }
+
+    default boolean append_(String separator, StringBuilder builder, boolean appendSeparator, Object value) {
+        if (isEmpty(value)) {
+            return appendSeparator;
+        }
+        if (appendSeparator) {
+            builder.append(separator);
+        }
+        builder.append(value);
+        return true;
+    }
+
+
+    default <T> String toString(T... values) {
         if (values == null || values.length == 0) {
             return null;
         }
-        StringBuilder stringBuilder = new StringBuilder();
+        StringBuilder builder = new StringBuilder();
         for (Object value : values) {
-            if (value != null) {
-                stringBuilder.append(value);
+            if (isEmpty(value)) {
+                continue;
             }
+            builder.append(value);
         }
-        return stringBuilder.toString();
+        return builder.toString();
     }
 
 

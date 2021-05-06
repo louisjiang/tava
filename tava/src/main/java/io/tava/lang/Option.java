@@ -24,6 +24,8 @@ public interface Option<T> {
         return defaultValue;
     }
 
+    boolean isEmpty();
+
     boolean hasValue();
 
     Optional<T> toOptional();
@@ -58,8 +60,14 @@ public interface Option<T> {
             return value;
         }
 
-        public <R> Option.Some<R> map(Function1<T, R> map) {
-            return Option.some(map.apply(get()));
+        @Override
+        public <R> Option<R> map(Function1<T, R> map) {
+            return Option.option(map.apply(get()));
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return false;
         }
 
         @Override
@@ -83,8 +91,14 @@ public interface Option<T> {
             throw new NoSuchElementException("Option.None.get");
         }
 
+        @Override
         public <R> Option.None<R> map(Function1<T, R> map) {
             return (Option.None<R>) this;
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return true;
         }
 
         @Override

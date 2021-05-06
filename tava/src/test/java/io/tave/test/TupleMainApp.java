@@ -3,6 +3,7 @@ package io.tave.test;
 import io.tava.lang.Tuples;
 import io.tava.util.Map;
 import io.tava.util.Properties;
+import io.tava.util.Util;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -10,6 +11,14 @@ import java.io.IOException;
 public class TupleMainApp {
 
     public static void main(String[] args) throws IOException {
+
+        Util util = new Util() {
+        };
+
+        String a = util.toString("1", 1, "a");
+
+        String s = util.mkString(new Object[]{"1", null, "2"}, "@");
+        System.out.println(s);
 
         Properties properties = new Properties();
         properties.put("a", "a");
