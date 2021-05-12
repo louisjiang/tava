@@ -1,5 +1,8 @@
 package io.tava.reflect.javassist;
 
+import com.github.mustachejava.DefaultMustacheFactory;
+import com.github.mustachejava.Mustache;
+import com.github.mustachejava.MustacheFactory;
 import io.tava.lang.Option;
 import io.tava.reflect.accessor.Accessor;
 import io.tava.reflect.accessor.ConstructorAccessor;
@@ -7,18 +10,16 @@ import io.tava.reflect.accessor.FieldAccessor;
 import io.tava.reflect.accessor.MethodAccessor;
 import io.tava.reflect.util.ReflectionException;
 import io.tava.reflect.util.ReflectionUtil;
-import io.tava.util.Map;
 import io.tava.util.Util;
-import io.tava.util.concurrent.ConcurrentHashMap;
 import javassist.*;
 
+import java.io.StringWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.StringJoiner;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author louisjiang <493509534@qq.com>
@@ -31,6 +32,9 @@ public class JavassistAccessor implements Accessor, Util {
     private final Map<Method, MethodAccessor> methodAccessors = new ConcurrentHashMap<>();
 
     private final ClassPool classPool;
+    private final Mustache invokeMethodMustache;
+    private final Mustache setMethodMustache;
+    private final Mustache getMethodMustache;
 
     public JavassistAccessor() {
         this(null);
@@ -46,6 +50,10 @@ public class JavassistAccessor implements Accessor, Util {
         if (classLoader != null) {
             classPool.appendClassPath(new LoaderClassPath(classLoader));
         }
+        MustacheFactory mf = new DefaultMustacheFactory();
+        this.invokeMethodMustache = mf.compile("invokeMethod.mustache");
+        this.setMethodMustache = mf.compile("setMethod.mustache");
+        this.getMethodMustache = mf.compile("getMethod.mustache");
     }
 
     @Override
@@ -190,18 +198,17 @@ public class JavassistAccessor implements Accessor, Util {
             ctConstructor.setBody("{\n\tthis.targetField = $1;\n}");
             ctClass.addConstructor(ctConstructor);
             ctClass.addMethod(CtMethod.make("public Field targetField() {\n\treturn this.targetField;\t}", ctClass));
-            StringBuilder getMethod = new StringBuilder();
-            getMethod.append("public Object get(Object instance) throws ReflectionException {\n");
-            getMethod.append("\treturn ((").append(targetClassName).append(") instance).").append(field.getName()).append(";\n");
-            getMethod.append("}");
-            ctClass.addMethod(CtMethod.make(getMethod.toString(), ctClass));
 
-            StringBuilder setMethod = new StringBuilder();
-            setMethod.append("public void set(Object instance, Object argument) throws ReflectionException {\n");
-            setMethod.append("\t((").append(targetClassName).append(") instance).").append(field.getName()).append(" = ((").append(fieldTypeName).append(") argument);\n");
-            setMethod.append("}");
-            ctClass.addMethod(CtMethod.make(setMethod.toString(), ctClass));
+            Map<String, Object> scope = new HashMap<>();
+            scope.put("className", targetClassName);
+            scope.put("fieldName", field.getName());
+            scope.put("fieldTypeName", fieldTypeName);
 
+            String getMethod = getMethodMustache.execute(new StringWriter(), scope).toString();
+            String setMethod = setMethodMustache.execute(new StringWriter(), scope).toString();
+
+            ctClass.addMethod(CtMethod.make(getMethod, ctClass));
+            ctClass.addMethod(CtMethod.make(setMethod, ctClass));
             return ctClass;
 
         } catch (NotFoundException | CannotCompileException cause) {
@@ -225,19 +232,16 @@ public class JavassistAccessor implements Accessor, Util {
             for (int index = 0; index < parameterTypes.length; index++) {
                 arguments.add(Javassist.getInstance().unbox(parameterTypes[index], "arguments[" + index + "]"));
             }
-            StringBuilder invokeMethod = new StringBuilder();
             Class<?> returnType = method.getReturnType();
             boolean hasReturn = !"void".equals(returnType.getName());
-            invokeMethod.append("public Object invoke(Object instance, Object [] arguments) throws ReflectionException {\n");
-            if (hasReturn) {
-                String value = "((" + targetClassName + ") instance)." + method.getName() + "(" + mkString(arguments, ", ") + ")";
-                invokeMethod.append("\treturn ").append(Javassist.getInstance().box(returnType, value)).append(";\n");
-            } else {
-                invokeMethod.append("\t((").append(targetClassName).append(") instance).").append(method.getName()).append("(").append(mkString(arguments, ", ")).append(");\n");
-                invokeMethod.append("\treturn null;\n");
-            }
-            invokeMethod.append("}");
-            ctClass.addMethod(CtMethod.make(invokeMethod.toString(), ctClass));
+
+            Map<String, Object> scope = new HashMap<>();
+            scope.put("hasReturn", hasReturn);
+            scope.put("className", targetClassName);
+            scope.put("methodName", method.getName());
+            scope.put("arguments", mkString(arguments, ", "));
+            String invokeMethod = invokeMethodMustache.execute(new StringWriter(), scope).toString();
+            ctClass.addMethod(CtMethod.make(invokeMethod, ctClass));
             return ctClass;
         } catch (NotFoundException | CannotCompileException cause) {
             throw new ReflectionException("makeClass", cause);

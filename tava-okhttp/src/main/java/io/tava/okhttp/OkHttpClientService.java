@@ -103,6 +103,40 @@ public class OkHttpClientService implements CookieJar {
         return request(builder.build(), retry);
     }
 
+    public Response put(String url, Map<String, String> forms) {
+        return put(url, forms, null);
+    }
+
+    public Response put(String url, Map<String, String> forms, Map<String, String> headers) {
+        FormBody.Builder formBodyBuilder = new FormBody.Builder();
+        if (forms != null && forms.size() > 0) {
+            forms.forEach(formBodyBuilder::add);
+        }
+        return put(url, formBodyBuilder.build(), headers);
+    }
+
+    public Response put(String url, JSON json) {
+        return post(url, json, null);
+    }
+
+    public Response put(String url, JSON json, Map<String, String> headers) {
+        RequestBody requestBody = RequestBody.create(ByteString.encodeUtf8(json.toJSONString()), JSON_MEDIA_TYPE);
+        return put(url, requestBody, headers);
+    }
+
+    public Response put(String url, RequestBody requestBody) {
+        return put(url, requestBody, null);
+    }
+
+    public Response put(String url, RequestBody requestBody, Map<String, String> headers) {
+        Request.Builder builder = new Request.Builder().url(url).put(requestBody);
+        if (headers != null && headers.size() > 0) {
+            headers.forEach(builder::addHeader);
+        }
+        return request(builder.build());
+    }
+
+
     public Response post(String url, Map<String, String> forms) {
         return post(url, forms, null);
     }

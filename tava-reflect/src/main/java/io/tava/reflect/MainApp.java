@@ -23,7 +23,6 @@ public class MainApp {
         FieldAccessor fieldAccessorb = accessor.get(testClass.getDeclaredField("b"));
 
 
-
         MethodAccessor getA = accessor.get(testClass.getDeclaredMethod("getA"));
 
         MethodAccessor setA = accessor.get(testClass.getDeclaredMethod("setA", String.class));
@@ -41,9 +40,8 @@ public class MainApp {
         Object o1 = fieldAccessor.get(o);
         System.out.println(o1);
 
-        fieldAccessorb.set(o,"bbb");
+        fieldAccessorb.set(o, "bbb");
         Object o2 = fieldAccessorb.get(o);
         System.out.println(o2);
     }
-
 }

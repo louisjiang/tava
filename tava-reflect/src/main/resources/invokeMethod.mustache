@@ -1,0 +1,9 @@
+public Object invoke(Object instance, Object[] arguments) throws ReflectionException {
+{{#hasReturn}}
+    return (({{className}}) instance).{{methodName}}({{arguments}});
+{{/hasReturn}}
+{{^hasReturn}}
+    (({{className}}) instance).{{methodName}}({{arguments}});
+    return null;
+{{/hasReturn}}
+}
