@@ -79,6 +79,10 @@ public class OkHttpClientService implements CookieJar {
         };
     }
 
+    public void clearCookies() {
+        this.hostToCookies.clear();
+    }
+
     public void addExcludeCookieUrl(String url) {
         this.excludeCookieUrls.add(url);
     }
