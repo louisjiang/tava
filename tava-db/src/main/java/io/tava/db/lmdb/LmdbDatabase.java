@@ -7,6 +7,7 @@ import org.apache.commons.pool2.BasePooledObjectFactory;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.apache.commons.pool2.impl.GenericObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.lmdbjava.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +19,7 @@ import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Set;
 
 /**
  * @author louisjiang <493509534@qq.com>
@@ -26,12 +27,12 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class LmdbDatabase implements Database {
 
-    private static final Logger logger = LoggerFactory.getLogger(LmdbDatabase.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LmdbDatabase.class);
     private static Method cleanerMethod;
     private static Method cleanMethod;
     private final Env<ByteBuffer> env;
+    private final Dbi<ByteBuffer> dbi;
     private final File file;
-    private final Map<String, Dbi<ByteBuffer>> dbiMap = new ConcurrentHashMap<>();
     private final GenericObjectPool<ByteBuffer> keyPool;
 
 
@@ -47,16 +48,22 @@ public class LmdbDatabase implements Database {
     }
 
 
-    public LmdbDatabase(String path, long mapSize, int maxReaders) {
-        this.file = new File(path);
+    public LmdbDatabase(File file, long mapSize, int maxReaders) {
+        this.file = file;
         if (!file.exists()) {
             try {
                 Files.createDirectories(file.toPath());
             } catch (IOException cause) {
-                logger.error("createDirectories:{}", path, cause);
+                LOGGER.error("createDirectories:[{}]", file, cause);
             }
         }
         this.env = Env.create().setMapSize(mapSize).setMaxReaders(maxReaders).open(file, EnvFlags.MDB_NOLOCK);
+        this.dbi = this.env.openDbi("default", DbiFlags.MDB_CREATE);
+        GenericObjectPoolConfig<ByteBuffer> genericObjectPoolConfig = new GenericObjectPoolConfig<>();
+        int availableProcessors = Runtime.getRuntime().availableProcessors();
+        genericObjectPoolConfig.setMaxTotal(availableProcessors * 3);
+        genericObjectPoolConfig.setMaxIdle(availableProcessors * 3);
+        genericObjectPoolConfig.setMinIdle(availableProcessors);
         this.keyPool = new GenericObjectPool<>(new BasePooledObjectFactory<ByteBuffer>() {
             @Override
             public ByteBuffer create() throws Exception {
@@ -72,11 +79,7 @@ public class LmdbDatabase implements Database {
             public PooledObject<ByteBuffer> wrap(ByteBuffer byteBuffer) {
                 return new DefaultPooledObject<>(byteBuffer);
             }
-        });
-    }
-
-    public Dbi<ByteBuffer> dbi(String dbName) {
-        return dbiMap.computeIfAbsent(dbName, key -> this.env.openDbi(key, DbiFlags.MDB_CREATE));
+        }, genericObjectPoolConfig);
     }
 
     @Override
@@ -86,7 +89,7 @@ public class LmdbDatabase implements Database {
             return;
         }
         ByteBuffer valueByteBuffer = allocateValueByteBuffer(value);
-        this.dbi("default").put(keyByteBuffer, valueByteBuffer);
+        this.dbi.put(keyByteBuffer, valueByteBuffer);
         returnKeyByteBuffer(keyByteBuffer);
         releaseDirect(valueByteBuffer);
     }
@@ -97,7 +100,7 @@ public class LmdbDatabase implements Database {
         if (keyByteBuffer == null) {
             return;
         }
-        this.dbi("default").delete(keyByteBuffer);
+        this.dbi.delete(keyByteBuffer);
         returnKeyByteBuffer(keyByteBuffer);
     }
 
@@ -108,7 +111,7 @@ public class LmdbDatabase implements Database {
             return null;
         }
         Txn<ByteBuffer> txn = this.env.txnWrite();
-        ByteBuffer valueByteBuffer = this.dbi("default").get(txn, keyByteBuffer);
+        ByteBuffer valueByteBuffer = this.dbi.get(txn, keyByteBuffer);
         txn.commit();
         if (valueByteBuffer == null) {
             returnKeyByteBuffer(keyByteBuffer);
@@ -126,14 +129,20 @@ public class LmdbDatabase implements Database {
         return new AbstractWriteBatch() {
             @Override
             public void commit() {
-
+                for (byte[] delete : this.deletes) {
+                    delete(delete);
+                }
+                Set<Map.Entry<byte[], byte[]>> entries = this.puts.entrySet();
+                for (Map.Entry<byte[], byte[]> entry : entries) {
+                    put(entry.getKey(), entry.getValue());
+                }
             }
         };
     }
 
     @Override
     public void close() {
-
+        this.env.close();
     }
 
     private ByteBuffer allocateKeyByteBuffer(byte[] key) {
@@ -142,7 +151,7 @@ public class LmdbDatabase implements Database {
             byteBuffer.put(key).flip();
             return byteBuffer;
         } catch (Exception cause) {
-            logger.error("allocateKeyByteBuffer", cause);
+            LOGGER.error("allocateKeyByteBuffer:[{}]", file, cause);
             return null;
         }
 
@@ -169,7 +178,7 @@ public class LmdbDatabase implements Database {
             Object cleaner = cleanerMethod.invoke(byteBuffer);
             cleanMethod.invoke(cleaner);
         } catch (IllegalAccessException | InvocationTargetException cause) {
-            logger.error("cleanDirect", cause);
+            LOGGER.error("cleanDirect:[{}]", file, cause);
         }
     }
 }

@@ -24,7 +24,7 @@ import static org.fusesource.leveldbjni.JniDBFactory.factory;
  */
 public class LeveldbDatabase implements Database {
 
-    private static final Logger logger = LoggerFactory.getLogger(LeveldbDatabase.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LeveldbDatabase.class);
     private final File file;
     private DB db;
     private boolean opened;
@@ -35,7 +35,7 @@ public class LeveldbDatabase implements Database {
             try {
                 Files.createDirectories(file.toPath());
             } catch (IOException cause) {
-                logger.error("createDirectories:{}", path, cause);
+                LOGGER.error("createDirectories:{}", path, cause);
             }
         }
 
@@ -76,7 +76,7 @@ public class LeveldbDatabase implements Database {
                 try {
                     writeBatch.close();
                 } catch (IOException cause) {
-                    logger.error("Failed to close write batch", cause);
+                    LOGGER.error("Failed to close write batch", cause);
                 }
                 this.deletes.clear();
                 this.puts.clear();
@@ -91,7 +91,7 @@ public class LeveldbDatabase implements Database {
                 this.db.close();
                 this.opened = false;
             } catch (IOException e) {
-                logger.error("Failed to close database: {}", file, e);
+                LOGGER.error("Failed to close database: {}", file, e);
             }
         }
     }
@@ -122,7 +122,7 @@ public class LeveldbDatabase implements Database {
                     db = JniDBFactory.factory.open(file, options);
                     opened = true;
                 } catch (IOException ex) {
-                    logger.error("Failed to open database", e);
+                    LOGGER.error("Failed to open database", e);
                 }
             }
         }
@@ -130,11 +130,11 @@ public class LeveldbDatabase implements Database {
 
     private void recover(Options options) {
         try {
-            logger.info("Trying to repair the database: {}", file);
+            LOGGER.info("Trying to repair the database: {}", file);
             factory.repair(file, options);
-            logger.info("Repair done!");
+            LOGGER.info("Repair done!");
         } catch (IOException cause) {
-            logger.error("Failed to repair the database", cause);
+            LOGGER.error("Failed to repair the database", cause);
         }
     }
 }
