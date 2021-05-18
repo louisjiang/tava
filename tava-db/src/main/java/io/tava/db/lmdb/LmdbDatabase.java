@@ -142,6 +142,8 @@ public class LmdbDatabase implements Database {
 
     @Override
     public void close() {
+        this.keyPool.close();
+        this.dbi.close();
         this.env.close();
     }
 
