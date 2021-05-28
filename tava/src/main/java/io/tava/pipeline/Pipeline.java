@@ -22,7 +22,7 @@ public class Pipeline<I, O> {
         return new Pipeline<>(input -> newHandler.apply(this.handler.apply(input)));
     }
 
-    public O TO(I input) {
+    public O execute(I input) {
         return this.handler.apply(input);
     }
 

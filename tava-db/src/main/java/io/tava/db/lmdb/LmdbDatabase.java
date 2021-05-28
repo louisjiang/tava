@@ -129,12 +129,16 @@ public class LmdbDatabase implements Database {
         return new AbstractWriteBatch() {
             @Override
             public void commit() {
+                Txn<ByteBuffer> txn = env.txnWrite();
+                Cursor<ByteBuffer> cursor = dbi.openCursor(txn);
+
                 for (byte[] delete : this.deletes) {
-                    delete(delete);
+                    LmdbDatabase.this.delete(delete);
                 }
+
                 Set<Map.Entry<byte[], byte[]>> entries = this.puts.entrySet();
                 for (Map.Entry<byte[], byte[]> entry : entries) {
-                    put(entry.getKey(), entry.getValue());
+                    LmdbDatabase.this.put(entry.getKey(), entry.getValue());
                 }
             }
         };

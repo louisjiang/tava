@@ -11,6 +11,7 @@ public final class Lazy<T> implements Asynchronous<T> {
         this.action = action;
     }
 
+    @Override
     public T get() throws Throwable {
         return action.apply();
     }

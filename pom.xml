@@ -17,6 +17,7 @@
         <module>tava-reflect</module>
         <module>tava-okhttp</module>
         <module>tava-db</module>
+        <module>tava-cache</module>
     </modules>
 
     <distributionManagement>
