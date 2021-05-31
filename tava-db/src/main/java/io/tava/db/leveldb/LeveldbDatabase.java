@@ -1,8 +1,8 @@
 package io.tava.db.leveldb;
 
 import io.tava.db.AbstractWriteBatch;
-import io.tava.db.WriteBatch;
 import io.tava.db.Database;
+import io.tava.db.WriteBatch;
 import org.fusesource.leveldbjni.JniDBFactory;
 import org.iq80.leveldb.CompressionType;
 import org.iq80.leveldb.DB;
@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.Map;
 import java.util.Set;
 
@@ -25,20 +24,13 @@ import static org.fusesource.leveldbjni.JniDBFactory.factory;
 public class LeveldbDatabase implements Database {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LeveldbDatabase.class);
-    private final File file;
+    private final File path;
     private DB db;
     private boolean opened;
 
     public LeveldbDatabase(String path) {
-        this.file = new File(path);
-        if (!file.exists()) {
-            try {
-                Files.createDirectories(file.toPath());
-            } catch (IOException cause) {
-                LOGGER.error("createDirectories:{}", path, cause);
-            }
-        }
-
+        this.path = new File(path);
+        this.path.mkdirs();
         open(createOptions());
     }
 
@@ -91,7 +83,7 @@ public class LeveldbDatabase implements Database {
                 this.db.close();
                 this.opened = false;
             } catch (IOException e) {
-                LOGGER.error("Failed to close database: {}", file, e);
+                LOGGER.error("Failed to close database: {}", path, e);
             }
         }
     }
@@ -112,14 +104,14 @@ public class LeveldbDatabase implements Database {
 
     private void open(Options options) {
         try {
-            db = JniDBFactory.factory.open(file, options);
+            db = JniDBFactory.factory.open(path, options);
             opened = true;
         } catch (IOException e) {
             if (e.getMessage().contains("Corruption")) {
                 recover(options);
 
                 try {
-                    db = JniDBFactory.factory.open(file, options);
+                    db = JniDBFactory.factory.open(path, options);
                     opened = true;
                 } catch (IOException ex) {
                     LOGGER.error("Failed to open database", e);
@@ -130,8 +122,8 @@ public class LeveldbDatabase implements Database {
 
     private void recover(Options options) {
         try {
-            LOGGER.info("Trying to repair the database: {}", file);
-            factory.repair(file, options);
+            LOGGER.info("Trying to repair the database: {}", path);
+            factory.repair(path, options);
             LOGGER.info("Repair done!");
         } catch (IOException cause) {
             LOGGER.error("Failed to repair the database", cause);

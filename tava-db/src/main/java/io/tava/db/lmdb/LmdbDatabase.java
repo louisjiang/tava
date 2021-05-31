@@ -13,11 +13,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
-import java.nio.file.Files;
 import java.util.Map;
 import java.util.Set;
 
@@ -32,9 +30,8 @@ public class LmdbDatabase implements Database {
     private static Method cleanMethod;
     private final Env<ByteBuffer> env;
     private final Dbi<ByteBuffer> dbi;
-    private final File file;
+    private final File path;
     private final GenericObjectPool<ByteBuffer> keyPool;
-
 
     static {
         try {
@@ -42,22 +39,16 @@ public class LmdbDatabase implements Database {
             cleanerMethod.setAccessible(true);
             cleanMethod = Class.forName("sun.misc.Cleaner").getMethod("clean");
             cleanMethod.setAccessible(true);
-        } catch (NoSuchMethodException | ClassNotFoundException cause) {
+        } catch (NoSuchMethodException | ClassNotFoundException ignored) {
         }
 
     }
 
 
-    public LmdbDatabase(File file, long mapSize, int maxReaders) {
-        this.file = file;
-        if (!file.exists()) {
-            try {
-                Files.createDirectories(file.toPath());
-            } catch (IOException cause) {
-                LOGGER.error("createDirectories:[{}]", file, cause);
-            }
-        }
-        this.env = Env.create().setMapSize(mapSize).setMaxReaders(maxReaders).open(file, EnvFlags.MDB_NOLOCK);
+    public LmdbDatabase(String path, long size, int maxReaders, int maxDbs) {
+        this.path = new File(path);
+        this.path.mkdirs();
+        this.env = Env.create().setMapSize(size * 1024 * 1024).setMaxReaders(maxReaders).setMaxDbs(maxDbs).open(this.path, EnvFlags.MDB_NOLOCK);
         this.dbi = this.env.openDbi("default", DbiFlags.MDB_CREATE);
         GenericObjectPoolConfig<ByteBuffer> genericObjectPoolConfig = new GenericObjectPoolConfig<>();
         int availableProcessors = Runtime.getRuntime().availableProcessors();
@@ -157,15 +148,15 @@ public class LmdbDatabase implements Database {
             byteBuffer.put(key).flip();
             return byteBuffer;
         } catch (Exception cause) {
-            LOGGER.error("allocateKeyByteBuffer:[{}]", file, cause);
+            LOGGER.error("allocateKeyByteBuffer:[{}]", path, cause);
             return null;
         }
 
     }
 
-    private ByteBuffer allocateValueByteBuffer(byte[] b) {
-        ByteBuffer valueBuffer = ByteBuffer.allocateDirect(b.length);
-        valueBuffer.put(b).flip();
+    private ByteBuffer allocateValueByteBuffer(byte[] value) {
+        ByteBuffer valueBuffer = ByteBuffer.allocateDirect(value.length);
+        valueBuffer.put(value).flip();
         return valueBuffer;
     }
 
@@ -184,7 +175,7 @@ public class LmdbDatabase implements Database {
             Object cleaner = cleanerMethod.invoke(byteBuffer);
             cleanMethod.invoke(cleaner);
         } catch (IllegalAccessException | InvocationTargetException cause) {
-            LOGGER.error("cleanDirect:[{}]", file, cause);
+            LOGGER.error("cleanDirect:[{}]", path, cause);
         }
     }
 }
