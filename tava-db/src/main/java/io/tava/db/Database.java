@@ -14,6 +14,8 @@ public interface Database {
 
     WriteBatch writeBatch();
 
+    String path();
+
     void close();
 
 }

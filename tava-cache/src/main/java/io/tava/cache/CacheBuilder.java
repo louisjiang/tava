@@ -16,6 +16,7 @@ public final class CacheBuilder {
 
     private final Caffeine<Object, Object> caffeine;
     private Database database;
+    private int ringBufferSize = 512;
 
     public CacheBuilder() {
         this.caffeine = Caffeine.newBuilder();
@@ -73,11 +74,16 @@ public final class CacheBuilder {
         return database(new LmdbDatabase(path, 100, 128, 1));
     }
 
+    public CacheBuilder ringBufferSize(int ringBufferSize) {
+        this.ringBufferSize = ringBufferSize;
+        return this;
+    }
+
     public Cache build() {
         if (this.database == null) {
             return new MemoryCache(this.caffeine.build());
         }
-        return new DatabaseCache(this.caffeine.build(new DatabaseCacheLoader(this.database)), database);
+        return new DatabaseCache(this.caffeine.build(new DatabaseCacheLoader(this.database)), database, this.ringBufferSize);
     }
 
 }

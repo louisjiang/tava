@@ -77,6 +77,12 @@ public class LeveldbDatabase implements Database {
     }
 
     @Override
+    public String path() {
+        return path.getAbsolutePath();
+    }
+
+
+    @Override
     public void close() {
         if (this.opened) {
             try {

@@ -136,6 +136,11 @@ public class LmdbDatabase implements Database {
     }
 
     @Override
+    public String path() {
+        return path.getAbsolutePath();
+    }
+
+    @Override
     public void close() {
         this.keyPool.close();
         this.dbi.close();
