@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 public final class CacheBuilder {
 
     private final Caffeine<Object, Object> caffeine;
-    private ObjectDatabase database;
+    private Database database;
     private int ringBufferSize = 512;
 
     public CacheBuilder() {
@@ -59,16 +59,9 @@ public final class CacheBuilder {
         return this;
     }
 
-    public CacheBuilder database(Database<byte[], byte[]> database) {
-        this.database = new ObjectDatabase(database);
+    public CacheBuilder database(Database database) {
+        this.database = database;
         return this;
-    }
-
-    public CacheBuilder database(DatabaseType databaseType, String path) {
-        if (databaseType == DatabaseType.LEVELDB) {
-            return database(new LeveldbDatabase(path));
-        }
-        return database(new LmdbDatabase(path, 100, 128, 1));
     }
 
     public CacheBuilder ringBufferSize(int ringBufferSize) {

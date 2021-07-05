@@ -1,7 +1,7 @@
 package io.tava.cache;
 
 import com.github.benmanes.caffeine.cache.CacheLoader;
-import io.tava.db.ObjectDatabase;
+import io.tava.db.Database;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -11,9 +11,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class DatabaseCacheLoader implements CacheLoader<String, Object> {
 
-    private final ObjectDatabase database;
+    private final Database database;
 
-    public DatabaseCacheLoader(ObjectDatabase database) {
+    public DatabaseCacheLoader(Database database) {
         this.database = database;
     }
 

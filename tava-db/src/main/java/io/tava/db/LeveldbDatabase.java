@@ -1,15 +1,24 @@
 package io.tava.db;
 
+import io.tava.db.util.Serialization;
+import io.tava.function.Consumer0;
+import io.tava.function.Function0;
 import org.fusesource.leveldbjni.JniDBFactory;
 import org.iq80.leveldb.CompressionType;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.Options;
+import org.iq80.leveldb.WriteBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static org.fusesource.leveldbjni.JniDBFactory.factory;
 
@@ -17,57 +26,108 @@ import static org.fusesource.leveldbjni.JniDBFactory.factory;
  * @author louisjiang <493509534@qq.com>
  * @version 2021-05-17 13:38
  */
-public class LeveldbDatabase implements Database<byte[], byte[]> {
+public class LeveldbDatabase implements Database {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LeveldbDatabase.class);
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private final Map<String, Object> puts = new HashMap<>();
+    private final Set<String> deletes = new HashSet<>();
     private final File path;
+    private final int batchSize;
+    private final int interval;
+    private final long updateTimestamp = System.currentTimeMillis();
     private DB db;
     private boolean opened;
 
     public LeveldbDatabase(String path) {
+        this(path, 128, 10000);
+    }
+
+    public LeveldbDatabase(String path, int batchSize, int interval) {
         this.path = new File(path);
+        this.batchSize = batchSize;
+        this.interval = interval;
         this.path.mkdirs();
         open(createOptions());
     }
 
     @Override
-    public void put(byte[] key, byte[] value) {
-        this.db.put(key, value);
+    public void put(String key, Object value) {
+        writeLock(() -> {
+            this.puts.put(key, value);
+            this.deletes.remove(key);
+        });
+        commit0();
     }
 
     @Override
-    public void delete(byte[] key) {
-        this.db.delete(key);
+    public void put(Map<String, Object> keyValues) {
+        writeLock(() -> {
+            this.puts.putAll(keyValues);
+            this.deletes.removeAll(keyValues.keySet());
+        });
+        commit0();
     }
 
     @Override
-    public byte[] get(byte[] key) {
-        return this.db.get(key);
+    public void delete(String key) {
+        writeLock(() -> {
+            this.puts.remove(key);
+            this.deletes.add(key);
+        });
+        commit0();
     }
 
     @Override
-    public WriteBatch<byte[], byte[]> writeBatch() {
-        return new AbstractWriteBatch<byte[], byte[]>() {
-            @Override
-            public void commit() {
-                org.iq80.leveldb.WriteBatch writeBatch = LeveldbDatabase.this.db.createWriteBatch();
-                for (Map.Entry<byte[], byte[]> entry : this.puts.entrySet()) {
-                    writeBatch.put(entry.getKey(), entry.getValue());
-                }
-                for (byte[] delete : this.deletes) {
-                    writeBatch.delete(delete);
-                }
-                try {
-                    writeBatch.close();
-                } catch (IOException cause) {
-                    LOGGER.error("close write batch", cause);
-                }
-                this.puts.clear();
-                this.deletes.clear();
+    public void delete(Set<String> keys) {
+        writeLock(() -> {
+            for (String key : keys) {
+                this.puts.remove(key);
             }
-        };
+            this.deletes.addAll(keys);
+        });
     }
 
+    @Override
+    public Object get(String key) {
+        return readLock(() -> {
+            if (this.deletes.contains(key)) {
+                return null;
+            }
+            Object value = this.puts.get(key);
+            if (value != null) {
+                return value;
+            }
+            return Serialization.toObject(this.db.get(Serialization.toBytes(key)));
+        });
+    }
+
+
+    private void commit0() {
+        int size = this.puts.size() + this.deletes.size();
+        if (size < this.batchSize || updateTimestamp + interval < System.currentTimeMillis()) {
+            return;
+        }
+        commit();
+    }
+
+    @Override
+    public void commit() {
+        this.lock.readLock().lock();
+        WriteBatch writeBatch = this.db.createWriteBatch();
+        for (Map.Entry<String, Object> entry : this.puts.entrySet()) {
+            writeBatch.put(Serialization.toBytes(entry.getKey()), Serialization.toBytes(entry.getValue()));
+        }
+        for (String delete : this.deletes) {
+            writeBatch.delete(Serialization.toBytes(delete));
+        }
+        try {
+            writeBatch.close();
+        } catch (IOException cause) {
+            LOGGER.error("close write batch", cause);
+        }
+        this.lock.readLock().unlock();
+    }
 
     @Override
     public String path() {
@@ -84,11 +144,6 @@ public class LeveldbDatabase implements Database<byte[], byte[]> {
                 LOGGER.error("Failed to close database: {}", path, e);
             }
         }
-    }
-
-    @Override
-    public DatabaseType type() {
-        return DatabaseType.LEVELDB;
     }
 
     private Options createOptions() {
@@ -132,4 +187,18 @@ public class LeveldbDatabase implements Database<byte[], byte[]> {
             LOGGER.error("Failed to repair the database", cause);
         }
     }
+
+    private <T> T readLock(Function0<T> function) {
+        this.lock.readLock().lock();
+        T value = function.apply();
+        this.lock.readLock().unlock();
+        return value;
+    }
+
+    private void writeLock(Consumer0 consumer) {
+        this.lock.writeLock().lock();
+        consumer.accept();
+        this.lock.writeLock().unlock();
+    }
+
 }

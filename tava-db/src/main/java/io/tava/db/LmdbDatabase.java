@@ -1,5 +1,6 @@
 package io.tava.db;
 
+import io.tava.db.util.Serialization;
 import org.apache.commons.pool2.BasePooledObjectFactory;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
@@ -20,7 +21,7 @@ import java.util.Set;
  * @author louisjiang <493509534@qq.com>
  * @version 2021-05-17 15:03
  */
-public class LmdbDatabase implements Database<byte[], byte[]> {
+public class LmdbDatabase implements Database {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LmdbDatabase.class);
     private static Method cleanerMethod;
@@ -71,7 +72,7 @@ public class LmdbDatabase implements Database<byte[], byte[]> {
     }
 
     @Override
-    public void put(byte[] key, byte[] value) {
+    public void put(String key, Object value) {
         ByteBuffer keyByteBuffer = allocateKeyByteBuffer(key);
         if (keyByteBuffer == null) {
             return;
@@ -83,7 +84,12 @@ public class LmdbDatabase implements Database<byte[], byte[]> {
     }
 
     @Override
-    public void delete(byte[] key) {
+    public void put(Map<String, Object> keyValues) {
+
+    }
+
+    @Override
+    public void delete(String key) {
         ByteBuffer keyByteBuffer = allocateKeyByteBuffer(key);
         if (keyByteBuffer == null) {
             return;
@@ -92,6 +98,10 @@ public class LmdbDatabase implements Database<byte[], byte[]> {
         returnKeyByteBuffer(keyByteBuffer);
     }
 
+    @Override
+    public void delete(Set<String> keys) {
+
+    }
 
     public ByteBuffer get(ByteBuffer key) {
         Txn<ByteBuffer> txn = this.env.txnWrite();
@@ -101,7 +111,7 @@ public class LmdbDatabase implements Database<byte[], byte[]> {
     }
 
     @Override
-    public byte[] get(byte[] key) {
+    public byte[] get(String key) {
         ByteBuffer keyByteBuffer = allocateKeyByteBuffer(key);
         if (keyByteBuffer == null) {
             return null;
@@ -119,19 +129,8 @@ public class LmdbDatabase implements Database<byte[], byte[]> {
     }
 
     @Override
-    public WriteBatch<byte[], byte[]> writeBatch() {
-        return new AbstractWriteBatch<byte[], byte[]>() {
-            @Override
-            public void commit() {
-                Set<Map.Entry<byte[], byte[]>> entries = this.puts.entrySet();
-                for (Map.Entry<byte[], byte[]> entry : entries) {
-                    LmdbDatabase.this.put(entry.getKey(), entry.getValue());
-                }
-                for (byte[] delete : this.deletes) {
-                    LmdbDatabase.this.delete(delete);
-                }
-            }
-        };
+    public void commit() {
+
     }
 
     @Override
@@ -146,15 +145,10 @@ public class LmdbDatabase implements Database<byte[], byte[]> {
         this.env.close();
     }
 
-    @Override
-    public DatabaseType type() {
-        return DatabaseType.LMDB;
-    }
-
-    private ByteBuffer allocateKeyByteBuffer(byte[] key) {
+    private ByteBuffer allocateKeyByteBuffer(String key) {
         try {
             ByteBuffer byteBuffer = this.keyPool.borrowObject();
-            byteBuffer.put(key).flip();
+            byteBuffer.put(Serialization.toBytes(key)).flip();
             return byteBuffer;
         } catch (Exception cause) {
             LOGGER.error("allocateKeyByteBuffer:[{}]", path, cause);
@@ -163,9 +157,10 @@ public class LmdbDatabase implements Database<byte[], byte[]> {
 
     }
 
-    private ByteBuffer allocateValueByteBuffer(byte[] value) {
-        ByteBuffer valueBuffer = ByteBuffer.allocateDirect(value.length);
-        valueBuffer.put(value).flip();
+    private ByteBuffer allocateValueByteBuffer(Object value) {
+        byte[] bytes = Serialization.toBytes(value);
+        ByteBuffer valueBuffer = ByteBuffer.allocateDirect(bytes.length);
+        valueBuffer.put(bytes).flip();
         return valueBuffer;
     }
 

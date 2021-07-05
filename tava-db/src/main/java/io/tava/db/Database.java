@@ -1,22 +1,27 @@
 package io.tava.db;
 
+import java.util.Map;
+import java.util.Set;
+
 /**
  * @author louisjiang <493509534@qq.com>
  * @version 2021-05-07 14:37
  */
-public interface Database<K, V> {
+public interface Database {
 
-    void put(K key, V value);
+    void put(Map<String, Object> keyValues);
 
-    void delete(K key);
+    void put(String key, Object value);
 
-    V get(K key);
+    void delete(Set<String> keys);
 
-    WriteBatch<K, V> writeBatch();
+    void delete(String key);
+
+    Object get(String key);
+
+    void commit();
 
     String path();
-
-    DatabaseType type();
 
     void close();
 
