@@ -1,11 +1,9 @@
 package io.tava.cache;
 
 import com.github.benmanes.caffeine.cache.CacheLoader;
-import io.tava.db.Database;
+import io.tava.db.ObjectDatabase;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
-
-import java.nio.charset.StandardCharsets;
 
 /**
  * @author louisjiang <493509534@qq.com>
@@ -13,16 +11,16 @@ import java.nio.charset.StandardCharsets;
  */
 public class DatabaseCacheLoader implements CacheLoader<String, Object> {
 
-    private final Database database;
+    private final ObjectDatabase database;
 
-    public DatabaseCacheLoader(Database database) {
+    public DatabaseCacheLoader(ObjectDatabase database) {
         this.database = database;
     }
 
     @Override
-    public @Nullable Object load(@NonNull String key) throws Exception {
-        byte[] bytes = database.get(key.getBytes(StandardCharsets.UTF_8));
-        return bytes;
+    @Nullable
+    public Object load(@NonNull String key) throws Exception {
+        return database.get(key);
     }
 
 }

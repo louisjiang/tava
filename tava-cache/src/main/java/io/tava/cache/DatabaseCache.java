@@ -1,17 +1,13 @@
 package io.tava.cache;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.lmax.disruptor.BlockingWaitStrategy;
 import com.lmax.disruptor.dsl.ProducerType;
 import io.tava.Tava;
-import io.tava.db.Database;
+import io.tava.db.ObjectDatabase;
 import io.tava.lang.Tuple2;
 import io.tava.queue.Queue;
 import io.tava.queue.WorkHandler;
 import io.tava.queue.WorkHandlerFactory;
-
-import java.nio.charset.StandardCharsets;
 
 /**
  * @author louisjiang <493509534@qq.com>
@@ -19,11 +15,11 @@ import java.nio.charset.StandardCharsets;
  */
 public class DatabaseCache extends MemoryCache implements WorkHandlerFactory<Tuple2<String, Object>>, WorkHandler<Tuple2<String, Object>> {
 
-    private final Database database;
+    private final ObjectDatabase database;
     private final Queue<Tuple2<String, Object>> queue;
 
     public DatabaseCache(com.github.benmanes.caffeine.cache.LoadingCache<String, Object> cache,
-                         Database database,
+                         ObjectDatabase database,
                          int ringBufferSize) {
         super(cache);
         this.database = database;
@@ -43,7 +39,7 @@ public class DatabaseCache extends MemoryCache implements WorkHandlerFactory<Tup
 
     @Override
     public void handle(Tuple2<String, Object> value) throws Exception {
-        this.database.put(value.getValue1().getBytes(StandardCharsets.UTF_8), JSON.toJSONBytes(value.getValue2(), SerializerFeature.WriteClassName));
+        this.database.put(value.getValue1(), value.getValue2());
     }
 
 }

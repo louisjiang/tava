@@ -1,11 +1,9 @@
 package io.tava.lang;
 
 import io.tava.function.CheckedFunction0;
-import io.tava.function.Function0;
 import io.tava.function.Function1;
 
 import java.util.NoSuchElementException;
-import java.util.concurrent.Callable;
 
 public interface Try<T> {
 
@@ -16,6 +14,8 @@ public interface Try<T> {
     }
 
     T get();
+
+    Option<T> toOption();
 
     <R> Try<R> map(Function1<T, R> map);
 
@@ -62,6 +62,11 @@ public interface Try<T> {
         }
 
         @Override
+        public Option<T> toOption() {
+            return Option.option(value);
+        }
+
+        @Override
         public <R> Try.Success<R> map(Function1<T, R> map) {
             return Try.success(map.apply(get()));
         }
@@ -103,6 +108,11 @@ public interface Try<T> {
         @Override
         public T get() {
             throw new NoSuchElementException("Try.Failure.get");
+        }
+
+        @Override
+        public Option<T> toOption() {
+            return Option.none();
         }
 
         @Override

@@ -1,8 +1,5 @@
-package io.tava.db.leveldb;
+package io.tava.db;
 
-import io.tava.db.AbstractWriteBatch;
-import io.tava.db.Database;
-import io.tava.db.WriteBatch;
 import org.fusesource.leveldbjni.JniDBFactory;
 import org.iq80.leveldb.CompressionType;
 import org.iq80.leveldb.DB;
@@ -13,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
-import java.util.Set;
 
 import static org.fusesource.leveldbjni.JniDBFactory.factory;
 
@@ -21,7 +17,7 @@ import static org.fusesource.leveldbjni.JniDBFactory.factory;
  * @author louisjiang <493509534@qq.com>
  * @version 2021-05-17 13:38
  */
-public class LeveldbDatabase implements Database {
+public class LeveldbDatabase implements Database<byte[], byte[]> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LeveldbDatabase.class);
     private final File path;
@@ -33,7 +29,6 @@ public class LeveldbDatabase implements Database {
         this.path.mkdirs();
         open(createOptions());
     }
-
 
     @Override
     public void put(byte[] key, byte[] value) {
@@ -51,36 +46,33 @@ public class LeveldbDatabase implements Database {
     }
 
     @Override
-    public WriteBatch writeBatch() {
-        return new AbstractWriteBatch() {
-
+    public WriteBatch<byte[], byte[]> writeBatch() {
+        return new AbstractWriteBatch<byte[], byte[]>() {
             @Override
             public void commit() {
-                org.iq80.leveldb.WriteBatch writeBatch = db.createWriteBatch();
+                org.iq80.leveldb.WriteBatch writeBatch = LeveldbDatabase.this.db.createWriteBatch();
+                for (Map.Entry<byte[], byte[]> entry : this.puts.entrySet()) {
+                    writeBatch.put(entry.getKey(), entry.getValue());
+                }
                 for (byte[] delete : this.deletes) {
                     writeBatch.delete(delete);
                 }
-                Set<Map.Entry<byte[], byte[]>> entries = this.puts.entrySet();
-                for (Map.Entry<byte[], byte[]> entry : entries) {
-                    writeBatch.put(entry.getKey(), entry.getValue());
-                }
-                db.write(writeBatch);
                 try {
                     writeBatch.close();
                 } catch (IOException cause) {
-                    LOGGER.error("Failed to close write batch", cause);
+                    LOGGER.error("close write batch", cause);
                 }
-                this.deletes.clear();
                 this.puts.clear();
+                this.deletes.clear();
             }
         };
     }
+
 
     @Override
     public String path() {
         return path.getAbsolutePath();
     }
-
 
     @Override
     public void close() {
@@ -92,6 +84,11 @@ public class LeveldbDatabase implements Database {
                 LOGGER.error("Failed to close database: {}", path, e);
             }
         }
+    }
+
+    @Override
+    public DatabaseType type() {
+        return DatabaseType.LEVELDB;
     }
 
     private Options createOptions() {

@@ -5,7 +5,7 @@ package io.tava.cache;
  * @author louisjiang <493509534@qq.com>
  * @version 2021-05-19 17:01
  */
-public class MemoryCache implements Cache{
+public class MemoryCache implements Cache {
 
     private final com.github.benmanes.caffeine.cache.Cache<String, Object> cache;
 

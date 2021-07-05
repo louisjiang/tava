@@ -9,7 +9,7 @@ import io.tava.function.Predicate1;
  * @author louisjiang <493509534@qq.com>
  * @version 2021-02-28 16:44
  */
-public interface Stream<T> {
+public interface Stream<T> extends java.util.stream.Stream<T>{
 
     void foreach(Consumer1<T> action);
 

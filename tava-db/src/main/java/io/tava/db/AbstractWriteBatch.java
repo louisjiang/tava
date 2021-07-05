@@ -9,20 +9,26 @@ import java.util.Set;
  * @author louisjiang <493509534@qq.com>
  * @version 2021-05-17 13:46
  */
-public abstract class AbstractWriteBatch implements WriteBatch {
+public abstract class AbstractWriteBatch<K, V> implements WriteBatch<K, V> {
 
-    protected Map<byte[], byte[]> puts = new HashMap<>();
-    protected Set<byte[]> deletes = new HashSet<>();
+    protected final Map<K, V> puts = new HashMap<>();
+    protected final Set<K> deletes = new HashSet<>();
 
     @Override
-    public void delete(byte[] key) {
+    public void put(K key, V value) {
+        this.puts.put(key, value);
+        this.deletes.remove(key);
+    }
+
+    @Override
+    public void delete(K key) {
         this.puts.remove(key);
         this.deletes.add(key);
     }
 
     @Override
-    public void put(byte[] key, byte[] value) {
-        this.puts.put(key, value);
-        this.deletes.remove(key);
+    public int size() {
+        return this.puts.size() + this.deletes.size();
     }
+
 }

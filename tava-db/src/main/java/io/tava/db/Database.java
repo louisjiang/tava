@@ -4,17 +4,19 @@ package io.tava.db;
  * @author louisjiang <493509534@qq.com>
  * @version 2021-05-07 14:37
  */
-public interface Database {
+public interface Database<K, V> {
 
-    void put(byte[] key, byte[] value);
+    void put(K key, V value);
 
-    void delete(byte[] key);
+    void delete(K key);
 
-    byte[] get(byte[] key);
+    V get(K key);
 
-    WriteBatch writeBatch();
+    WriteBatch<K, V> writeBatch();
 
     String path();
+
+    DatabaseType type();
 
     void close();
 

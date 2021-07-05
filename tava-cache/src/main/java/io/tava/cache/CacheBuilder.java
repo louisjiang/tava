@@ -1,10 +1,7 @@
 package io.tava.cache;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
-import io.tava.db.Database;
-import io.tava.db.DatabaseType;
-import io.tava.db.leveldb.LeveldbDatabase;
-import io.tava.db.lmdb.LmdbDatabase;
+import io.tava.db.*;
 
 import java.util.concurrent.TimeUnit;
 
@@ -15,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 public final class CacheBuilder {
 
     private final Caffeine<Object, Object> caffeine;
-    private Database database;
+    private ObjectDatabase database;
     private int ringBufferSize = 512;
 
     public CacheBuilder() {
@@ -62,8 +59,8 @@ public final class CacheBuilder {
         return this;
     }
 
-    public CacheBuilder database(Database database) {
-        this.database = database;
+    public CacheBuilder database(Database<byte[], byte[]> database) {
+        this.database = new ObjectDatabase(database);
         return this;
     }
 
