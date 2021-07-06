@@ -19,6 +19,8 @@ public interface Database {
 
     Object get(String key);
 
+    Iterator iterator();
+
     void commit();
 
     String path();

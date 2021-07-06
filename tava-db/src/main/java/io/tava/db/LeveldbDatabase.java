@@ -1,13 +1,12 @@
 package io.tava.db;
 
+import io.tava.Tava;
 import io.tava.db.util.Serialization;
 import io.tava.function.Consumer0;
 import io.tava.function.Function0;
+import io.tava.lang.Tuple2;
 import org.fusesource.leveldbjni.JniDBFactory;
-import org.iq80.leveldb.CompressionType;
-import org.iq80.leveldb.DB;
-import org.iq80.leveldb.Options;
-import org.iq80.leveldb.WriteBatch;
+import org.iq80.leveldb.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,13 +101,31 @@ public class LeveldbDatabase implements Database {
         });
     }
 
+    @Override
+    public Iterator iterator() {
+        final DBIterator iterator = db.iterator();
+        iterator.seekToFirst();
+        return new Iterator() {
 
-    private void commit0() {
-        int size = this.puts.size() + this.deletes.size();
-        if (size < this.batchSize || updateTimestamp + interval < System.currentTimeMillis()) {
-            return;
-        }
-        commit();
+            @Override
+            public boolean hasNext() {
+                return iterator.hasNext();
+            }
+
+            @Override
+            public Tuple2<String, Object> next() {
+                Map.Entry<byte[], byte[]> next = iterator.next();
+                String key = Serialization.toString(next.getKey());
+                Object value = Serialization.toObject(next.getValue());
+                return Tava.of(key, value);
+            }
+
+            @Override
+            public void close() throws IOException {
+                iterator.close();
+            }
+
+        };
     }
 
     @Override
@@ -155,7 +172,7 @@ public class LeveldbDatabase implements Database {
         options.cacheSize(64L * 1024L * 1024L);
         options.paranoidChecks(true);
         options.verifyChecksums(true);
-        options.maxOpenFiles(128);
+        options.maxOpenFiles(1024);
 
         return options;
     }
@@ -199,6 +216,14 @@ public class LeveldbDatabase implements Database {
         this.lock.writeLock().lock();
         consumer.accept();
         this.lock.writeLock().unlock();
+    }
+
+    private void commit0() {
+        int size = this.puts.size() + this.deletes.size();
+        if (size < this.batchSize || updateTimestamp + interval < System.currentTimeMillis()) {
+            return;
+        }
+        commit();
     }
 
 }

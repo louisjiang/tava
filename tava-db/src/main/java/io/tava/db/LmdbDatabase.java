@@ -1,6 +1,8 @@
 package io.tava.db;
 
+import io.tava.Tava;
 import io.tava.db.util.Serialization;
+import io.tava.lang.Tuple2;
 import org.apache.commons.pool2.BasePooledObjectFactory;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
@@ -11,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
@@ -85,7 +88,10 @@ public class LmdbDatabase implements Database {
 
     @Override
     public void put(Map<String, Object> keyValues) {
-
+        Set<Map.Entry<String, Object>> entries = keyValues.entrySet();
+        for (Map.Entry<String, Object> entry : entries) {
+            this.put(entry.getKey(), entry.getValue());
+        }
     }
 
     @Override
@@ -100,7 +106,9 @@ public class LmdbDatabase implements Database {
 
     @Override
     public void delete(Set<String> keys) {
-
+        for (String key : keys) {
+            delete(key);
+        }
     }
 
     public ByteBuffer get(ByteBuffer key) {
@@ -126,6 +134,34 @@ public class LmdbDatabase implements Database {
         returnKeyByteBuffer(keyByteBuffer);
         releaseDirect(valueByteBuffer);
         return value;
+    }
+
+    @Override
+    public Iterator iterator() {
+        Txn<ByteBuffer> txn = this.env.txnRead();
+        final CursorIterable<ByteBuffer> iterate = dbi.iterate(txn);
+        final java.util.Iterator<CursorIterable.KeyVal<ByteBuffer>> iterator = iterate.iterator();
+        return new Iterator() {
+            @Override
+            public void close() throws IOException {
+                iterate.close();
+                txn.commit();
+                txn.close();
+            }
+
+            @Override
+            public boolean hasNext() {
+                return iterator.hasNext();
+            }
+
+            @Override
+            public Tuple2<String, Object> next() {
+                CursorIterable.KeyVal<ByteBuffer> next = iterator.next();
+                String key = Serialization.toString(Serialization.toBytes(next.key()));
+                Object value = Serialization.toObject(Serialization.toBytes(next.val()));
+                return Tava.of(key, value);
+            }
+        };
     }
 
     @Override
