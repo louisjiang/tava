@@ -111,29 +111,27 @@ public class LmdbDatabase implements Database {
         }
     }
 
-    public ByteBuffer get(ByteBuffer key) {
-        Txn<ByteBuffer> txn = this.env.txnWrite();
-        ByteBuffer valueByteBuffer = this.dbi.get(txn, key);
-        txn.commit();
-        return valueByteBuffer;
-    }
 
     @Override
-    public byte[] get(String key) {
+    public Object get(String key) {
         ByteBuffer keyByteBuffer = allocateKeyByteBuffer(key);
         if (keyByteBuffer == null) {
             return null;
         }
-        ByteBuffer valueByteBuffer = get(keyByteBuffer);
+        Txn<ByteBuffer> txn = this.env.txnWrite();
+        ByteBuffer valueByteBuffer = this.dbi.get(txn, keyByteBuffer);
+        txn.commit();
         if (valueByteBuffer == null) {
             returnKeyByteBuffer(keyByteBuffer);
             return null;
         }
-        byte[] value = new byte[valueByteBuffer.position()];
-        valueByteBuffer.get(value);
+        byte[] bytes = Serialization.toBytes(valueByteBuffer);
         returnKeyByteBuffer(keyByteBuffer);
         releaseDirect(valueByteBuffer);
-        return value;
+        if (bytes.length == 0) {
+            return null;
+        }
+        return Serialization.toObject(bytes);
     }
 
     @Override
@@ -165,7 +163,7 @@ public class LmdbDatabase implements Database {
     }
 
     @Override
-    public void commit() {
+    public void commit(boolean force) {
 
     }
 

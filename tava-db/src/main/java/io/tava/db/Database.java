@@ -21,7 +21,7 @@ public interface Database {
 
     Iterator iterator();
 
-    void commit();
+    void commit(boolean force);
 
     String path();
 

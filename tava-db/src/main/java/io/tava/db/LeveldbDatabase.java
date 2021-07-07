@@ -31,22 +31,22 @@ public class LeveldbDatabase implements Database {
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final Map<String, Object> puts = new HashMap<>();
     private final Set<String> deletes = new HashSet<>();
-    private final File path;
     private final int batchSize;
     private final int interval;
-    private final long updateTimestamp = System.currentTimeMillis();
+    private final File directory;
+    private long updateTimestamp = System.currentTimeMillis();
     private DB db;
     private boolean opened;
 
     public LeveldbDatabase(String path) {
-        this(path, 128, 10000);
+        this(path, 1024, 10000);
     }
 
     public LeveldbDatabase(String path, int batchSize, int interval) {
-        this.path = new File(path);
+        this.directory = new File(path);
         this.batchSize = batchSize;
         this.interval = interval;
-        this.path.mkdirs();
+        this.directory.mkdirs();
         open(createOptions());
     }
 
@@ -56,7 +56,7 @@ public class LeveldbDatabase implements Database {
             this.puts.put(key, value);
             this.deletes.remove(key);
         });
-        commit0();
+        commit(false);
     }
 
     @Override
@@ -65,7 +65,7 @@ public class LeveldbDatabase implements Database {
             this.puts.putAll(keyValues);
             this.deletes.removeAll(keyValues.keySet());
         });
-        commit0();
+        commit(false);
     }
 
     @Override
@@ -74,7 +74,7 @@ public class LeveldbDatabase implements Database {
             this.puts.remove(key);
             this.deletes.add(key);
         });
-        commit0();
+        commit(false);
     }
 
     @Override
@@ -97,7 +97,11 @@ public class LeveldbDatabase implements Database {
             if (value != null) {
                 return value;
             }
-            return Serialization.toObject(this.db.get(Serialization.toBytes(key)));
+            byte[] bytes = this.db.get(Serialization.toBytes(key));
+            if (bytes == null || bytes.length == 0) {
+                return null;
+            }
+            return Serialization.toObject(bytes);
         });
     }
 
@@ -129,8 +133,17 @@ public class LeveldbDatabase implements Database {
     }
 
     @Override
-    public void commit() {
-        this.lock.readLock().lock();
+    public void commit(boolean force) {
+        this.lock.writeLock().lock();
+        int size = this.puts.size() + this.deletes.size();
+        if (size == 0) {
+            this.lock.writeLock().unlock();
+            return;
+        }
+        if (!force && size < this.batchSize && this.updateTimestamp + interval > System.currentTimeMillis()) {
+            this.lock.writeLock().unlock();
+            return;
+        }
         WriteBatch writeBatch = this.db.createWriteBatch();
         for (Map.Entry<String, Object> entry : this.puts.entrySet()) {
             writeBatch.put(Serialization.toBytes(entry.getKey()), Serialization.toBytes(entry.getValue()));
@@ -140,15 +153,19 @@ public class LeveldbDatabase implements Database {
         }
         try {
             writeBatch.close();
+            LOGGER.info("commit [{}][{}] data to leveldb({})", this.puts.size(), this.deletes.size(), directory.getPath());
+            this.puts.clear();
+            this.deletes.clear();
+            this.updateTimestamp = System.currentTimeMillis();
         } catch (IOException cause) {
             LOGGER.error("close write batch", cause);
         }
-        this.lock.readLock().unlock();
+        this.lock.writeLock().unlock();
     }
 
     @Override
     public String path() {
-        return path.getAbsolutePath();
+        return directory.getPath();
     }
 
     @Override
@@ -158,7 +175,7 @@ public class LeveldbDatabase implements Database {
                 this.db.close();
                 this.opened = false;
             } catch (IOException e) {
-                LOGGER.error("Failed to close database: {}", path, e);
+                LOGGER.error("Failed to close database: {}", directory, e);
             }
         }
     }
@@ -179,14 +196,14 @@ public class LeveldbDatabase implements Database {
 
     private void open(Options options) {
         try {
-            db = JniDBFactory.factory.open(path, options);
+            db = JniDBFactory.factory.open(directory, options);
             opened = true;
         } catch (IOException e) {
             if (e.getMessage().contains("Corruption")) {
                 recover(options);
 
                 try {
-                    db = JniDBFactory.factory.open(path, options);
+                    db = JniDBFactory.factory.open(directory, options);
                     opened = true;
                 } catch (IOException ex) {
                     LOGGER.error("Failed to open database", e);
@@ -197,8 +214,8 @@ public class LeveldbDatabase implements Database {
 
     private void recover(Options options) {
         try {
-            LOGGER.info("Trying to repair the database: {}", path);
-            factory.repair(path, options);
+            LOGGER.info("Trying to repair the database: {}", directory);
+            factory.repair(directory, options);
             LOGGER.info("Repair done!");
         } catch (IOException cause) {
             LOGGER.error("Failed to repair the database", cause);
@@ -216,14 +233,6 @@ public class LeveldbDatabase implements Database {
         this.lock.writeLock().lock();
         consumer.accept();
         this.lock.writeLock().unlock();
-    }
-
-    private void commit0() {
-        int size = this.puts.size() + this.deletes.size();
-        if (size < this.batchSize || updateTimestamp + interval < System.currentTimeMillis()) {
-            return;
-        }
-        commit();
     }
 
 }
