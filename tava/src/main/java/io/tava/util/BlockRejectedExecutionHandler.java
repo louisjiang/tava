@@ -13,6 +13,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class BlockRejectedExecutionHandler implements RejectedExecutionHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BlockRejectedExecutionHandler.class);
+    private static final BlockRejectedExecutionHandler handler = new BlockRejectedExecutionHandler();
+
+    private BlockRejectedExecutionHandler() {
+
+    }
 
     @Override
     public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
@@ -22,6 +27,10 @@ public class BlockRejectedExecutionHandler implements RejectedExecutionHandler {
         } catch (InterruptedException cause) {
             LOGGER.error("Work discarded, thread was interrupted while waiting for space to schedule: {}", r);
         }
+    }
+
+    public static RejectedExecutionHandler getInstance() {
+        return handler;
     }
 
 }
