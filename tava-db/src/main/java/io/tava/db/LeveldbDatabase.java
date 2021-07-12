@@ -1,10 +1,8 @@
 package io.tava.db;
 
-import io.tava.Tava;
 import io.tava.db.util.Serialization;
 import io.tava.function.Consumer0;
 import io.tava.function.Function0;
-import io.tava.lang.Tuple2;
 import org.fusesource.leveldbjni.JniDBFactory;
 import org.iq80.leveldb.*;
 import org.slf4j.Logger;
@@ -16,6 +14,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -25,7 +24,7 @@ import static org.fusesource.leveldbjni.JniDBFactory.factory;
  * @author louisjiang <493509534@qq.com>
  * @version 2021-05-17 13:38
  */
-public class LeveldbDatabase implements Database {
+public class LeveldbDatabase implements Database, org.iq80.leveldb.Logger {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LeveldbDatabase.class);
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
@@ -89,6 +88,11 @@ public class LeveldbDatabase implements Database {
 
     @Override
     public Object get(String key) {
+        return get(key, false);
+    }
+
+    @Override
+    public Object get(String key, boolean update) {
         return readLock(() -> {
             if (this.deletes.contains(key)) {
                 return null;
@@ -101,13 +105,18 @@ public class LeveldbDatabase implements Database {
             if (bytes == null || bytes.length == 0) {
                 return null;
             }
-            return Serialization.toObject(bytes);
+            value = Serialization.toObject(bytes);
+            if (update) {
+                this.puts.put(key, value);
+            }
+            return value;
         });
     }
 
     @Override
     public Iterator iterator() {
         final DBIterator iterator = db.iterator();
+        this.readLock().lock();
         iterator.seekToFirst();
         return new Iterator() {
 
@@ -117,15 +126,14 @@ public class LeveldbDatabase implements Database {
             }
 
             @Override
-            public Tuple2<String, Object> next() {
+            public Entry next() {
                 Map.Entry<byte[], byte[]> next = iterator.next();
-                String key = Serialization.toString(next.getKey());
-                Object value = Serialization.toObject(next.getValue());
-                return Tava.of(key, value);
+                return new Entry(next.getKey(), next.getValue());
             }
 
             @Override
             public void close() throws IOException {
+                readLock().unlock();
                 iterator.close();
             }
 
@@ -134,14 +142,14 @@ public class LeveldbDatabase implements Database {
 
     @Override
     public void commit(boolean force) {
-        this.lock.writeLock().lock();
+        this.writeLock().lock();
         int size = this.puts.size() + this.deletes.size();
         if (size == 0) {
-            this.lock.writeLock().unlock();
+            this.writeLock().unlock();
             return;
         }
         if (!force && size < this.batchSize && this.updateTimestamp + interval > System.currentTimeMillis()) {
-            this.lock.writeLock().unlock();
+            this.writeLock().unlock();
             return;
         }
         WriteBatch writeBatch = this.db.createWriteBatch();
@@ -152,20 +160,31 @@ public class LeveldbDatabase implements Database {
             writeBatch.delete(Serialization.toBytes(delete));
         }
         try {
+            LOGGER.info("commit data to leveldb[{}][{}][{}]", this.puts.size(), this.deletes.size(), directory.getPath());
+            this.db.write(writeBatch, new WriteOptions().sync(true));
             writeBatch.close();
-            LOGGER.info("commit [{}][{}] data to leveldb({})", this.puts.size(), this.deletes.size(), directory.getPath());
             this.puts.clear();
             this.deletes.clear();
             this.updateTimestamp = System.currentTimeMillis();
         } catch (IOException cause) {
-            LOGGER.error("close write batch", cause);
+            LOGGER.error("write batch", cause);
         }
-        this.lock.writeLock().unlock();
+        this.writeLock().unlock();
     }
 
     @Override
     public String path() {
         return directory.getPath();
+    }
+
+    @Override
+    public Lock writeLock() {
+        return this.lock.writeLock();
+    }
+
+    @Override
+    public Lock readLock() {
+        return this.lock.readLock();
     }
 
     @Override
@@ -190,6 +209,7 @@ public class LeveldbDatabase implements Database {
         options.paranoidChecks(true);
         options.verifyChecksums(true);
         options.maxOpenFiles(1024);
+        options.logger(this);
 
         return options;
     }
@@ -223,16 +243,20 @@ public class LeveldbDatabase implements Database {
     }
 
     private <T> T readLock(Function0<T> function) {
-        this.lock.readLock().lock();
+        this.readLock().lock();
         T value = function.apply();
-        this.lock.readLock().unlock();
+        this.readLock().unlock();
         return value;
     }
 
     private void writeLock(Consumer0 consumer) {
-        this.lock.writeLock().lock();
+        this.writeLock().lock();
         consumer.accept();
-        this.lock.writeLock().unlock();
+        this.writeLock().unlock();
     }
 
+    @Override
+    public void log(String message) {
+        LOGGER.info(message);
+    }
 }

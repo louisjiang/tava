@@ -1,6 +1,6 @@
 package io.tava.db;
 
-import io.tava.lang.Tuple2;
+import io.tava.db.util.Serialization;
 
 import java.io.Closeable;
 
@@ -12,6 +12,34 @@ public interface Iterator extends Closeable {
 
     boolean hasNext();
 
-    Tuple2<String, Object> next();
+    Entry next();
+
+    class Entry {
+
+        private final byte[] key;
+        private final byte[] value;
+
+        Entry(byte[] key, byte[] value) {
+            this.key = key;
+            this.value = value;
+        }
+
+        public byte[] getKey() {
+            return key;
+        }
+
+        public byte[] getValue() {
+            return value;
+        }
+
+        public String getStringKey() {
+            return Serialization.toString(key);
+        }
+
+        public Object getObjectValue() {
+            return Serialization.toObject(value);
+        }
+
+    }
 
 }

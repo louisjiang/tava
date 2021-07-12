@@ -2,6 +2,7 @@ package io.tava.db;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
 
 /**
  * @author louisjiang <493509534@qq.com>
@@ -19,11 +20,17 @@ public interface Database {
 
     Object get(String key);
 
+    Object get(String key, boolean update);
+
     Iterator iterator();
 
     void commit(boolean force);
 
     String path();
+
+    Lock writeLock();
+
+    Lock readLock();
 
     void close();
 

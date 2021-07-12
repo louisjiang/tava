@@ -1,8 +1,6 @@
 package io.tava.db;
 
-import io.tava.Tava;
 import io.tava.db.util.Serialization;
-import io.tava.lang.Tuple2;
 import org.apache.commons.pool2.BasePooledObjectFactory;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
@@ -19,6 +17,7 @@ import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
 
 /**
  * @author louisjiang <493509534@qq.com>
@@ -135,6 +134,11 @@ public class LmdbDatabase implements Database {
     }
 
     @Override
+    public Object get(String key, boolean update) {
+        return null;
+    }
+
+    @Override
     public Iterator iterator() {
         Txn<ByteBuffer> txn = this.env.txnRead();
         final CursorIterable<ByteBuffer> iterate = dbi.iterate(txn);
@@ -153,11 +157,9 @@ public class LmdbDatabase implements Database {
             }
 
             @Override
-            public Tuple2<String, Object> next() {
+            public Entry next() {
                 CursorIterable.KeyVal<ByteBuffer> next = iterator.next();
-                String key = Serialization.toString(Serialization.toBytes(next.key()));
-                Object value = Serialization.toObject(Serialization.toBytes(next.val()));
-                return Tava.of(key, value);
+                return new Entry(Serialization.toBytes(next.key()), Serialization.toBytes(next.val()));
             }
         };
     }
@@ -170,6 +172,16 @@ public class LmdbDatabase implements Database {
     @Override
     public String path() {
         return path.getAbsolutePath();
+    }
+
+    @Override
+    public Lock writeLock() {
+        return null;
+    }
+
+    @Override
+    public Lock readLock() {
+        return null;
     }
 
     @Override
