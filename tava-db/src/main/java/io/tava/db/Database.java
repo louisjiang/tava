@@ -22,6 +22,8 @@ public interface Database {
 
     Object get(String key, boolean update);
 
+    Map<String, Object> get(Set<String> keys);
+
     Iterator iterator();
 
     void commit(boolean force);

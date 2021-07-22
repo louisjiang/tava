@@ -139,6 +139,11 @@ public class LmdbDatabase implements Database {
     }
 
     @Override
+    public Map<String, Object> get(Set<String> keys) {
+        return null;
+    }
+
+    @Override
     public Iterator iterator() {
         Txn<ByteBuffer> txn = this.env.txnRead();
         final CursorIterable<ByteBuffer> iterate = dbi.iterate(txn);

@@ -1,11 +1,11 @@
 package io.tava.db;
 
-import io.tava.db.util.Serialization;
 import org.fusesource.leveldbjni.JniDBFactory;
 import org.iq80.leveldb.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -22,22 +22,28 @@ public class LeveldbDatabase extends AbstractDatabase {
     private boolean opened;
 
     public LeveldbDatabase(String path) {
-        this(path, 4096, 30000);
+        this(path, false);
     }
 
-    public LeveldbDatabase(String path,
-                           int batchSize,
-                           int interval) {
-        this(path, batchSize, interval, 128, 128, 128);
+    public LeveldbDatabase(String path, boolean syncCheck) {
+        this(path, 4096, 30000, syncCheck);
     }
 
     public LeveldbDatabase(String path,
                            int batchSize,
                            int interval,
+                           boolean syncCheck) {
+        this(path, batchSize, interval, syncCheck, 128, 128, 128);
+    }
+
+    public LeveldbDatabase(String path,
+                           int batchSize,
+                           int interval,
+                           boolean syncCheck,
                            int blockSize,
                            int writeBufferSize,
                            long cacheSize) {
-        super(batchSize, interval);
+        super(batchSize, interval, syncCheck);
         this.directory = new File(path);
         this.directory.mkdirs();
         open(createOptions(blockSize, writeBufferSize, cacheSize));
@@ -49,13 +55,18 @@ public class LeveldbDatabase extends AbstractDatabase {
     }
 
     @Override
-    protected void commit(Map<String, Object> puts, Set<String> deletes) {
+    protected List<byte[]> get(List<byte[]> keys) {
+        return null;
+    }
+
+    @Override
+    protected void commit(Map<byte[], byte[]> puts, Set<byte[]> deletes) {
         WriteBatch writeBatch = this.db.createWriteBatch();
-        for (Map.Entry<String, Object> entry : puts.entrySet()) {
-            writeBatch.put(Serialization.toBytes(entry.getKey()), Serialization.toBytes(entry.getValue()));
+        for (Map.Entry<byte[], byte[]> entry : puts.entrySet()) {
+            writeBatch.put(entry.getKey(), entry.getValue());
         }
-        for (String delete : deletes) {
-            writeBatch.delete(Serialization.toBytes(delete));
+        for (byte[] delete : deletes) {
+            writeBatch.delete(delete);
         }
         try {
             this.db.write(writeBatch, new WriteOptions().sync(false));
