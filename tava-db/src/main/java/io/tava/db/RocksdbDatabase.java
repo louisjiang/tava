@@ -1,13 +1,15 @@
 package io.tava.db;
 
+import io.tava.Tava;
+import io.tava.lang.Tuple3;
 import org.rocksdb.*;
 import org.rocksdb.util.SizeUnit;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * https://github.com/johnzeng/rocksdb-doc-cn
@@ -17,8 +19,10 @@ import java.util.Set;
  */
 public class RocksdbDatabase extends AbstractDatabase {
 
+    private final Map<String, ColumnFamilyHandle> columnFamilyHandles = new ConcurrentHashMap<>();
+    private final ColumnFamilyOptions columnFamilyOptions;
     private final File directory;
-    private RocksDB db;
+    private final RocksDB db;
 
     public RocksdbDatabase(String path) {
         this(path, false);
@@ -42,47 +46,58 @@ public class RocksdbDatabase extends AbstractDatabase {
                            int blockSize,
                            int blockCacheSize,
                            int writeBufferSize) {
-        this(path, batchSize, interval, syncCheck, createOptions(blockSize, blockCacheSize, writeBufferSize));
+        this(path, batchSize, interval, syncCheck, createOptions(path, blockSize, blockCacheSize, writeBufferSize));
     }
 
     public RocksdbDatabase(String path,
                            int batchSize,
                            int interval,
                            boolean syncCheck,
-                           Options options) {
+                           Tuple3<DBOptions, ColumnFamilyOptions, List<ColumnFamilyDescriptor>> tuple3) {
         super(batchSize, interval, syncCheck);
         this.directory = new File(path);
         this.directory.mkdirs();
+        this.columnFamilyOptions = tuple3.getValue2();
         try {
-            this.db = RocksDB.open(options, path);
+            List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
+            this.db = RocksDB.open(tuple3.getValue1(), path, tuple3.getValue3(), columnFamilyHandles);
+            for (ColumnFamilyHandle columnFamilyHandle : columnFamilyHandles) {
+                this.columnFamilyHandles.put(new String(columnFamilyHandle.getName(), StandardCharsets.UTF_8), columnFamilyHandle);
+            }
         } catch (RocksDBException cause) {
-            logger.error("open RocksDB:[{}]", path, cause);
+            throw new RuntimeException("open RocksDB:" + path, cause);
         }
     }
 
 
-    private static Options createOptions(int blockSize,
-                                         int blockCacheSize,
-                                         int writeBufferSize) {
-        Options options = new Options();
-        options.setWriteBufferSize(writeBufferSize * SizeUnit.MB);
-//        options.setMaxWriteBufferNumber(5);
-//        options.setMinWriteBufferNumberToMerge(2);
-        options.setCompressionType(CompressionType.LZ4_COMPRESSION);
-        options.setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION);
+    private static Tuple3<DBOptions, ColumnFamilyOptions, List<ColumnFamilyDescriptor>> createOptions(String path,
+                                                                                                      int blockSize,
+                                                                                                      int blockCacheSize,
+                                                                                                      int writeBufferSize) {
+        DBOptions options = new DBOptions();
+//        options.setWriteBufferSize(writeBufferSize * SizeUnit.MB);
+//        options.setCompressionType(CompressionType.LZ4_COMPRESSION);
+//        options.setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION);
         options.setAtomicFlush(true);
         options.setCreateIfMissing(true);
         options.setParanoidChecks(true);
         options.setMaxOpenFiles(1024);
         int availableProcessors = Runtime.getRuntime().availableProcessors();
         options.setMaxBackgroundJobs(availableProcessors);
-        options.setLevelCompactionDynamicLevelBytes(true);
+//        options.setLevelCompactionDynamicLevelBytes(true);
         options.setBytesPerSync(SizeUnit.MB);
-        options.setCompactionPriority(CompactionPriority.MinOverlappingRatio);
+//        options.setCompactionPriority(CompactionPriority.MinOverlappingRatio);
 
-        Env env = options.getEnv();
-        env.setBackgroundThreads(availableProcessors / 2, Priority.LOW);
-        env.setBackgroundThreads(availableProcessors / 2, Priority.HIGH);
+//        Env env = options.getEnv();
+//        env.setBackgroundThreads(availableProcessors / 2, Priority.LOW);
+//        env.setBackgroundThreads(availableProcessors / 2, Priority.HIGH);
+
+        ColumnFamilyOptions columnFamilyOptions = new ColumnFamilyOptions();
+        columnFamilyOptions.setWriteBufferSize(writeBufferSize * SizeUnit.MB);
+        columnFamilyOptions.setCompressionType(CompressionType.LZ4_COMPRESSION);
+        columnFamilyOptions.setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION);
+        columnFamilyOptions.setLevelCompactionDynamicLevelBytes(true);
+        columnFamilyOptions.setCompactionPriority(CompactionPriority.MinOverlappingRatio);
 
         BlockBasedTableConfig tableConfig = new BlockBasedTableConfig();
         tableConfig.setFilterPolicy(new BloomFilter(10, false));
@@ -92,64 +107,82 @@ public class RocksdbDatabase extends AbstractDatabase {
         tableConfig.setCacheIndexAndFilterBlocksWithHighPriority(true);
         tableConfig.setPinL0FilterAndIndexBlocksInCache(true);
 
-        options.setTableFormatConfig(tableConfig);
+        columnFamilyOptions.setTableFormatConfig(tableConfig);
 
-        return options;
+        List<ColumnFamilyDescriptor> columnFamilyDescriptors = new ArrayList<>();
+        try {
+            List<byte[]> listColumnFamilies = RocksDB.listColumnFamilies(new Options(), path);
+            if (listColumnFamilies.size() == 0) {
+                columnFamilyDescriptors.add(new ColumnFamilyDescriptor("default".getBytes(StandardCharsets.UTF_8), columnFamilyOptions));
+            }
+            for (byte[] columnFamily : listColumnFamilies) {
+                columnFamilyDescriptors.add(new ColumnFamilyDescriptor(columnFamily, columnFamilyOptions));
+            }
+        } catch (RocksDBException cause) {
+            throw new RuntimeException("listColumnFamilies", cause);
+        }
+        return Tava.of(options, columnFamilyOptions, columnFamilyDescriptors);
     }
 
 
     @Override
-    protected byte[] get(byte[] key) {
+    protected byte[] get(String tableName, byte[] key) {
         try {
-            return this.db.get(key);
+            return this.db.get(columnFamilyHandle(tableName), key);
         } catch (RocksDBException cause) {
-            logger.info("get", cause);
+            logger.info("get [{}]", tableName, cause);
             return null;
         }
     }
 
     @Override
-    protected List<byte[]> get(List<byte[]> keys) {
+    protected List<byte[]> get(String tableName, List<byte[]> keys) {
         try {
-            return this.db.multiGetAsList(keys);
-        } catch (RocksDBException e) {
-            e.printStackTrace();
+            List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
+            ColumnFamilyHandle columnFamilyHandle = columnFamilyHandle(tableName);
+            for (int i = 0; i < keys.size(); i++) {
+                columnFamilyHandles.add(columnFamilyHandle);
+            }
+            return this.db.multiGetAsList(columnFamilyHandles, keys);
+        } catch (RocksDBException cause) {
+            logger.error("get [{}]", tableName, cause);
+            return null;
         }
-        return null;
     }
 
     @Override
-    protected void commit(Map<byte[], byte[]> puts, Set<byte[]> deletes) {
+    protected void commit(String tableName, Map<byte[], byte[]> puts, Set<byte[]> deletes) {
         WriteBatch writeBatch = new WriteBatch();
         try {
+            ColumnFamilyHandle columnFamilyHandle = columnFamilyHandle(tableName);
             for (Map.Entry<byte[], byte[]> entry : puts.entrySet()) {
-                writeBatch.put(entry.getKey(), entry.getValue());
+                writeBatch.put(columnFamilyHandle, entry.getKey(), entry.getValue());
             }
             for (byte[] delete : deletes) {
-                writeBatch.delete(delete);
+                writeBatch.delete(columnFamilyHandle, delete);
             }
             WriteOptions writeOptions = new WriteOptions();
             this.db.write(writeOptions, writeBatch);
             close(writeBatch);
             close(writeOptions);
         } catch (RocksDBException cause) {
-            logger.info("batch write", cause);
+            logger.info("commit", cause);
         }
     }
 
     @Override
-    public Iterator iterator() {
-        this.readLock().lock();
+    public Iterator iterator(String tableName) {
+        this.readLock(tableName).lock();
         ReadOptions readOptions = new ReadOptions();
         readOptions.setBackgroundPurgeOnIteratorCleanup(true);
-        RocksIterator iterator = this.db.newIterator(readOptions);
+        RocksIterator iterator = this.db.newIterator(columnFamilyHandle(tableName), readOptions);
         iterator.seekToFirst();
         return new Iterator() {
             @Override
             public void close() throws IOException {
                 RocksdbDatabase.this.close(iterator);
                 RocksdbDatabase.this.close(readOptions);
-                readLock().unlock();
+                readLock(tableName).unlock();
             }
 
             @Override
@@ -173,8 +206,55 @@ public class RocksdbDatabase extends AbstractDatabase {
     }
 
     @Override
+    public boolean createTable(String tableName) {
+        ColumnFamilyHandle columnFamilyHandle = this.columnFamilyHandles.get(tableName);
+        if (columnFamilyHandle != null) {
+            this.logger.warn("table:[{}] already exists", tableName);
+            return false;
+        }
+        try {
+            columnFamilyHandle(tableName);
+            return true;
+        } catch (Exception cause) {
+            this.logger.error("createTable", cause);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean dropTable(String tableName) {
+        ColumnFamilyHandle columnFamilyHandle = this.columnFamilyHandles.get(tableName);
+        if (columnFamilyHandle == null) {
+            this.logger.warn("table:[{}] does not exist", tableName);
+            return false;
+        }
+        try {
+            this.db.dropColumnFamily(columnFamilyHandle);
+            return true;
+        } catch (RocksDBException cause) {
+            this.logger.error("dropTable", cause);
+            return false;
+        }
+    }
+
+    @Override
+    public Set<String> getTableNames() {
+        return new HashSet<>(this.columnFamilyHandles.keySet());
+    }
+
+    @Override
     public void close() {
-        db.close();
+        this.db.close();
+    }
+
+    private ColumnFamilyHandle columnFamilyHandle(String tableName) {
+        return this.columnFamilyHandles.computeIfAbsent(tableName, key -> {
+            try {
+                return this.db.createColumnFamily(new ColumnFamilyDescriptor(tableName.getBytes(StandardCharsets.UTF_8), this.columnFamilyOptions));
+            } catch (RocksDBException cause) {
+                throw new RuntimeException("createColumnFamily", cause);
+            }
+        });
     }
 
     private void close(AbstractImmutableNativeReference reference) {

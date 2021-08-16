@@ -10,29 +10,67 @@ import java.util.concurrent.locks.Lock;
  */
 public interface Database {
 
-    void put(Map<String, Object> keyValues);
+    default void put(Map<String, Object> keyValues) {
+        this.put("default", keyValues);
+    }
 
-    void put(String key, Object value);
+    void put(String tableName, Map<String, Object> keyValues);
 
-    void delete(Set<String> keys);
+    default void put(String key, Object value) {
+        this.put("default", key, value);
+    }
 
-    void delete(String key);
+    void put(String tableName, String key, Object value);
 
-    Object get(String key);
+    default void delete(Set<String> keys) {
+        this.delete("default", keys);
+    }
 
-    Object get(String key, boolean update);
+    void delete(String tableName, Set<String> keys);
 
-    Map<String, Object> get(Set<String> keys);
+    default void delete(String key) {
+        this.delete("default", key);
+    }
 
-    Iterator iterator();
+    void delete(String tableName, String key);
 
-    void commit(boolean force);
+    default Object get(String key) {
+        return this.get("default", key);
+    }
+
+    Object get(String tableName, String key);
+
+    default Object get(String key, boolean update) {
+        return this.get("default", key, update);
+    }
+
+    Object get(String tableName, String key, boolean update);
+
+    default Map<String, Object> get(Set<String> keys) {
+        return this.get("default", keys);
+    }
+
+    Map<String, Object> get(String tableName, Set<String> keys);
+
+    default Iterator iterator() {
+        return this.iterator("default");
+    }
+
+    Iterator iterator(String tableName);
+
+    void commit(String tableName, boolean force);
 
     String path();
 
-    Lock writeLock();
+    Lock writeLock(String tableName);
 
-    Lock readLock();
+    Lock readLock(String tableName);
+
+    boolean createTable(String tableName);
+
+    boolean dropTable(String tableName);
+
+    Set<String> getTableNames();
 
     void close();
 

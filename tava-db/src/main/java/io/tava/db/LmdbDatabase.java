@@ -74,7 +74,7 @@ public class LmdbDatabase implements Database {
     }
 
     @Override
-    public void put(String key, Object value) {
+    public void put(String tableName, String key, Object value) {
         ByteBuffer keyByteBuffer = allocateKeyByteBuffer(key);
         if (keyByteBuffer == null) {
             return;
@@ -86,7 +86,7 @@ public class LmdbDatabase implements Database {
     }
 
     @Override
-    public void put(Map<String, Object> keyValues) {
+    public void put(String tableName, Map<String, Object> keyValues) {
         Set<Map.Entry<String, Object>> entries = keyValues.entrySet();
         for (Map.Entry<String, Object> entry : entries) {
             this.put(entry.getKey(), entry.getValue());
@@ -94,7 +94,7 @@ public class LmdbDatabase implements Database {
     }
 
     @Override
-    public void delete(String key) {
+    public void delete(String tableName, String key) {
         ByteBuffer keyByteBuffer = allocateKeyByteBuffer(key);
         if (keyByteBuffer == null) {
             return;
@@ -104,7 +104,7 @@ public class LmdbDatabase implements Database {
     }
 
     @Override
-    public void delete(Set<String> keys) {
+    public void delete(String tableName, Set<String> keys) {
         for (String key : keys) {
             delete(key);
         }
@@ -112,7 +112,7 @@ public class LmdbDatabase implements Database {
 
 
     @Override
-    public Object get(String key) {
+    public Object get(String tableName, String key) {
         ByteBuffer keyByteBuffer = allocateKeyByteBuffer(key);
         if (keyByteBuffer == null) {
             return null;
@@ -134,17 +134,17 @@ public class LmdbDatabase implements Database {
     }
 
     @Override
-    public Object get(String key, boolean update) {
+    public Object get(String tableName, String key, boolean update) {
         return null;
     }
 
     @Override
-    public Map<String, Object> get(Set<String> keys) {
+    public Map<String, Object> get(String tableName, Set<String> keys) {
         return null;
     }
 
     @Override
-    public Iterator iterator() {
+    public Iterator iterator(String tableName) {
         Txn<ByteBuffer> txn = this.env.txnRead();
         final CursorIterable<ByteBuffer> iterate = dbi.iterate(txn);
         final java.util.Iterator<CursorIterable.KeyVal<ByteBuffer>> iterator = iterate.iterator();
@@ -170,7 +170,7 @@ public class LmdbDatabase implements Database {
     }
 
     @Override
-    public void commit(boolean force) {
+    public void commit(String tableName, boolean force) {
 
     }
 
@@ -180,12 +180,27 @@ public class LmdbDatabase implements Database {
     }
 
     @Override
-    public Lock writeLock() {
+    public Lock writeLock(String tableName) {
         return null;
     }
 
     @Override
-    public Lock readLock() {
+    public Lock readLock(String tableName) {
+        return null;
+    }
+
+    @Override
+    public boolean createTable(String tableName) {
+        return false;
+    }
+
+    @Override
+    public boolean dropTable(String tableName) {
+        return false;
+    }
+
+    @Override
+    public Set<String> getTableNames() {
         return null;
     }
 
