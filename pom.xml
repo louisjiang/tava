@@ -19,6 +19,7 @@
         <module>tava-db</module>
         <module>tava-cache</module>
         <module>tava-kryo</module>
+        <module>tava-config</module>
     </modules>
 
     <distributionManagement>
