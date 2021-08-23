@@ -1,6 +1,7 @@
 package io.tava.db;
 
 import io.tava.Tava;
+import io.tava.kryo.KryoSerialization;
 import io.tava.lang.Tuple3;
 import org.rocksdb.*;
 import org.rocksdb.util.SizeUnit;
@@ -25,36 +26,43 @@ public class RocksdbDatabase extends AbstractDatabase {
     private final RocksDB db;
 
     public RocksdbDatabase(String path) {
-        this(path, false);
+        this(path, new KryoSerialization(), false);
     }
 
-    public RocksdbDatabase(String path, boolean syncCheck) {
-        this(path, 4096, 30000, syncCheck);
+    public RocksdbDatabase(String path, KryoSerialization serialization) {
+        this(path, serialization, false);
+    }
+
+    public RocksdbDatabase(String path, KryoSerialization serialization, boolean syncCheck) {
+        this(path, serialization, 4096, 30000, syncCheck);
     }
 
     public RocksdbDatabase(String path,
+                           KryoSerialization serialization,
                            int batchSize,
                            int interval,
                            boolean syncCheck) {
-        this(path, batchSize, interval, syncCheck, 16, 64, 128);
+        this(path, serialization, batchSize, interval, syncCheck, 16, 64, 128);
     }
 
     public RocksdbDatabase(String path,
+                           KryoSerialization serialization,
                            int batchSize,
                            int interval,
                            boolean syncCheck,
                            int blockSize,
                            int blockCacheSize,
                            int writeBufferSize) {
-        this(path, batchSize, interval, syncCheck, createOptions(path, blockSize, blockCacheSize, writeBufferSize));
+        this(path, serialization, batchSize, interval, syncCheck, createOptions(path, blockSize, blockCacheSize, writeBufferSize));
     }
 
     public RocksdbDatabase(String path,
+                           KryoSerialization serialization,
                            int batchSize,
                            int interval,
                            boolean syncCheck,
                            Tuple3<DBOptions, ColumnFamilyOptions, List<ColumnFamilyDescriptor>> tuple3) {
-        super(batchSize, interval, syncCheck);
+        super(serialization, batchSize, interval, syncCheck);
         this.directory = new File(path);
         this.directory.mkdirs();
         this.columnFamilyOptions = tuple3.getValue2();
@@ -195,7 +203,7 @@ public class RocksdbDatabase extends AbstractDatabase {
                 byte[] key = iterator.key();
                 byte[] value = iterator.value();
                 iterator.next();
-                return new Entry(key, value);
+                return new Entry(key, value,RocksdbDatabase.this);
             }
         };
     }
@@ -229,10 +237,11 @@ public class RocksdbDatabase extends AbstractDatabase {
             return false;
         }
         try {
+            this.columnFamilyHandles.remove(tableName);
             this.db.dropColumnFamily(columnFamilyHandle);
             return true;
         } catch (RocksDBException cause) {
-            this.logger.error("dropTable", cause);
+            this.logger.error("dropTable[{}]", tableName, cause);
             return false;
         }
     }

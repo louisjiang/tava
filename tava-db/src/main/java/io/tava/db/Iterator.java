@@ -1,8 +1,7 @@
 package io.tava.db;
 
-import io.tava.db.util.Serialization;
-
 import java.io.Closeable;
+import java.nio.charset.StandardCharsets;
 
 /**
  * @author louisjiang <493509534@qq.com>
@@ -18,10 +17,12 @@ public interface Iterator extends Closeable {
 
         private final byte[] key;
         private final byte[] value;
+        private final AbstractDatabase database;
 
-        Entry(byte[] key, byte[] value) {
+        Entry(byte[] key, byte[] value, AbstractDatabase database) {
             this.key = key;
             this.value = value;
+            this.database = database;
         }
 
         public byte[] getKey() {
@@ -33,11 +34,11 @@ public interface Iterator extends Closeable {
         }
 
         public String getStringKey() {
-            return Serialization.toString(key);
+            return new String(key, StandardCharsets.UTF_8);
         }
 
         public Object getObjectValue() {
-            return Serialization.toObject(value);
+            return database.toObject(value);
         }
 
     }

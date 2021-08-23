@@ -1,11 +1,12 @@
 package io.tava.db;
 
-import io.tava.db.util.Serialization;
 import io.tava.function.Consumer0;
 import io.tava.function.Function0;
+import io.tava.kryo.KryoSerialization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
@@ -25,9 +26,11 @@ public abstract class AbstractDatabase implements Database {
     private final int batchSize;
     private final int interval;
     private final boolean syncCheck;
+    private final KryoSerialization serialization;
     private long timestamp;
 
-    protected AbstractDatabase(int batchSize, int interval, boolean syncCheck) {
+    protected AbstractDatabase(KryoSerialization serialization, int batchSize, int interval, boolean syncCheck) {
+        this.serialization = serialization;
         this.batchSize = batchSize;
         this.interval = interval;
         this.syncCheck = syncCheck;
@@ -103,21 +106,22 @@ public abstract class AbstractDatabase implements Database {
         });
 
         keys.removeAll(values.keySet());
-        List<byte[]> keyList = new ArrayList<>();
 
+        List<byte[]> keyList = new ArrayList<>();
         for (String key : keys) {
-            keyList.add(Serialization.toBytes(key));
+            keyList.add(key.getBytes(StandardCharsets.UTF_8));
         }
 
         List<byte[]> bytes = get(tableName, keyList);
         for (int index = 0; index < keyList.size(); index++) {
             byte[] keyBytes = keyList.get(index);
             byte[] valueBytes = bytes.get(index);
+            String key = new String(keyBytes, StandardCharsets.UTF_8);
             if (valueBytes == null || valueBytes.length == 0) {
-                values.put(Serialization.toString(keyBytes), null);
+                values.put(key, null);
                 continue;
             }
-            values.put(Serialization.toString(keyBytes), Serialization.toObject(valueBytes));
+            values.put(key, toObject(valueBytes));
         }
 
         return values;
@@ -133,11 +137,11 @@ public abstract class AbstractDatabase implements Database {
             if (value != null) {
                 return value;
             }
-            byte[] bytes = this.get(tableName, Serialization.toBytes(key));
+            byte[] bytes = this.get(tableName, toBytes(key));
             if (bytes == null || bytes.length == 0) {
                 return null;
             }
-            value = Serialization.toObject(bytes);
+            value = toObject(bytes);
             if (update) {
                 this.puts.computeIfAbsent(tableName, s -> new HashMap<>()).put(key, value);
             }
@@ -170,11 +174,18 @@ public abstract class AbstractDatabase implements Database {
             map = this.puts.remove(tableName);
             if (map != null) {
                 for (Map.Entry<String, Object> entry : map.entrySet()) {
-                    byte[] key = Serialization.toBytes(entry.getKey());
-                    byte[] value = Serialization.toBytes(entry.getValue());
+                    byte[] key = toBytes(entry.getKey());
+                    if (key == null) {
+                        continue;
+                    }
+                    byte[] value = toBytes(entry.getValue());
+                    if (value == null) {
+                        continue;
+                    }
                     totalBytes += key.length;
                     totalBytes += value.length;
                     puts.put(key, value);
+
                 }
             }
 
@@ -182,7 +193,7 @@ public abstract class AbstractDatabase implements Database {
             set = this.deletes.remove(tableName);
             if (set != null) {
                 for (String delete : set) {
-                    byte[] key = Serialization.toBytes(delete);
+                    byte[] key = toBytes(delete);
                     totalBytes += key.length;
                     deletes.add(key);
                 }
@@ -246,4 +257,23 @@ public abstract class AbstractDatabase implements Database {
         byteLength = byteLength / 1024;
         return byteLength + "GB";
     }
+
+    protected byte[] toBytes(Object value) {
+        try {
+            return this.serialization.toBytes(value);
+        } catch (Exception cause) {
+            this.logger.error("toBytes", cause);
+            return null;
+        }
+    }
+
+    protected Object toObject(byte[] bytes) {
+        try {
+            return serialization.fromBytes(bytes);
+        } catch (Exception cause) {
+            this.logger.error("toObject", cause);
+            return null;
+        }
+    }
+
 }
