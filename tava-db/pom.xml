@@ -37,7 +37,7 @@
         </dependency>
         <dependency>
             <groupId>io.tava</groupId>
-            <artifactId>tava-kryo</artifactId>
+            <artifactId>tava-serialization</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

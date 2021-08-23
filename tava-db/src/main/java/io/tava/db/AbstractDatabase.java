@@ -2,7 +2,7 @@ package io.tava.db;
 
 import io.tava.function.Consumer0;
 import io.tava.function.Function0;
-import io.tava.kryo.KryoSerialization;
+import io.tava.serialization.KryoSerialization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

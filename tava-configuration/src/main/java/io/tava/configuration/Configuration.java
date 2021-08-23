@@ -1,4 +1,4 @@
-package io.tava.config;
+package io.tava.configuration;
 
 import com.typesafe.config.*;
 import io.tava.function.Function1;

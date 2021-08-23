@@ -1,7 +1,7 @@
 package io.tava.db;
 
 import io.tava.Tava;
-import io.tava.kryo.KryoSerialization;
+import io.tava.serialization.KryoSerialization;
 import io.tava.lang.Tuple3;
 import org.rocksdb.*;
 import org.rocksdb.util.SizeUnit;
