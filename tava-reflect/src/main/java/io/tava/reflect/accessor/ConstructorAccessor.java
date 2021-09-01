@@ -21,6 +21,7 @@ public interface ConstructorAccessor {
 
         public PrivateConstructorAccessor(Constructor<?> targetConstructor) {
             this.targetConstructor = targetConstructor;
+            this.targetConstructor.setAccessible(true);
         }
 
         @Override

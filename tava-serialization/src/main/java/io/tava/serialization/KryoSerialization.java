@@ -1,9 +1,11 @@
 package io.tava.serialization;
 
 import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.ByteBufferInput;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.ClosureSerializer;
+import com.esotericsoftware.kryo.unsafe.UnsafeByteBufferInput;
 import com.esotericsoftware.kryo.unsafe.UnsafeByteBufferOutput;
 import com.esotericsoftware.kryo.unsafe.UnsafeOutput;
 import com.esotericsoftware.kryo.util.MapReferenceResolver;
@@ -14,6 +16,7 @@ import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import sun.nio.ch.DirectBuffer;
 
 import java.lang.invoke.SerializedLambda;
 import java.math.BigDecimal;
@@ -73,6 +76,13 @@ public class KryoSerialization extends BasePooledObjectFactory<Kryo> {
             kryo.writeClassAndObject(output, value);
             return output;
         });
+    }
+
+    public Object fromByteBuffer(ByteBuffer byteBuffer) throws Exception {
+        if (byteBuffer instanceof DirectBuffer) {
+            return fromInput(new UnsafeByteBufferInput(byteBuffer));
+        }
+        return fromInput(new ByteBufferInput(byteBuffer));
     }
 
     public Object fromBytes(byte[] bytes) throws Exception {

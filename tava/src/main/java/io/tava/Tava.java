@@ -18,7 +18,7 @@ public class Tava {
         return Option.none();
     }
 
-    public static <T> Try<T> run(CheckedFunction0<T> action) {
+    public static <T> Try<T> tryRun(CheckedFunction0<T> action) {
         return Try.run(action);
     }
 

@@ -21,6 +21,7 @@ public interface MethodAccessor {
 
         public PrivateMethodAccessor(Method targetMethod) {
             this.targetMethod = targetMethod;
+            this.targetMethod.setAccessible(true);
         }
 
         @Override
@@ -44,6 +45,7 @@ public interface MethodAccessor {
 
         public StaticMethodAccessor(Method targetMethod) {
             this.targetMethod = targetMethod;
+            this.targetMethod.setAccessible(true);
         }
 
         @Override

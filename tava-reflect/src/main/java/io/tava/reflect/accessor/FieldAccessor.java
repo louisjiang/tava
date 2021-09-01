@@ -23,6 +23,7 @@ public interface FieldAccessor {
 
         public StaticFieldAccessor(Field targetField) {
             this.targetField = targetField;
+            this.targetField.setAccessible(true);
         }
 
         @Override

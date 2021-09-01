@@ -64,16 +64,11 @@ public final class CacheBuilder {
         return this;
     }
 
-    public CacheBuilder ringBufferSize(int ringBufferSize) {
-        this.ringBufferSize = ringBufferSize;
-        return this;
-    }
-
     public Cache build() {
         if (this.database == null) {
             return new MemoryCache(this.caffeine.build());
         }
-        return new DatabaseCache(this.caffeine.build(new DatabaseCacheLoader(this.database)), database, this.ringBufferSize);
+        return new DatabaseCache(this.caffeine.build(new DatabaseCacheLoader(this.database)), database);
     }
 
 }
