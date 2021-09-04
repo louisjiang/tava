@@ -1,15 +1,33 @@
 package io.tava.util;
 
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.core.Observable;
 import io.tava.function.*;
 import io.tava.lang.Option;
 import io.tava.lang.Tuple2;
 import io.tava.util.builder.CollectionBuilder;
+import one.util.streamex.StreamEx;
 
 import java.util.Comparator;
 
 public interface Collection<E> extends java.util.Collection<E>, Traversable<E> {
 
     <E0, C0 extends Collection<E0>> CollectionBuilder<E0, C0> builder();
+
+    @Override
+    default StreamEx<E> streamEx() {
+        return StreamEx.of(this);
+    }
+
+    @Override
+    default Observable<E> observable() {
+        return Observable.fromIterable(this);
+    }
+
+    @Override
+    default Flowable<E> flowable() {
+        return Flowable.fromIterable(this);
+    }
 
     @Override
     default void foreach(Consumer1<E> action) {
@@ -130,7 +148,7 @@ public interface Collection<E> extends java.util.Collection<E>, Traversable<E> {
 
     Collection<E> diff(Collection<E> that);
 
-    Collection<E> intersect(Collection<E> that); 
+    Collection<E> intersect(Collection<E> that);
 
     @Override
     default E min(Comparator<? super E> comparator) {

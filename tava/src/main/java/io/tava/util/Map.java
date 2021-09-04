@@ -1,9 +1,12 @@
 package io.tava.util;
 
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.core.Observable;
 import io.tava.function.*;
 import io.tava.lang.Option;
 import io.tava.lang.Tuple2;
 import io.tava.util.builder.MapBuilder;
+import one.util.streamex.StreamEx;
 
 import java.util.Comparator;
 import java.util.Set;
@@ -12,6 +15,21 @@ import java.util.Set;
 public interface Map<K, V> extends java.util.Map<K, V>, Traversable<java.util.Map.Entry<K, V>> {
 
     <K0, V0, M0 extends Map<K0, V0>> MapBuilder<K0, V0, M0> builder();
+
+    @Override
+    default StreamEx<Entry<K, V>> streamEx() {
+        return StreamEx.of(entrySet());
+    }
+
+    @Override
+    default Observable<Entry<K, V>> observable() {
+        return Observable.fromIterable(entrySet());
+    }
+
+    @Override
+    default Flowable<Entry<K, V>> flowable() {
+        return Flowable.fromIterable(entrySet());
+    }
 
     default void foreach(Consumer2<K, V> action) {
         foreach(entry -> action.accept(entry.getKey(), entry.getValue()));

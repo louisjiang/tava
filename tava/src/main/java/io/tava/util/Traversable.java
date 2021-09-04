@@ -1,12 +1,21 @@
 package io.tava.util;
 
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.core.Observable;
 import io.tava.function.*;
 import io.tava.lang.Option;
 import io.tava.lang.Tuple2;
+import one.util.streamex.StreamEx;
 
 import java.util.Comparator;
 
 public interface Traversable<E> {
+
+    StreamEx<E> streamEx();
+
+    Observable<E> observable();
+
+    Flowable<E> flowable();
 
     default void println() {
         foreach(System.out::println);
