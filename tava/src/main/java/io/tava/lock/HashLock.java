@@ -1,8 +1,5 @@
 package io.tava.lock;
 
-import io.tava.function.Consumer0;
-import io.tava.function.Function0;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;

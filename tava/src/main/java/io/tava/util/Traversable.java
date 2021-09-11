@@ -142,14 +142,11 @@ public interface Traversable<E> {
     }
 
     default String mkString(String start, String separator, String end) {
-        StringBuilder stringBuilder = new StringBuilder().append(start);
-        foldLeftWithIndex(stringBuilder, (index, stringBuilder1, e) -> {
+        return foldLeftWithIndex(new StringBuilder().append(start), (index, builder, e) -> {
             if (index > 0) {
-                stringBuilder.append(separator);
+                builder.append(separator);
             }
-            return stringBuilder.append(e);
-        });
-        stringBuilder.append(end);
-        return stringBuilder.toString();
+            return builder.append(e);
+        }).append(end).toString();
     }
 }

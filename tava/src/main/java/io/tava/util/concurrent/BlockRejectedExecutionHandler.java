@@ -1,4 +1,4 @@
-package io.tava.util;
+package io.tava.util.concurrent;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
