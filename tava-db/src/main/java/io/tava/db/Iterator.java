@@ -38,7 +38,7 @@ public interface Iterator extends Closeable {
         }
 
         public Object getObjectValue() {
-            return database.toObject(value);
+            return this.database.fromBytes(value);
         }
 
     }

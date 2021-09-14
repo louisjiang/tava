@@ -1,8 +1,8 @@
 package io.tava.db;
 
 import io.tava.Tava;
-import io.tava.serialization.KryoSerialization;
 import io.tava.lang.Tuple3;
+import io.tava.serialization.Serialization;
 import org.rocksdb.*;
 import org.rocksdb.util.SizeUnit;
 
@@ -25,20 +25,16 @@ public class RocksdbDatabase extends AbstractDatabase {
     private final File directory;
     private final RocksDB db;
 
-    public RocksdbDatabase(String path) {
-        this(path, new KryoSerialization(), false);
-    }
-
-    public RocksdbDatabase(String path, KryoSerialization serialization) {
+    public RocksdbDatabase(String path, Serialization serialization) {
         this(path, serialization, false);
     }
 
-    public RocksdbDatabase(String path, KryoSerialization serialization, boolean syncCheck) {
+    public RocksdbDatabase(String path, Serialization serialization, boolean syncCheck) {
         this(path, serialization, 4096, 30000, syncCheck);
     }
 
     public RocksdbDatabase(String path,
-                           KryoSerialization serialization,
+                           Serialization serialization,
                            int batchSize,
                            int interval,
                            boolean syncCheck) {
@@ -46,7 +42,7 @@ public class RocksdbDatabase extends AbstractDatabase {
     }
 
     public RocksdbDatabase(String path,
-                           KryoSerialization serialization,
+                           Serialization serialization,
                            int batchSize,
                            int interval,
                            boolean syncCheck,
@@ -57,7 +53,7 @@ public class RocksdbDatabase extends AbstractDatabase {
     }
 
     public RocksdbDatabase(String path,
-                           KryoSerialization serialization,
+                           Serialization serialization,
                            int batchSize,
                            int interval,
                            boolean syncCheck,
@@ -203,7 +199,7 @@ public class RocksdbDatabase extends AbstractDatabase {
                 byte[] key = iterator.key();
                 byte[] value = iterator.value();
                 iterator.next();
-                return new Entry(key, value,RocksdbDatabase.this);
+                return new Entry(key, value, RocksdbDatabase.this);
             }
         };
     }

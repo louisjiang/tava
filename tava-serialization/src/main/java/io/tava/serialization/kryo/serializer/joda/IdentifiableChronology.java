@@ -1,4 +1,4 @@
-package io.tava.serialization.serializer.joda;
+package io.tava.serialization.kryo.serializer.joda;
 
 import org.joda.time.Chronology;
 import org.joda.time.chrono.*;

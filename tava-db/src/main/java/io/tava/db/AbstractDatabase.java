@@ -2,7 +2,7 @@ package io.tava.db;
 
 import io.tava.function.Consumer0;
 import io.tava.function.Function0;
-import io.tava.serialization.KryoSerialization;
+import io.tava.serialization.Serialization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,27 +21,29 @@ public abstract class AbstractDatabase implements Database {
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final Map<String, ReadWriteLock> locks = new ConcurrentHashMap<>();
-    private final Map<String, Map<String, Object>> puts = new ConcurrentHashMap<>();
-    private final Map<String, Set<String>> deletes = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, Object>> tableNameToPuts = new ConcurrentHashMap<>();
+    private final Map<String, Set<String>> tableNameToDeletes = new ConcurrentHashMap<>();
     private final int batchSize;
     private final int interval;
     private final boolean syncCheck;
-    private final KryoSerialization serialization;
+    private final Serialization serialization;
+    private final int initialCapacity;
     private long timestamp;
 
-    protected AbstractDatabase(KryoSerialization serialization, int batchSize, int interval, boolean syncCheck) {
+    protected AbstractDatabase(Serialization serialization, int batchSize, int interval, boolean syncCheck) {
         this.serialization = serialization;
         this.batchSize = batchSize;
         this.interval = interval;
         this.syncCheck = syncCheck;
+        this.initialCapacity = this.batchSize / 2;
         this.timestamp = System.currentTimeMillis();
     }
 
     @Override
     public void put(String tableName, Map<String, Object> keyValues) {
         writeLock(tableName, () -> {
-            this.puts.computeIfAbsent(tableName, s -> new HashMap<>()).putAll(keyValues);
-            this.deletes.computeIfAbsent(tableName, s -> new HashSet<>()).removeAll(keyValues.keySet());
+            this.tableNameToPuts.computeIfAbsent(tableName, s -> new HashMap<>(this.initialCapacity)).putAll(keyValues);
+            this.tableNameToDeletes.computeIfAbsent(tableName, s -> new HashSet<>(this.initialCapacity)).removeAll(keyValues.keySet());
         });
         if (!syncCheck) {
             return;
@@ -52,8 +54,8 @@ public abstract class AbstractDatabase implements Database {
     @Override
     public void put(String tableName, String key, Object value) {
         writeLock(tableName, () -> {
-            this.puts.computeIfAbsent(tableName, s -> new HashMap<>()).put(key, value);
-            this.deletes.computeIfAbsent(tableName, s -> new HashSet<>()).remove(key);
+            this.tableNameToPuts.computeIfAbsent(tableName, s -> new HashMap<>(this.initialCapacity)).put(key, value);
+            this.tableNameToDeletes.computeIfAbsent(tableName, s -> new HashSet<>(this.initialCapacity)).remove(key);
         });
         if (!syncCheck) {
             return;
@@ -64,10 +66,12 @@ public abstract class AbstractDatabase implements Database {
     @Override
     public void delete(String tableName, Set<String> keys) {
         writeLock(tableName, () -> {
-            Map<String, Object> map = this.puts.computeIfAbsent(tableName, s -> new HashMap<>());
-            keys.forEach(map::remove);
-            Set<String> set = this.deletes.computeIfAbsent(tableName, s -> new HashSet<>());
-            set.addAll(keys);
+            Map<String, Object> puts = this.tableNameToPuts.get(tableName);
+            if (puts != null) {
+                keys.forEach(puts::remove);
+            }
+            Set<String> deletes = this.tableNameToDeletes.computeIfAbsent(tableName, key -> new HashSet<>(this.initialCapacity));
+            deletes.addAll(keys);
         });
         if (!syncCheck) {
             return;
@@ -78,9 +82,15 @@ public abstract class AbstractDatabase implements Database {
     @Override
     public void delete(String tableName, String key) {
         writeLock(tableName, () -> {
-            this.puts.computeIfAbsent(tableName, s -> new HashMap<>()).remove(key);
-            this.deletes.computeIfAbsent(tableName, s -> new HashSet<>()).add(key);
+            Map<String, Object> puts = this.tableNameToPuts.get(tableName);
+            if (puts != null) {
+                puts.remove(key);
+            }
+            this.tableNameToDeletes.computeIfAbsent(tableName, s -> new HashSet<>(this.initialCapacity)).add(key);
         });
+        if (!syncCheck) {
+            return;
+        }
         commit(tableName, false);
     }
 
@@ -93,12 +103,15 @@ public abstract class AbstractDatabase implements Database {
         Map<String, Object> values = readLock(tableName, () -> {
             Map<String, Object> map = new HashMap<>();
             for (String key : keys) {
-                if (this.deletes.computeIfAbsent(tableName, s -> new HashSet<>()).contains(key)) {
+                Set<String> deletes = this.tableNameToDeletes.get(tableName);
+                if (deletes != null && deletes.contains(key)) {
                     map.put(key, null);
                     continue;
                 }
-                Object value = this.puts.get(key);
-                if (value != null) {
+
+                Map<String, Object> puts = this.tableNameToPuts.get(key);
+                Object value;
+                if (puts != null && (value = puts.get(key)) != null) {
                     map.put(key, value);
                 }
             }
@@ -121,7 +134,7 @@ public abstract class AbstractDatabase implements Database {
                 values.put(key, null);
                 continue;
             }
-            values.put(key, toObject(valueBytes));
+            values.put(key, fromBytes(valueBytes));
         }
 
         return values;
@@ -130,20 +143,23 @@ public abstract class AbstractDatabase implements Database {
     @Override
     public Object get(String tableName, String key, boolean update) {
         return readLock(tableName, () -> {
-            if (this.deletes.computeIfAbsent(tableName, s -> new HashSet<>()).contains(key)) {
+            Set<String> deletes = this.tableNameToDeletes.get(tableName);
+            if (deletes != null && deletes.contains(key)) {
                 return null;
             }
-            Object value = this.puts.get(key);
-            if (value != null) {
+
+            Map<String, Object> puts = this.tableNameToPuts.get(key);
+            Object value;
+            if (puts != null && (value = puts.get(key)) != null) {
                 return value;
             }
-            byte[] bytes = this.get(tableName, toBytes(key));
+            byte[] bytes = this.get(tableName, key.getBytes(StandardCharsets.UTF_8));
             if (bytes == null || bytes.length == 0) {
                 return null;
             }
-            value = toObject(bytes);
+            value = fromBytes(bytes);
             if (update) {
-                this.puts.computeIfAbsent(tableName, s -> new HashMap<>()).put(key, value);
+                this.tableNameToPuts.computeIfAbsent(tableName, s -> new HashMap<>(this.initialCapacity)).put(key, value);
             }
             return value;
         });
@@ -153,14 +169,13 @@ public abstract class AbstractDatabase implements Database {
     public void commit(String tableName, boolean force) {
         this.writeLock(tableName, () -> {
             int size = 0;
-
-            Map<String, Object> map = this.puts.get(tableName);
-            if (map != null) {
-                size += map.size();
+            Map<String, Object> puts = this.tableNameToPuts.get(tableName);
+            if (puts != null) {
+                size += puts.size();
             }
-            Set<String> set = this.deletes.get(tableName);
-            if (set != null) {
-                size += set.size();
+            Set<String> deletes = this.tableNameToDeletes.get(tableName);
+            if (deletes != null) {
+                size += deletes.size();
             }
             if (size == 0) {
                 return;
@@ -170,42 +185,32 @@ public abstract class AbstractDatabase implements Database {
                 return;
             }
             long totalBytes = 0;
-            Map<byte[], byte[]> puts = new HashMap<>();
-            map = this.puts.remove(tableName);
-            if (map != null) {
-                for (Map.Entry<String, Object> entry : map.entrySet()) {
-                    byte[] key = toBytes(entry.getKey());
-                    if (key == null) {
-                        continue;
-                    }
+            Map<byte[], byte[]> putBytes = new HashMap<>();
+            puts = this.tableNameToPuts.remove(tableName);
+            if (puts != null) {
+                for (Map.Entry<String, Object> entry : puts.entrySet()) {
+                    byte[] key = entry.getKey().getBytes(StandardCharsets.UTF_8);
                     byte[] value = toBytes(entry.getValue());
-                    if (value == null) {
-                        continue;
-                    }
                     totalBytes += key.length;
                     totalBytes += value.length;
-                    puts.put(key, value);
-
+                    putBytes.put(key, value);
                 }
             }
 
-            Set<byte[]> deletes = new HashSet<>();
-            set = this.deletes.remove(tableName);
-            if (set != null) {
-                for (String delete : set) {
-                    byte[] key = toBytes(delete);
+            Set<byte[]> deleteBytes = new HashSet<>();
+            deletes = this.tableNameToDeletes.remove(tableName);
+            if (deletes != null) {
+                for (String delete : deletes) {
+                    byte[] key = delete.getBytes(StandardCharsets.UTF_8);
                     totalBytes += key.length;
-                    deletes.add(key);
+                    deleteBytes.add(key);
                 }
             }
             long elapsedTime = System.currentTimeMillis() - now;
-            commit(tableName, puts, deletes);
+            commit(tableName, putBytes, deleteBytes);
             this.timestamp = System.currentTimeMillis();
-            logger.info("commit data to db [{}][{}][{}][{}][{}][{}][{}]", path(), tableName, puts.size(), deletes.size(), byteToString(totalBytes), elapsedTime, this.timestamp - now);
-            this.puts.clear();
-            this.deletes.clear();
+            logger.info("commit data to db [{}][{}][{}][{}][{}][{}][{}]", path(), tableName, putBytes.size(), deleteBytes.size(), byteToString(totalBytes), elapsedTime, this.timestamp - now);
         });
-
     }
 
     protected abstract List<byte[]> get(String tableName, List<byte[]> keys);
@@ -267,9 +272,9 @@ public abstract class AbstractDatabase implements Database {
         }
     }
 
-    protected Object toObject(byte[] bytes) {
+    protected Object fromBytes(byte[] bytes) {
         try {
-            return serialization.fromBytes(bytes);
+            return this.serialization.fromBytes(bytes);
         } catch (Exception cause) {
             this.logger.error("toObject", cause);
             return null;

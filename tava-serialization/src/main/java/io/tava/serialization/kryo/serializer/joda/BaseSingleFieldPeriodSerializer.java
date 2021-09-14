@@ -1,4 +1,4 @@
-package io.tava.serialization.serializer.joda;
+package io.tava.serialization.kryo.serializer.joda;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
