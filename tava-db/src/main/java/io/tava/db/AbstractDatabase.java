@@ -100,44 +100,42 @@ public abstract class AbstractDatabase implements Database {
     }
 
     public Map<String, Object> get(String tableName, Set<String> keys) {
-        Map<String, Object> values = readLock(tableName, () -> {
-            Map<String, Object> map = new HashMap<>();
+        return readLock(tableName, () -> {
+            Map<String, Object> values = new HashMap<>();
             for (String key : keys) {
                 Set<String> deletes = this.tableNameToDeletes.get(tableName);
                 if (deletes != null && deletes.contains(key)) {
-                    map.put(key, null);
+                    values.put(key, null);
                     continue;
                 }
 
                 Map<String, Object> puts = this.tableNameToPuts.get(key);
                 Object value;
                 if (puts != null && (value = puts.get(key)) != null) {
-                    map.put(key, value);
+                    values.put(key, value);
                 }
             }
-            return map;
-        });
 
-        keys.removeAll(values.keySet());
-
-        List<byte[]> keyList = new ArrayList<>();
-        for (String key : keys) {
-            keyList.add(key.getBytes(StandardCharsets.UTF_8));
-        }
-
-        List<byte[]> bytes = get(tableName, keyList);
-        for (int index = 0; index < keyList.size(); index++) {
-            byte[] keyBytes = keyList.get(index);
-            byte[] valueBytes = bytes.get(index);
-            String key = new String(keyBytes, StandardCharsets.UTF_8);
-            if (valueBytes == null || valueBytes.length == 0) {
-                values.put(key, null);
-                continue;
+            keys.removeAll(values.keySet());
+            List<byte[]> keyList = new ArrayList<>();
+            for (String key : keys) {
+                keyList.add(key.getBytes(StandardCharsets.UTF_8));
             }
-            values.put(key, fromBytes(valueBytes));
-        }
 
-        return values;
+            List<byte[]> bytes = get(tableName, keyList);
+            for (int index = 0; index < keyList.size(); index++) {
+                byte[] keyBytes = keyList.get(index);
+                byte[] valueBytes = bytes.get(index);
+                String key = new String(keyBytes, StandardCharsets.UTF_8);
+                if (valueBytes == null || valueBytes.length == 0) {
+                    values.put(key, null);
+                    continue;
+                }
+                values.put(key, fromBytes(valueBytes));
+            }
+
+            return values;
+        });
     }
 
     @Override
@@ -185,9 +183,10 @@ public abstract class AbstractDatabase implements Database {
                 return;
             }
             long totalBytes = 0;
-            Map<byte[], byte[]> putBytes = new HashMap<>();
+            Map<byte[], byte[]> putBytes = null;
             puts = this.tableNameToPuts.remove(tableName);
             if (puts != null) {
+                putBytes = new HashMap<>(puts.size());
                 for (Map.Entry<String, Object> entry : puts.entrySet()) {
                     byte[] key = entry.getKey().getBytes(StandardCharsets.UTF_8);
                     byte[] value = toBytes(entry.getValue());
@@ -197,9 +196,10 @@ public abstract class AbstractDatabase implements Database {
                 }
             }
 
-            Set<byte[]> deleteBytes = new HashSet<>();
+            Set<byte[]> deleteBytes = null;
             deletes = this.tableNameToDeletes.remove(tableName);
             if (deletes != null) {
+                deleteBytes = new HashSet<>(deletes.size());
                 for (String delete : deletes) {
                     byte[] key = delete.getBytes(StandardCharsets.UTF_8);
                     totalBytes += key.length;
@@ -209,7 +209,7 @@ public abstract class AbstractDatabase implements Database {
             long elapsedTime = System.currentTimeMillis() - now;
             commit(tableName, putBytes, deleteBytes);
             this.timestamp = System.currentTimeMillis();
-            logger.info("commit data to db [{}][{}][{}][{}][{}][{}][{}]", path(), tableName, putBytes.size(), deleteBytes.size(), byteToString(totalBytes), elapsedTime, this.timestamp - now);
+            logger.info("commit data to db [{}][{}][{}][{}][{}][{}][{}]", path(), tableName, putBytes == null ? 0 : putBytes.size(), deleteBytes == null ? 0 : deleteBytes.size(), byteToString(totalBytes), elapsedTime, this.timestamp - now);
         });
     }
 

@@ -156,14 +156,21 @@ public class RocksdbDatabase extends AbstractDatabase {
 
     @Override
     protected void commit(String tableName, Map<byte[], byte[]> puts, Set<byte[]> deletes) {
+        if (puts == null && deletes == null) {
+            return;
+        }
         WriteBatch writeBatch = new WriteBatch();
         try {
             ColumnFamilyHandle columnFamilyHandle = columnFamilyHandle(tableName);
-            for (Map.Entry<byte[], byte[]> entry : puts.entrySet()) {
-                writeBatch.put(columnFamilyHandle, entry.getKey(), entry.getValue());
+            if (puts != null) {
+                for (Map.Entry<byte[], byte[]> entry : puts.entrySet()) {
+                    writeBatch.put(columnFamilyHandle, entry.getKey(), entry.getValue());
+                }
             }
-            for (byte[] delete : deletes) {
-                writeBatch.delete(columnFamilyHandle, delete);
+            if (deletes != null) {
+                for (byte[] delete : deletes) {
+                    writeBatch.delete(columnFamilyHandle, delete);
+                }
             }
             WriteOptions writeOptions = new WriteOptions();
             this.db.write(writeOptions, writeBatch);
@@ -233,8 +240,8 @@ public class RocksdbDatabase extends AbstractDatabase {
             return false;
         }
         try {
-            this.columnFamilyHandles.remove(tableName);
             this.db.dropColumnFamily(columnFamilyHandle);
+            this.columnFamilyHandles.remove(tableName);
             return true;
         } catch (RocksDBException cause) {
             this.logger.error("dropTable[{}]", tableName, cause);
