@@ -40,11 +40,11 @@ public interface Database {
 
     Object get(String tableName, String key);
 
-    default Object get(String key, boolean update) {
-        return this.get("default", key, update);
+    default Object get(String key, boolean forUpdate) {
+        return this.get("default", key, forUpdate);
     }
 
-    Object get(String tableName, String key, boolean update);
+    Object get(String tableName, String key, boolean forUpdate);
 
     default Map<String, Object> get(Set<String> keys) {
         return this.get("default", keys);
@@ -57,6 +57,8 @@ public interface Database {
     }
 
     Iterator iterator(String tableName);
+
+    void tryCommit(String tableName);
 
     void commit(String tableName, boolean force);
 

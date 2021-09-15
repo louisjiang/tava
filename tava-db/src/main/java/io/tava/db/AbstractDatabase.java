@@ -23,20 +23,17 @@ public abstract class AbstractDatabase implements Database {
     private final Map<String, ReadWriteLock> locks = new ConcurrentHashMap<>();
     private final Map<String, Map<String, Object>> tableNameToPuts = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> tableNameToDeletes = new ConcurrentHashMap<>();
+    private final Map<String, Long> tableNameToTimestamps = new ConcurrentHashMap<>();
     private final int batchSize;
     private final int interval;
-    private final boolean syncCheck;
     private final Serialization serialization;
     private final int initialCapacity;
-    private long timestamp;
 
-    protected AbstractDatabase(Serialization serialization, int batchSize, int interval, boolean syncCheck) {
+    protected AbstractDatabase(Serialization serialization, int batchSize, int interval) {
         this.serialization = serialization;
         this.batchSize = batchSize;
         this.interval = interval;
-        this.syncCheck = syncCheck;
         this.initialCapacity = this.batchSize / 2;
-        this.timestamp = System.currentTimeMillis();
     }
 
     @Override
@@ -45,10 +42,6 @@ public abstract class AbstractDatabase implements Database {
             this.tableNameToPuts.computeIfAbsent(tableName, s -> new HashMap<>(this.initialCapacity)).putAll(keyValues);
             this.tableNameToDeletes.computeIfAbsent(tableName, s -> new HashSet<>(this.initialCapacity)).removeAll(keyValues.keySet());
         });
-        if (!syncCheck) {
-            return;
-        }
-        commit(tableName, false);
     }
 
     @Override
@@ -57,10 +50,6 @@ public abstract class AbstractDatabase implements Database {
             this.tableNameToPuts.computeIfAbsent(tableName, s -> new HashMap<>(this.initialCapacity)).put(key, value);
             this.tableNameToDeletes.computeIfAbsent(tableName, s -> new HashSet<>(this.initialCapacity)).remove(key);
         });
-        if (!syncCheck) {
-            return;
-        }
-        commit(tableName, false);
     }
 
     @Override
@@ -73,10 +62,6 @@ public abstract class AbstractDatabase implements Database {
             Set<String> deletes = this.tableNameToDeletes.computeIfAbsent(tableName, key -> new HashSet<>(this.initialCapacity));
             deletes.addAll(keys);
         });
-        if (!syncCheck) {
-            return;
-        }
-        commit(tableName, false);
     }
 
     @Override
@@ -88,10 +73,6 @@ public abstract class AbstractDatabase implements Database {
             }
             this.tableNameToDeletes.computeIfAbsent(tableName, s -> new HashSet<>(this.initialCapacity)).add(key);
         });
-        if (!syncCheck) {
-            return;
-        }
-        commit(tableName, false);
     }
 
     @Override
@@ -139,7 +120,7 @@ public abstract class AbstractDatabase implements Database {
     }
 
     @Override
-    public Object get(String tableName, String key, boolean update) {
+    public Object get(String tableName, String key, boolean forUpdate) {
         return readLock(tableName, () -> {
             Set<String> deletes = this.tableNameToDeletes.get(tableName);
             if (deletes != null && deletes.contains(key)) {
@@ -156,11 +137,16 @@ public abstract class AbstractDatabase implements Database {
                 return null;
             }
             value = fromBytes(bytes);
-            if (update) {
+            if (forUpdate) {
                 this.tableNameToPuts.computeIfAbsent(tableName, s -> new HashMap<>(this.initialCapacity)).put(key, value);
             }
             return value;
         });
+    }
+
+    @Override
+    public void tryCommit(String tableName) {
+        commit(tableName, false);
     }
 
     @Override
@@ -179,7 +165,8 @@ public abstract class AbstractDatabase implements Database {
                 return;
             }
             long now = System.currentTimeMillis();
-            if (!force && size < this.batchSize && this.timestamp + interval > now) {
+            long timestamp = tableNameToTimestamps.computeIfAbsent(tableName, s -> 0L);
+            if (!force && size < this.batchSize && timestamp + interval > now) {
                 return;
             }
             long totalBytes = 0;
@@ -208,8 +195,9 @@ public abstract class AbstractDatabase implements Database {
             }
             long elapsedTime = System.currentTimeMillis() - now;
             commit(tableName, putBytes, deleteBytes);
-            this.timestamp = System.currentTimeMillis();
-            logger.info("commit data to db [{}][{}][{}][{}][{}][{}][{}]", path(), tableName, putBytes == null ? 0 : putBytes.size(), deleteBytes == null ? 0 : deleteBytes.size(), byteToString(totalBytes), elapsedTime, this.timestamp - now);
+            timestamp = System.currentTimeMillis();
+            tableNameToTimestamps.put(tableName, timestamp);
+            logger.info("commit data to db [{}][{}][{}][{}][{}][{}][{}]", path(), tableName, putBytes == null ? 0 : putBytes.size(), deleteBytes == null ? 0 : deleteBytes.size(), byteToString(totalBytes), elapsedTime, timestamp - now);
         });
     }
 
@@ -227,6 +215,14 @@ public abstract class AbstractDatabase implements Database {
     @Override
     public Lock readLock(String tableName) {
         return this.locks.computeIfAbsent(tableName, s -> new ReentrantReadWriteLock()).readLock();
+    }
+
+    @Override
+    public boolean dropTable(String tableName) {
+        this.tableNameToPuts.remove(tableName);
+        this.tableNameToDeletes.remove(tableName);
+        this.tableNameToTimestamps.remove(tableName);
+        return true;
     }
 
     protected <T> T readLock(String tableName, Function0<T> function) {

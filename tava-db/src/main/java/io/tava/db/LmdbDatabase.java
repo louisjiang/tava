@@ -12,9 +12,8 @@ import java.util.Set;
  */
 public class LmdbDatabase extends AbstractDatabase {
 
-    public LmdbDatabase(Serialization serialization, int batchSize, int interval, boolean syncCheck) {
-        super(serialization, batchSize, interval, syncCheck);
-
+    public LmdbDatabase(Serialization serialization, int batchSize, int interval) {
+        super(serialization, batchSize, interval);
     }
 
     @Override
@@ -29,7 +28,6 @@ public class LmdbDatabase extends AbstractDatabase {
 
     @Override
     protected void commit(String tableName, Map<byte[], byte[]> puts, Set<byte[]> deletes) {
-        
     }
 
     @Override

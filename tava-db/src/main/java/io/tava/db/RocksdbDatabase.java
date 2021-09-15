@@ -26,39 +26,32 @@ public class RocksdbDatabase extends AbstractDatabase {
     private final RocksDB db;
 
     public RocksdbDatabase(String path, Serialization serialization) {
-        this(path, serialization, false);
+        this(path, serialization, 4096, 30000);
     }
 
-    public RocksdbDatabase(String path, Serialization serialization, boolean syncCheck) {
-        this(path, serialization, 4096, 30000, syncCheck);
+    public RocksdbDatabase(String path,
+                           Serialization serialization,
+                           int batchSize,
+                           int interval) {
+        this(path, serialization, batchSize, interval, 16, 64, 128);
     }
 
     public RocksdbDatabase(String path,
                            Serialization serialization,
                            int batchSize,
                            int interval,
-                           boolean syncCheck) {
-        this(path, serialization, batchSize, interval, syncCheck, 16, 64, 128);
-    }
-
-    public RocksdbDatabase(String path,
-                           Serialization serialization,
-                           int batchSize,
-                           int interval,
-                           boolean syncCheck,
                            int blockSize,
                            int blockCacheSize,
                            int writeBufferSize) {
-        this(path, serialization, batchSize, interval, syncCheck, createOptions(path, blockSize, blockCacheSize, writeBufferSize));
+        this(path, serialization, batchSize, interval, createOptions(path, blockSize, blockCacheSize, writeBufferSize));
     }
 
     public RocksdbDatabase(String path,
                            Serialization serialization,
                            int batchSize,
                            int interval,
-                           boolean syncCheck,
                            Tuple3<DBOptions, ColumnFamilyOptions, List<ColumnFamilyDescriptor>> tuple3) {
-        super(serialization, batchSize, interval, syncCheck);
+        super(serialization, batchSize, interval);
         this.directory = new File(path);
         this.directory.mkdirs();
         this.columnFamilyOptions = tuple3.getValue2();
@@ -242,6 +235,7 @@ public class RocksdbDatabase extends AbstractDatabase {
         try {
             this.db.dropColumnFamily(columnFamilyHandle);
             this.columnFamilyHandles.remove(tableName);
+            super.dropTable(tableName);
             return true;
         } catch (RocksDBException cause) {
             this.logger.error("dropTable[{}]", tableName, cause);
