@@ -39,7 +39,7 @@ public abstract class AbstractDatabase implements Database {
     @Override
     public void put(String tableName, Map<String, Object> keyValues) {
         writeLock(tableName, () -> {
-            this.tableNameToPuts.computeIfAbsent(tableName, s -> new HashMap<>(this.initialCapacity)).putAll(keyValues);
+            this.tableNameToPuts.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).putAll(keyValues);
             this.tableNameToDeletes.computeIfAbsent(tableName, s -> new HashSet<>(this.initialCapacity)).removeAll(keyValues.keySet());
         });
     }
@@ -47,7 +47,7 @@ public abstract class AbstractDatabase implements Database {
     @Override
     public void put(String tableName, String key, Object value) {
         writeLock(tableName, () -> {
-            this.tableNameToPuts.computeIfAbsent(tableName, s -> new HashMap<>(this.initialCapacity)).put(key, value);
+            this.tableNameToPuts.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).put(key, value);
             this.tableNameToDeletes.computeIfAbsent(tableName, s -> new HashSet<>(this.initialCapacity)).remove(key);
         });
     }
@@ -138,7 +138,7 @@ public abstract class AbstractDatabase implements Database {
             }
             value = fromBytes(bytes);
             if (forUpdate) {
-                this.tableNameToPuts.computeIfAbsent(tableName, s -> new HashMap<>(this.initialCapacity)).put(key, value);
+                this.tableNameToPuts.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).put(key, value);
             }
             return value;
         });
