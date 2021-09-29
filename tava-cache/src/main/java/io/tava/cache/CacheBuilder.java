@@ -13,7 +13,6 @@ public final class CacheBuilder {
 
     private final Caffeine<Object, Object> caffeine;
     private Database database;
-    private int ringBufferSize = 512;
 
     public CacheBuilder() {
         this.caffeine = Caffeine.newBuilder();

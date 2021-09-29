@@ -38,18 +38,24 @@ public abstract class AbstractDatabase implements Database {
     }
 
     @Override
-    public void put(String tableName, Map<String, Object> keyValues) {
+    public void put(String tableName, Map<String, Object> keyValues, boolean residentMemory) {
         writeLock(tableName, () -> {
             this.tableNameToPuts.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).putAll(keyValues);
             this.tableNameToDeletes.computeIfAbsent(tableName, s -> new HashSet<>(this.initialCapacity)).removeAll(keyValues.keySet());
+            if (residentMemory) {
+                this.tableNameToResidentMemories.computeIfAbsent(tableName, s -> new HashSet<>()).addAll(keyValues.keySet());
+            }
         });
     }
 
     @Override
-    public void put(String tableName, String key, Object value) {
+    public void put(String tableName, String key, Object value, boolean residentMemory) {
         writeLock(tableName, () -> {
             this.tableNameToPuts.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).put(key, value);
             this.tableNameToDeletes.computeIfAbsent(tableName, s -> new HashSet<>(this.initialCapacity)).remove(key);
+            if (residentMemory) {
+                this.tableNameToResidentMemories.computeIfAbsent(tableName, s -> new HashSet<>()).add(key);
+            }
         });
     }
 
@@ -60,6 +66,7 @@ public abstract class AbstractDatabase implements Database {
             if (puts != null) {
                 keys.forEach(puts::remove);
             }
+            this.tableNameToResidentMemories.computeIfAbsent(tableName, s -> new HashSet<>()).removeAll(keys);
             Set<String> deletes = this.tableNameToDeletes.computeIfAbsent(tableName, key -> new HashSet<>(this.initialCapacity));
             deletes.addAll(keys);
         });
@@ -72,6 +79,7 @@ public abstract class AbstractDatabase implements Database {
             if (puts != null) {
                 puts.remove(key);
             }
+            this.tableNameToResidentMemories.computeIfAbsent(tableName, s -> new HashSet<>()).remove(key);
             this.tableNameToDeletes.computeIfAbsent(tableName, s -> new HashSet<>(this.initialCapacity)).add(key);
         });
     }
@@ -151,7 +159,11 @@ public abstract class AbstractDatabase implements Database {
     }
 
     @Override
-    public void commit(String tableName, boolean force) {
+    public void commit(String tableName) {
+        commit(tableName, true);
+    }
+
+    private void commit(String tableName, boolean force) {
         this.writeLock(tableName, () -> {
             int size = 0;
             Map<String, Object> puts = this.tableNameToPuts.get(tableName);
@@ -213,16 +225,6 @@ public abstract class AbstractDatabase implements Database {
     protected abstract byte[] get(String tableName, byte[] key);
 
     protected abstract void commit(String tableName, Map<byte[], byte[]> puts, Set<byte[]> deletes);
-
-    @Override
-    public void addResidentMemory(String tableName, String key) {
-        writeLock(tableName, () -> this.tableNameToResidentMemories.computeIfAbsent(tableName, s -> new HashSet<>()).add(key));
-    }
-
-    @Override
-    public void removeResidentMemory(String tableName, String key) {
-        writeLock(tableName, () -> this.tableNameToResidentMemories.computeIfAbsent(tableName, s -> new HashSet<>()).remove(key));
-    }
 
     @Override
     public Lock writeLock(String tableName) {
