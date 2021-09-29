@@ -24,6 +24,7 @@ public abstract class AbstractDatabase implements Database {
     private final Map<String, Map<String, Object>> tableNameToPuts = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> tableNameToDeletes = new ConcurrentHashMap<>();
     private final Map<String, Long> tableNameToTimestamps = new ConcurrentHashMap<>();
+    private final Map<String, Set<String>> tableNameToResidentMemories = new ConcurrentHashMap<>();
     private final int batchSize;
     private final int interval;
     private final Serialization serialization;
@@ -174,12 +175,18 @@ public abstract class AbstractDatabase implements Database {
             puts = this.tableNameToPuts.remove(tableName);
             if (puts != null) {
                 putBytes = new HashMap<>(puts.size());
+                Set<String> residentMemories = this.tableNameToResidentMemories.get(tableName);
                 for (Map.Entry<String, Object> entry : puts.entrySet()) {
-                    byte[] key = entry.getKey().getBytes(StandardCharsets.UTF_8);
-                    byte[] value = toBytes(entry.getValue());
-                    totalBytes += key.length;
-                    totalBytes += value.length;
-                    putBytes.put(key, value);
+                    String key = entry.getKey();
+                    Object value = entry.getValue();
+                    if (residentMemories != null && residentMemories.contains(key)) {
+                        this.tableNameToPuts.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).put(key, value);
+                    }
+                    byte[] bytesKey = key.getBytes(StandardCharsets.UTF_8);
+                    byte[] bytesValue = toBytes(value);
+                    totalBytes += bytesKey.length;
+                    totalBytes += bytesValue.length;
+                    putBytes.put(bytesKey, bytesValue);
                 }
             }
 
@@ -208,6 +215,16 @@ public abstract class AbstractDatabase implements Database {
     protected abstract void commit(String tableName, Map<byte[], byte[]> puts, Set<byte[]> deletes);
 
     @Override
+    public void addResidentMemory(String tableName, String key) {
+        writeLock(tableName, () -> this.tableNameToResidentMemories.computeIfAbsent(tableName, s -> new HashSet<>()).add(key));
+    }
+
+    @Override
+    public void removeResidentMemory(String tableName, String key) {
+        writeLock(tableName, () -> this.tableNameToResidentMemories.computeIfAbsent(tableName, s -> new HashSet<>()).remove(key));
+    }
+
+    @Override
     public Lock writeLock(String tableName) {
         return this.locks.computeIfAbsent(tableName, s -> new ReentrantReadWriteLock()).writeLock();
     }
@@ -222,6 +239,7 @@ public abstract class AbstractDatabase implements Database {
         this.tableNameToPuts.remove(tableName);
         this.tableNameToDeletes.remove(tableName);
         this.tableNameToTimestamps.remove(tableName);
+        this.tableNameToResidentMemories.remove(tableName);
         return true;
     }
 

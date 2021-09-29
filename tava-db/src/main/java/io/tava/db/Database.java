@@ -62,6 +62,10 @@ public interface Database {
 
     void commit(String tableName, boolean force);
 
+    void addResidentMemory(String tableName, String key);
+
+    void removeResidentMemory(String tableName, String key);
+
     String path();
 
     Lock writeLock(String tableName);
