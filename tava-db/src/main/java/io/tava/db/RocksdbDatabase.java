@@ -33,25 +33,38 @@ public class RocksdbDatabase extends AbstractDatabase {
                            Serialization serialization,
                            int batchSize,
                            int interval) {
-        this(path, serialization, batchSize, interval, 16, 64, 128);
+        this(path, serialization, batchSize, interval, 1000000, 0.0001, 16, 64, 128);
     }
 
     public RocksdbDatabase(String path,
                            Serialization serialization,
                            int batchSize,
                            int interval,
+                           int expectedInsertions,
+                           double fpp) {
+        this(path, serialization, batchSize, interval, expectedInsertions, fpp, 16, 64, 128);
+    }
+
+    public RocksdbDatabase(String path,
+                           Serialization serialization,
+                           int batchSize,
+                           int interval,
+                           int expectedInsertions,
+                           double fpp,
                            int blockSize,
                            int blockCacheSize,
                            int writeBufferSize) {
-        this(path, serialization, batchSize, interval, createOptions(path, blockSize, blockCacheSize, writeBufferSize));
+        this(path, serialization, batchSize, interval, expectedInsertions, fpp, createOptions(path, blockSize, blockCacheSize, writeBufferSize));
     }
 
     public RocksdbDatabase(String path,
                            Serialization serialization,
                            int batchSize,
                            int interval,
+                           int expectedInsertions,
+                           double fpp,
                            Tuple3<DBOptions, ColumnFamilyOptions, List<ColumnFamilyDescriptor>> tuple3) {
-        super(serialization, batchSize, interval);
+        super(serialization, batchSize, interval, expectedInsertions, fpp);
         this.directory = new File(path);
         this.directory.mkdirs();
         this.columnFamilyOptions = tuple3.getValue2();

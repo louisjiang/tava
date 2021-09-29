@@ -13,7 +13,7 @@ import java.util.Set;
 public class LmdbDatabase extends AbstractDatabase {
 
     public LmdbDatabase(Serialization serialization, int batchSize, int interval) {
-        super(serialization, batchSize, interval);
+        super(serialization, batchSize, interval, 1000000, 0.0001);
     }
 
     @Override

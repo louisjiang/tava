@@ -78,6 +78,8 @@ public interface Database {
 
     void commit(String tableName);
 
+    boolean mightContain(String tableName, String key);
+
     String path();
 
     Lock writeLock(String tableName);
