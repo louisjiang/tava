@@ -13,8 +13,8 @@ import java.util.Set;
  */
 public class LmdbDatabase extends AbstractDatabase {
 
-    public LmdbDatabase(Serialization serialization, Configuration configuration) {
-        super(serialization, configuration);
+    public LmdbDatabase(Configuration configuration, Serialization serialization) {
+        super(configuration, serialization);
     }
 
     @Override

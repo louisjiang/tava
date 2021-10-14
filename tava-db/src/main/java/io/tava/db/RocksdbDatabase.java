@@ -26,15 +26,15 @@ public class RocksdbDatabase extends AbstractDatabase {
     private final File directory;
     private final RocksDB db;
 
-    public RocksdbDatabase(Serialization serialization, Configuration configuration) {
-        this(serialization, configuration, createOptions(configuration));
+    public RocksdbDatabase(Configuration configuration, Serialization serialization) {
+        this(configuration, serialization, createOptions(configuration));
     }
 
-    public RocksdbDatabase(Serialization serialization,
-                           Configuration configuration,
+    public RocksdbDatabase(Configuration configuration,
+                           Serialization serialization,
                            Tuple3<DBOptions, ColumnFamilyOptions, List<ColumnFamilyDescriptor>> tuple3) {
-        super(serialization, configuration);
-        String path = configuration.getString("database.path");
+        super(configuration, serialization);
+        String path = configuration.getString("path");
         this.directory = new File(path);
         this.directory.mkdirs();
         this.columnFamilyOptions = tuple3.getValue2();
@@ -70,7 +70,7 @@ public class RocksdbDatabase extends AbstractDatabase {
 //        env.setBackgroundThreads(availableProcessors / 2, Priority.HIGH);
 
         ColumnFamilyOptions columnFamilyOptions = new ColumnFamilyOptions();
-        columnFamilyOptions.setWriteBufferSize(configuration.getInt("database.write-buffer-size", 64) * SizeUnit.MB);
+        columnFamilyOptions.setWriteBufferSize(configuration.getInt("write_buffer_size", 64) * SizeUnit.MB);
         columnFamilyOptions.setCompressionType(CompressionType.LZ4_COMPRESSION);
         columnFamilyOptions.setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION);
         columnFamilyOptions.setLevelCompactionDynamicLevelBytes(true);
@@ -78,8 +78,8 @@ public class RocksdbDatabase extends AbstractDatabase {
 
         BlockBasedTableConfig tableConfig = new BlockBasedTableConfig();
         tableConfig.setFilterPolicy(new BloomFilter(10, false));
-        tableConfig.setBlockCache(new LRUCache(configuration.getInt("database.block-cache-size", 128) * SizeUnit.MB));
-        tableConfig.setBlockSize(configuration.getInt("database.block-size", 16) * SizeUnit.KB);
+        tableConfig.setBlockCache(new LRUCache(configuration.getInt("block_cache_size", 128) * SizeUnit.MB));
+        tableConfig.setBlockSize(configuration.getInt("block_size", 16) * SizeUnit.KB);
         tableConfig.setCacheIndexAndFilterBlocks(true);
         tableConfig.setCacheIndexAndFilterBlocksWithHighPriority(true);
         tableConfig.setPinL0FilterAndIndexBlocksInCache(true);
@@ -88,7 +88,7 @@ public class RocksdbDatabase extends AbstractDatabase {
 
         List<ColumnFamilyDescriptor> columnFamilyDescriptors = new ArrayList<>();
         try {
-            List<byte[]> listColumnFamilies = RocksDB.listColumnFamilies(new Options(), configuration.getString("database.path"));
+            List<byte[]> listColumnFamilies = RocksDB.listColumnFamilies(new Options(), configuration.getString("path"));
             if (listColumnFamilies.size() == 0) {
                 columnFamilyDescriptors.add(new ColumnFamilyDescriptor("default".getBytes(StandardCharsets.UTF_8), columnFamilyOptions));
             }

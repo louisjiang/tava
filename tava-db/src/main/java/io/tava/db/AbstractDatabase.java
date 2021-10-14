@@ -41,14 +41,14 @@ public abstract class AbstractDatabase implements Database {
     private final int expectedInsertions;
     private final double fpp;
 
-    protected AbstractDatabase(Serialization serialization, Configuration configuration) {
+    protected AbstractDatabase(Configuration configuration, Serialization serialization) {
         this.serialization = serialization;
-        this.batchSize = configuration.getInt("database.batch-size", 2048);
-        this.interval = configuration.getInt("database.interval", 10000);
+        this.batchSize = configuration.getInt("batch_size", 2048);
+        this.interval = configuration.getInt("interval", 10000);
         this.initialCapacity = this.batchSize / 2;
-        this.bloomFilterEnabled = configuration.getBoolean("database.bloom-filter.enabled", true);
-        this.expectedInsertions = configuration.getInt("database.bloom-filter.expected-insertions", 1000000);
-        this.fpp = configuration.getDouble("database.bloom-filter.fpp", 0.0001);
+        this.bloomFilterEnabled = configuration.getBoolean("bloom_filter.enabled", true);
+        this.expectedInsertions = configuration.getInt("bloom_filter.expected_insertions", 1000000);
+        this.fpp = configuration.getDouble("bloom_filter.fpp", 0.03D);
     }
 
     @Override
