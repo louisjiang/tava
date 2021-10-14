@@ -1,6 +1,8 @@
 package io.tava.db;
 
+import io.tava.Tava;
 import io.tava.configuration.Configuration;
+import io.tava.lang.Tuple2;
 import io.tava.serialization.Serialization;
 
 import java.util.List;
@@ -34,6 +36,11 @@ public class LmdbDatabase extends AbstractDatabase {
     @Override
     public Iterator iterator(String tableName) {
         return null;
+    }
+
+    @Override
+    public Tuple2<Boolean, byte[]> mightContain(String tableName, String key) {
+        return Tava.of(false, null);
     }
 
     @Override

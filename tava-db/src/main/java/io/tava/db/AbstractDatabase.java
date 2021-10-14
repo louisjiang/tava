@@ -1,7 +1,5 @@
 package io.tava.db;
 
-import com.google.common.hash.BloomFilter;
-import com.google.common.hash.Funnels;
 import io.tava.configuration.Configuration;
 import io.tava.function.Consumer0;
 import io.tava.function.Function0;
@@ -9,9 +7,6 @@ import io.tava.serialization.Serialization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,29 +21,21 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public abstract class AbstractDatabase implements Database {
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
-    private static final byte[] BLOOM_FILTER_KEY = "BLOOM_FILTER".getBytes(StandardCharsets.UTF_8);
     private final Map<String, ReadWriteLock> locks = new ConcurrentHashMap<>();
     private final Map<String, Map<String, Object>> tableNameToPuts = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> tableNameToDeletes = new ConcurrentHashMap<>();
     private final Map<String, Long> tableNameToTimestamps = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> tableNameToResidentMemories = new ConcurrentHashMap<>();
-    private final Map<String, BloomFilter<String>> tableNameToBloomFilters = new ConcurrentHashMap<>();
     private final Serialization serialization;
     private final int batchSize;
     private final int interval;
     private final int initialCapacity;
-    private final boolean bloomFilterEnabled;
-    private final int expectedInsertions;
-    private final double fpp;
 
     protected AbstractDatabase(Configuration configuration, Serialization serialization) {
         this.serialization = serialization;
         this.batchSize = configuration.getInt("batch_size", 2048);
         this.interval = configuration.getInt("interval", 10000);
         this.initialCapacity = this.batchSize / 2;
-        this.bloomFilterEnabled = configuration.getBoolean("bloom_filter.enabled", true);
-        this.expectedInsertions = configuration.getInt("bloom_filter.expected_insertions", 1000000);
-        this.fpp = configuration.getDouble("bloom_filter.fpp", 0.03D);
     }
 
     @Override
@@ -57,10 +44,6 @@ public abstract class AbstractDatabase implements Database {
             this.tableNameToPuts.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).putAll(keyValues);
             Set<String> keys = keyValues.keySet();
             this.tableNameToDeletes.computeIfAbsent(tableName, s -> new HashSet<>(this.initialCapacity)).removeAll(keys);
-            if (bloomFilterEnabled) {
-                BloomFilter<String> bloomFilter = getBloomFilter(tableName);
-                keys.forEach(bloomFilter::put);
-            }
             if (residentMemory) {
                 this.tableNameToResidentMemories.computeIfAbsent(tableName, s -> new HashSet<>()).addAll(keys);
             }
@@ -72,9 +55,6 @@ public abstract class AbstractDatabase implements Database {
         writeLock(tableName, () -> {
             this.tableNameToPuts.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).put(key, value);
             this.tableNameToDeletes.computeIfAbsent(tableName, s -> new HashSet<>(this.initialCapacity)).remove(key);
-            if (bloomFilterEnabled) {
-                getBloomFilter(tableName).put(key);
-            }
             if (residentMemory) {
                 this.tableNameToResidentMemories.computeIfAbsent(tableName, s -> new HashSet<>()).add(key);
             }
@@ -223,11 +203,6 @@ public abstract class AbstractDatabase implements Database {
                     totalBytes += bytesValue.length;
                     putBytes.put(bytesKey, bytesValue);
                 }
-                byte[] bytes = toBytes(this.tableNameToBloomFilters.get(tableName));
-                if (bytes != null) {
-                    totalBytes += bytes.length;
-                    putBytes.put(BLOOM_FILTER_KEY, bytes);
-                }
             }
 
             Set<byte[]> deleteBytes = null;
@@ -255,14 +230,6 @@ public abstract class AbstractDatabase implements Database {
     protected abstract void commit(String tableName, Map<byte[], byte[]> puts, Set<byte[]> deletes);
 
     @Override
-    public boolean mightContain(String tableName, String key) {
-        if (bloomFilterEnabled) {
-            return getBloomFilter(tableName).mightContain(key);
-        }
-        return false;
-    }
-
-    @Override
     public Lock writeLock(String tableName) {
         return this.locks.computeIfAbsent(tableName, s -> new ReentrantReadWriteLock()).writeLock();
     }
@@ -278,7 +245,6 @@ public abstract class AbstractDatabase implements Database {
         this.tableNameToDeletes.remove(tableName);
         this.tableNameToTimestamps.remove(tableName);
         this.tableNameToResidentMemories.remove(tableName);
-        this.tableNameToBloomFilters.remove(tableName);
         return true;
     }
 
@@ -289,7 +255,6 @@ public abstract class AbstractDatabase implements Database {
         tableNames.addAll(this.tableNameToDeletes.keySet());
         tableNames.addAll(this.tableNameToTimestamps.keySet());
         tableNames.addAll(this.tableNameToResidentMemories.keySet());
-        tableNames.addAll(this.tableNameToBloomFilters.keySet());
         return tableNames;
     }
 
@@ -341,34 +306,6 @@ public abstract class AbstractDatabase implements Database {
             return this.serialization.fromBytes(bytes);
         } catch (Exception cause) {
             this.logger.error("toObject", cause);
-            return null;
-        }
-    }
-
-    protected BloomFilter<String> getBloomFilter(String tableName) {
-        return this.tableNameToBloomFilters.computeIfAbsent(tableName, key -> {
-            byte[] bytes = get(tableName, BLOOM_FILTER_KEY);
-            if (bytes == null) {
-                return BloomFilter.create(Funnels.stringFunnel(StandardCharsets.UTF_8), this.expectedInsertions, this.fpp);
-            }
-            try {
-                return BloomFilter.readFrom(new ByteArrayInputStream(bytes), Funnels.stringFunnel(StandardCharsets.UTF_8));
-            } catch (IOException cause) {
-                throw new RuntimeException(cause);
-            }
-        });
-    }
-
-    private byte[] toBytes(BloomFilter<String> bloomFilter) {
-        if (bloomFilter == null) {
-            return null;
-        }
-        try {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            bloomFilter.writeTo(out);
-            return out.toByteArray();
-        } catch (IOException cause) {
-            this.logger.error("bloomFilter writeTo", cause);
             return null;
         }
     }

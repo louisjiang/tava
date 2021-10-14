@@ -2,6 +2,7 @@ package io.tava.db;
 
 import io.tava.Tava;
 import io.tava.configuration.Configuration;
+import io.tava.lang.Tuple2;
 import io.tava.lang.Tuple3;
 import io.tava.serialization.Serialization;
 import org.rocksdb.*;
@@ -182,6 +183,13 @@ public class RocksdbDatabase extends AbstractDatabase {
                 return new Entry(key, value, RocksdbDatabase.this);
             }
         };
+    }
+
+    @Override
+    public Tuple2<Boolean, byte[]> mightContain(String tableName, String key) {
+        Holder<byte[]> holder = new Holder<>();
+        boolean keyMayExist = this.db.keyMayExist(columnFamilyHandle(tableName), key.getBytes(StandardCharsets.UTF_8), holder);
+        return Tava.of(keyMayExist, holder.getValue());
     }
 
     @Override

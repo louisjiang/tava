@@ -1,5 +1,7 @@
 package io.tava.db;
 
+import io.tava.lang.Tuple2;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
@@ -78,7 +80,7 @@ public interface Database {
 
     void commit(String tableName);
 
-    boolean mightContain(String tableName, String key);
+    Tuple2<Boolean, byte[]> mightContain(String tableName, String key);
 
     String path();
 
