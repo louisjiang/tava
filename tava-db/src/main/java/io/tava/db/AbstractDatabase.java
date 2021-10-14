@@ -2,6 +2,7 @@ package io.tava.db;
 
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnels;
+import io.tava.configuration.Configuration;
 import io.tava.function.Consumer0;
 import io.tava.function.Function0;
 import io.tava.serialization.Serialization;
@@ -32,20 +33,22 @@ public abstract class AbstractDatabase implements Database {
     private final Map<String, Long> tableNameToTimestamps = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> tableNameToResidentMemories = new ConcurrentHashMap<>();
     private final Map<String, BloomFilter<String>> tableNameToBloomFilters = new ConcurrentHashMap<>();
+    private final Serialization serialization;
     private final int batchSize;
     private final int interval;
-    private final Serialization serialization;
     private final int initialCapacity;
+    private final boolean bloomFilterEnabled;
     private final int expectedInsertions;
     private final double fpp;
 
-    protected AbstractDatabase(Serialization serialization, int batchSize, int interval, int expectedInsertions, double fpp) {
+    protected AbstractDatabase(Serialization serialization, Configuration configuration) {
         this.serialization = serialization;
-        this.batchSize = batchSize;
-        this.interval = interval;
+        this.batchSize = configuration.getInt("database.batch-size", 2048);
+        this.interval = configuration.getInt("database.interval", 10000);
         this.initialCapacity = this.batchSize / 2;
-        this.expectedInsertions = expectedInsertions;
-        this.fpp = fpp;
+        this.bloomFilterEnabled = configuration.getBoolean("database.bloom-filter.enabled", true);
+        this.expectedInsertions = configuration.getInt("database.bloom-filter.expected-insertions", 1000000);
+        this.fpp = configuration.getDouble("database.bloom-filter.fpp", 0.0001);
     }
 
     @Override
@@ -54,8 +57,10 @@ public abstract class AbstractDatabase implements Database {
             this.tableNameToPuts.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).putAll(keyValues);
             Set<String> keys = keyValues.keySet();
             this.tableNameToDeletes.computeIfAbsent(tableName, s -> new HashSet<>(this.initialCapacity)).removeAll(keys);
-            BloomFilter<String> bloomFilter = getBloomFilter(tableName);
-            keys.forEach(bloomFilter::put);
+            if (bloomFilterEnabled) {
+                BloomFilter<String> bloomFilter = getBloomFilter(tableName);
+                keys.forEach(bloomFilter::put);
+            }
             if (residentMemory) {
                 this.tableNameToResidentMemories.computeIfAbsent(tableName, s -> new HashSet<>()).addAll(keys);
             }
@@ -67,7 +72,9 @@ public abstract class AbstractDatabase implements Database {
         writeLock(tableName, () -> {
             this.tableNameToPuts.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).put(key, value);
             this.tableNameToDeletes.computeIfAbsent(tableName, s -> new HashSet<>(this.initialCapacity)).remove(key);
-            getBloomFilter(tableName).put(key);
+            if (bloomFilterEnabled) {
+                getBloomFilter(tableName).put(key);
+            }
             if (residentMemory) {
                 this.tableNameToResidentMemories.computeIfAbsent(tableName, s -> new HashSet<>()).add(key);
             }
@@ -249,7 +256,10 @@ public abstract class AbstractDatabase implements Database {
 
     @Override
     public boolean mightContain(String tableName, String key) {
-        return getBloomFilter(tableName).mightContain(key);
+        if (bloomFilterEnabled) {
+            return getBloomFilter(tableName).mightContain(key);
+        }
+        return false;
     }
 
     @Override
@@ -270,6 +280,17 @@ public abstract class AbstractDatabase implements Database {
         this.tableNameToResidentMemories.remove(tableName);
         this.tableNameToBloomFilters.remove(tableName);
         return true;
+    }
+
+    @Override
+    public Set<String> getTableNames() {
+        Set<String> tableNames = new HashSet<>();
+        tableNames.addAll(this.tableNameToPuts.keySet());
+        tableNames.addAll(this.tableNameToDeletes.keySet());
+        tableNames.addAll(this.tableNameToTimestamps.keySet());
+        tableNames.addAll(this.tableNameToResidentMemories.keySet());
+        tableNames.addAll(this.tableNameToBloomFilters.keySet());
+        return tableNames;
     }
 
     protected <T> T readLock(String tableName, Function0<T> function) {

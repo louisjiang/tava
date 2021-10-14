@@ -1,6 +1,7 @@
 package io.tava.db;
 
 import io.tava.Tava;
+import io.tava.configuration.Configuration;
 import io.tava.lang.Tuple3;
 import io.tava.serialization.Serialization;
 import org.rocksdb.*;
@@ -25,46 +26,15 @@ public class RocksdbDatabase extends AbstractDatabase {
     private final File directory;
     private final RocksDB db;
 
-    public RocksdbDatabase(String path, Serialization serialization) {
-        this(path, serialization, 4096, 30000);
+    public RocksdbDatabase(Serialization serialization, Configuration configuration) {
+        this(serialization, configuration, createOptions(configuration));
     }
 
-    public RocksdbDatabase(String path,
-                           Serialization serialization,
-                           int batchSize,
-                           int interval) {
-        this(path, serialization, batchSize, interval, 1000000, 0.0001, 16, 64, 128);
-    }
-
-    public RocksdbDatabase(String path,
-                           Serialization serialization,
-                           int batchSize,
-                           int interval,
-                           int expectedInsertions,
-                           double fpp) {
-        this(path, serialization, batchSize, interval, expectedInsertions, fpp, 16, 64, 128);
-    }
-
-    public RocksdbDatabase(String path,
-                           Serialization serialization,
-                           int batchSize,
-                           int interval,
-                           int expectedInsertions,
-                           double fpp,
-                           int blockSize,
-                           int blockCacheSize,
-                           int writeBufferSize) {
-        this(path, serialization, batchSize, interval, expectedInsertions, fpp, createOptions(path, blockSize, blockCacheSize, writeBufferSize));
-    }
-
-    public RocksdbDatabase(String path,
-                           Serialization serialization,
-                           int batchSize,
-                           int interval,
-                           int expectedInsertions,
-                           double fpp,
+    public RocksdbDatabase(Serialization serialization,
+                           Configuration configuration,
                            Tuple3<DBOptions, ColumnFamilyOptions, List<ColumnFamilyDescriptor>> tuple3) {
-        super(serialization, batchSize, interval, expectedInsertions, fpp);
+        super(serialization, configuration);
+        String path = configuration.getString("database.path");
         this.directory = new File(path);
         this.directory.mkdirs();
         this.columnFamilyOptions = tuple3.getValue2();
@@ -80,10 +50,7 @@ public class RocksdbDatabase extends AbstractDatabase {
     }
 
 
-    private static Tuple3<DBOptions, ColumnFamilyOptions, List<ColumnFamilyDescriptor>> createOptions(String path,
-                                                                                                      int blockSize,
-                                                                                                      int blockCacheSize,
-                                                                                                      int writeBufferSize) {
+    private static Tuple3<DBOptions, ColumnFamilyOptions, List<ColumnFamilyDescriptor>> createOptions(Configuration configuration) {
         DBOptions options = new DBOptions();
 //        options.setWriteBufferSize(writeBufferSize * SizeUnit.MB);
 //        options.setCompressionType(CompressionType.LZ4_COMPRESSION);
@@ -103,7 +70,7 @@ public class RocksdbDatabase extends AbstractDatabase {
 //        env.setBackgroundThreads(availableProcessors / 2, Priority.HIGH);
 
         ColumnFamilyOptions columnFamilyOptions = new ColumnFamilyOptions();
-        columnFamilyOptions.setWriteBufferSize(writeBufferSize * SizeUnit.MB);
+        columnFamilyOptions.setWriteBufferSize(configuration.getInt("database.write-buffer-size", 64) * SizeUnit.MB);
         columnFamilyOptions.setCompressionType(CompressionType.LZ4_COMPRESSION);
         columnFamilyOptions.setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION);
         columnFamilyOptions.setLevelCompactionDynamicLevelBytes(true);
@@ -111,8 +78,8 @@ public class RocksdbDatabase extends AbstractDatabase {
 
         BlockBasedTableConfig tableConfig = new BlockBasedTableConfig();
         tableConfig.setFilterPolicy(new BloomFilter(10, false));
-        tableConfig.setBlockCache(new LRUCache(blockCacheSize * SizeUnit.MB));
-        tableConfig.setBlockSize(blockSize * SizeUnit.KB);
+        tableConfig.setBlockCache(new LRUCache(configuration.getInt("database.block-cache-size", 128) * SizeUnit.MB));
+        tableConfig.setBlockSize(configuration.getInt("database.block-size", 16) * SizeUnit.KB);
         tableConfig.setCacheIndexAndFilterBlocks(true);
         tableConfig.setCacheIndexAndFilterBlocksWithHighPriority(true);
         tableConfig.setPinL0FilterAndIndexBlocksInCache(true);
@@ -121,7 +88,7 @@ public class RocksdbDatabase extends AbstractDatabase {
 
         List<ColumnFamilyDescriptor> columnFamilyDescriptors = new ArrayList<>();
         try {
-            List<byte[]> listColumnFamilies = RocksDB.listColumnFamilies(new Options(), path);
+            List<byte[]> listColumnFamilies = RocksDB.listColumnFamilies(new Options(), configuration.getString("database.path"));
             if (listColumnFamilies.size() == 0) {
                 columnFamilyDescriptors.add(new ColumnFamilyDescriptor("default".getBytes(StandardCharsets.UTF_8), columnFamilyOptions));
             }
@@ -258,7 +225,9 @@ public class RocksdbDatabase extends AbstractDatabase {
 
     @Override
     public Set<String> getTableNames() {
-        return new HashSet<>(this.columnFamilyHandles.keySet());
+        Set<String> tableNames = super.getTableNames();
+        tableNames.addAll(this.columnFamilyHandles.keySet());
+        return tableNames;
     }
 
     @Override
