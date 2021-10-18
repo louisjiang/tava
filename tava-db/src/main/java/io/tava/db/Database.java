@@ -100,4 +100,6 @@ public interface Database {
 
     Object toObject(byte[] bytes);
 
+    void compact(String tableName);
+
 }

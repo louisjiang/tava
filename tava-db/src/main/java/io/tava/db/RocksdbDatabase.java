@@ -239,6 +239,15 @@ public class RocksdbDatabase extends AbstractDatabase {
     }
 
     @Override
+    public void compact(String tableName) {
+        try {
+            this.db.compactRange(columnFamilyHandle(tableName));
+        } catch (RocksDBException cause) {
+            this.logger.error("compact:[{}]", tableName, cause);
+        }
+    }
+
+    @Override
     public void close() {
         this.db.close();
     }
