@@ -71,7 +71,7 @@ public class RocksdbDatabase extends AbstractDatabase {
 //        env.setBackgroundThreads(availableProcessors / 2, Priority.HIGH);
 
         ColumnFamilyOptions columnFamilyOptions = new ColumnFamilyOptions();
-        columnFamilyOptions.setWriteBufferSize(configuration.getInt("write_buffer_size", 64) * SizeUnit.MB);
+        columnFamilyOptions.setWriteBufferSize(configuration.getInt("write_buffer_size", 8) * SizeUnit.MB);
         columnFamilyOptions.setCompressionType(CompressionType.LZ4_COMPRESSION);
         columnFamilyOptions.setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION);
         columnFamilyOptions.setLevelCompactionDynamicLevelBytes(true);
@@ -79,7 +79,7 @@ public class RocksdbDatabase extends AbstractDatabase {
 
         BlockBasedTableConfig tableConfig = new BlockBasedTableConfig();
         tableConfig.setFilterPolicy(new BloomFilter(10, false));
-        tableConfig.setBlockCache(new LRUCache(configuration.getInt("block_cache_size", 128) * SizeUnit.MB));
+        tableConfig.setBlockCache(new LRUCache(configuration.getInt("block_cache_size", 64) * SizeUnit.MB));
         tableConfig.setBlockSize(configuration.getInt("block_size", 16) * SizeUnit.KB);
         tableConfig.setCacheIndexAndFilterBlocks(true);
         tableConfig.setCacheIndexAndFilterBlocksWithHighPriority(true);
