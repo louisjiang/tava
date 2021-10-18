@@ -186,7 +186,7 @@ public class RocksdbDatabase extends AbstractDatabase {
     }
 
     @Override
-    public Tuple2<Boolean, byte[]> mightContain(String tableName, String key) {
+    public Tuple2<Boolean, byte[]> keyMayExist(String tableName, String key) {
         Holder<byte[]> holder = new Holder<>();
         boolean keyMayExist = this.db.keyMayExist(columnFamilyHandle(tableName), key.getBytes(StandardCharsets.UTF_8), holder);
         return Tava.of(keyMayExist, holder.getValue());

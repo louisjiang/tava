@@ -80,7 +80,7 @@ public interface Database {
 
     void commit(String tableName);
 
-    Tuple2<Boolean, byte[]> mightContain(String tableName, String key);
+    Tuple2<Boolean, byte[]> keyMayExist(String tableName, String key);
 
     String path();
 
@@ -95,5 +95,9 @@ public interface Database {
     Set<String> getTableNames();
 
     void close();
+
+    byte[] toBytes(Object value);
+
+    Object toObject(byte[] bytes);
 
 }

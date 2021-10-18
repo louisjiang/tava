@@ -123,7 +123,7 @@ public abstract class AbstractDatabase implements Database {
                     values.put(key, null);
                     continue;
                 }
-                values.put(key, fromBytes(valueBytes));
+                values.put(key, toObject(valueBytes));
             }
 
             return values;
@@ -147,7 +147,7 @@ public abstract class AbstractDatabase implements Database {
             if (bytes == null || bytes.length == 0) {
                 return null;
             }
-            value = fromBytes(bytes);
+            value = toObject(bytes);
             if (forUpdate) {
                 this.tableNameToPuts.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).put(key, value);
             }
@@ -258,6 +258,26 @@ public abstract class AbstractDatabase implements Database {
         return tableNames;
     }
 
+    @Override
+    public byte[] toBytes(Object value) {
+        try {
+            return this.serialization.toBytes(value);
+        } catch (Exception cause) {
+            this.logger.error("toBytes", cause);
+            return null;
+        }
+    }
+
+    @Override
+    public Object toObject(byte[] bytes) {
+        try {
+            return this.serialization.fromBytes(bytes);
+        } catch (Exception cause) {
+            this.logger.error("toObject", cause);
+            return null;
+        }
+    }
+
     protected <T> T readLock(String tableName, Function0<T> function) {
         try {
             this.readLock(tableName).lock();
@@ -292,22 +312,5 @@ public abstract class AbstractDatabase implements Database {
         return byteLength + "GB";
     }
 
-    protected byte[] toBytes(Object value) {
-        try {
-            return this.serialization.toBytes(value);
-        } catch (Exception cause) {
-            this.logger.error("toBytes", cause);
-            return null;
-        }
-    }
-
-    protected Object fromBytes(byte[] bytes) {
-        try {
-            return this.serialization.fromBytes(bytes);
-        } catch (Exception cause) {
-            this.logger.error("toObject", cause);
-            return null;
-        }
-    }
 
 }
