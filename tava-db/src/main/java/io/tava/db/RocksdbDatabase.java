@@ -223,8 +223,7 @@ public class RocksdbDatabase extends AbstractDatabase {
         try {
             this.db.dropColumnFamily(columnFamilyHandle);
             this.columnFamilyHandles.remove(tableName);
-            super.dropTable(tableName);
-            return true;
+            return super.dropTable(tableName);
         } catch (RocksDBException cause) {
             this.logger.error("dropTable[{}]", tableName, cause);
             return false;
