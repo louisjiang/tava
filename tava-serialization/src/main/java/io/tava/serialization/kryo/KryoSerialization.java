@@ -86,7 +86,7 @@ public class KryoSerialization extends BasePooledObjectFactory<Kryo> implements 
         return fromInput(new ByteBufferInput(byteBuffer));
     }
 
-    public Object fromBytes(byte[] bytes) throws Exception {
+    public Object toObject(byte[] bytes) throws Exception {
         return fromInput(new Input(bytes));
     }
 

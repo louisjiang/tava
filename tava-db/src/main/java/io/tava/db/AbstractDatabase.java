@@ -271,7 +271,7 @@ public abstract class AbstractDatabase implements Database {
     @Override
     public Object toObject(byte[] bytes) {
         try {
-            return this.serialization.fromBytes(bytes);
+            return this.serialization.toObject(bytes);
         } catch (Exception cause) {
             this.logger.error("toObject", cause);
             return null;

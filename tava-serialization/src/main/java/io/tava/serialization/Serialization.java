@@ -8,6 +8,6 @@ public interface Serialization {
 
     byte[] toBytes(Object value) throws Exception;
 
-    Object fromBytes(byte[] bytes) throws Exception;
+    Object toObject(byte[] bytes) throws Exception;
 
 }
