@@ -18,6 +18,7 @@ import javax.net.ssl.X509TrustManager;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -29,30 +30,31 @@ public class OkHttpClientService implements CookieJar {
 
     private static final MediaType JSON_MEDIA_TYPE = MediaType.get("application/json; charset=utf-8");
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
-    private final Map<String, Set<Cookie>> hostToCookies = new HashMap<>();
+    private final Map<String, Set<Cookie>> hostToCookies = new ConcurrentHashMap<>();
     private final List<Cookie> empty = new ArrayList<>();
     private final List<String> excludeCookieUrls = new ArrayList<>();
     private final OkHttpClient okHttpClient;
 
 
     public OkHttpClientService() {
-        X509TrustManager[] trustManagers = buildTrustManagers();
-        SSLSocketFactory sslSocketFactory = buildSSLSocketFactory(trustManagers);
-
-        assert sslSocketFactory != null;
+        X509TrustManager trustManager = buildTrustManager();
+        SSLSocketFactory sslSocketFactory = buildSSLSocketFactory(trustManager);
+        if (sslSocketFactory == null) {
+            throw new NullPointerException("sslSocketFactory is null");
+        }
         okHttpClient = new OkHttpClient.Builder().
                 connectTimeout(5, TimeUnit.SECONDS).
                 readTimeout(5, TimeUnit.SECONDS).
+                writeTimeout(5, TimeUnit.SECONDS).
                 callTimeout(5, TimeUnit.SECONDS).
-                sslSocketFactory(sslSocketFactory, trustManagers[0]).
+                sslSocketFactory(sslSocketFactory, trustManager).
                 connectionSpecs(Util.immutableListOf(ConnectionSpec.COMPATIBLE_TLS, ConnectionSpec.CLEARTEXT)).cookieJar(this).build();
     }
 
-    private SSLSocketFactory buildSSLSocketFactory(TrustManager[] trustAllCerts) {
-        final SSLContext sslContext;
+    private SSLSocketFactory buildSSLSocketFactory(X509TrustManager trustManager) {
         try {
-            sslContext = SSLContext.getInstance("SSL");
-            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+            SSLContext sslContext = SSLContext.getInstance("SSL");
+            sslContext.init(null, new TrustManager[]{trustManager}, new java.security.SecureRandom());
             return sslContext.getSocketFactory();
         } catch (NoSuchAlgorithmException | KeyManagementException cause) {
             this.logger.error("buildSSLSocketFactory", cause);
@@ -60,22 +62,20 @@ public class OkHttpClientService implements CookieJar {
         return null;
     }
 
-    private X509TrustManager[] buildTrustManagers() {
-        return new X509TrustManager[]{
-                new X509TrustManager() {
-                    @Override
-                    public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) {
-                    }
+    private X509TrustManager buildTrustManager() {
+        return new X509TrustManager() {
+            @Override
+            public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) {
+            }
 
-                    @Override
-                    public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) {
-                    }
+            @Override
+            public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) {
+            }
 
-                    @Override
-                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                        return new java.security.cert.X509Certificate[]{};
-                    }
-                }
+            @Override
+            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                return new java.security.cert.X509Certificate[]{};
+            }
         };
     }
 
@@ -198,22 +198,15 @@ public class OkHttpClientService implements CookieJar {
             return empty;
         }
         String host = httpUrl.host();
-        synchronized (hostToCookies) {
-            Set<Cookie> cookies = hostToCookies.get(host);
-            if (cookies == null) {
-                return empty;
-            }
-            return new ArrayList<>(cookies);
+        Set<Cookie> cookies = hostToCookies.get(host);
+        if (cookies == null) {
+            return empty;
         }
+        return new ArrayList<>(cookies);
     }
 
     @Override
     public void saveFromResponse(@NotNull HttpUrl httpUrl, @NotNull List<Cookie> list) {
-        String host = httpUrl.host();
-        synchronized (hostToCookies) {
-            Set<Cookie> cookies = hostToCookies.computeIfAbsent(host, k -> new HashSet<>());
-            cookies.addAll(list);
-        }
-
+        hostToCookies.computeIfAbsent(httpUrl.host(), k -> new HashSet<>()).addAll(list);
     }
 }
