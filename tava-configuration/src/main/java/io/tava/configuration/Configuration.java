@@ -3,6 +3,7 @@ package io.tava.configuration;
 import com.typesafe.config.*;
 import io.tava.function.Function1;
 
+import java.io.File;
 import java.time.Duration;
 import java.time.Period;
 import java.time.temporal.TemporalAmount;
@@ -18,6 +19,10 @@ public class Configuration implements Config {
 
     public Configuration(String configName) {
         this(ConfigFactory.load(configName));
+    }
+
+    public Configuration(File file) {
+        this(ConfigFactory.parseFile(file).resolve(ConfigResolveOptions.defaults()));
     }
 
     public Configuration(Config config) {
