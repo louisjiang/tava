@@ -16,6 +16,10 @@ public class Configuration implements Config {
 
     private final Config config;
 
+    public Configuration(String configName) {
+        this(ConfigFactory.load(configName));
+    }
+
     public Configuration(Config config) {
         this.config = config;
     }
