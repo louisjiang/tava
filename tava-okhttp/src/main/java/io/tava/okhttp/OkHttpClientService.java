@@ -120,7 +120,7 @@ public class OkHttpClientService implements CookieJar {
     }
 
     public Response put(String url, JSON json) {
-        return post(url, json, null);
+        return post(url, json, JSON_MEDIA_TYPE);
     }
 
     public Response put(String url, JSON json, Map<String, String> headers) {
@@ -154,11 +154,19 @@ public class OkHttpClientService implements CookieJar {
     }
 
     public Response post(String url, JSON json) {
-        return post(url, json, null);
+        return post(url, json, JSON_MEDIA_TYPE);
     }
 
     public Response post(String url, JSON json, Map<String, String> headers) {
-        RequestBody requestBody = RequestBody.create(ByteString.encodeUtf8(json.toJSONString()), JSON_MEDIA_TYPE);
+        return post(url, json, JSON_MEDIA_TYPE, headers);
+    }
+
+    public Response post(String url, JSON json, MediaType mediaType) {
+        return post(url, json, mediaType, null);
+    }
+
+    public Response post(String url, JSON json, MediaType mediaType, Map<String, String> headers) {
+        RequestBody requestBody = RequestBody.create(ByteString.encodeUtf8(json.toJSONString()), mediaType);
         return post(url, requestBody, headers);
     }
 
