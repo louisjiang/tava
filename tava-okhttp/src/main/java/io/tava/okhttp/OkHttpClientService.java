@@ -5,7 +5,6 @@ import net.jodah.failsafe.Failsafe;
 import net.jodah.failsafe.RetryPolicy;
 import okhttp3.*;
 import okhttp3.internal.Util;
-import okio.ByteString;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,11 +119,19 @@ public class OkHttpClientService implements CookieJar {
     }
 
     public Response put(String url, JSON json) {
-        return post(url, json, JSON_MEDIA_TYPE);
+        return put(url, json, JSON_MEDIA_TYPE);
+    }
+
+    public Response put(String url, JSON json, MediaType mediaType) {
+        return put(url, json, mediaType, null);
     }
 
     public Response put(String url, JSON json, Map<String, String> headers) {
-        RequestBody requestBody = RequestBody.create(ByteString.encodeUtf8(json.toJSONString()), JSON_MEDIA_TYPE);
+        return put(url, json, null, headers);
+    }
+
+    public Response put(String url, JSON json, MediaType mediaType, Map<String, String> headers) {
+        RequestBody requestBody = RequestBody.create(json.toJSONString(), mediaType);
         return put(url, requestBody, headers);
     }
 
@@ -166,7 +173,7 @@ public class OkHttpClientService implements CookieJar {
     }
 
     public Response post(String url, JSON json, MediaType mediaType, Map<String, String> headers) {
-        RequestBody requestBody = RequestBody.create(ByteString.encodeUtf8(json.toJSONString()), mediaType);
+        RequestBody requestBody = RequestBody.create(json.toJSONString(), mediaType);
         return post(url, requestBody, headers);
     }
 
@@ -190,7 +197,7 @@ public class OkHttpClientService implements CookieJar {
                 return call.execute();
             });
         } catch (Exception cause) {
-            this.logger.error("request:{}", cause.getLocalizedMessage());
+            this.logger.error("request:{}", cause.getMessage());
             return null;
         }
     }
