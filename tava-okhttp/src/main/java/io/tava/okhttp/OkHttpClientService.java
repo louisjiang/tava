@@ -47,6 +47,7 @@ public class OkHttpClientService implements CookieJar {
                 writeTimeout(5, TimeUnit.SECONDS).
                 callTimeout(5, TimeUnit.SECONDS).
                 sslSocketFactory(sslSocketFactory, trustManager).
+                connectionPool(new ConnectionPool(512, 5, TimeUnit.MINUTES)).
                 connectionSpecs(Util.immutableListOf(ConnectionSpec.COMPATIBLE_TLS, ConnectionSpec.CLEARTEXT)).cookieJar(this).build();
     }
 
@@ -197,7 +198,7 @@ public class OkHttpClientService implements CookieJar {
                 return call.execute();
             });
         } catch (Exception cause) {
-            this.logger.error("request:{}", cause.getMessage());
+            this.logger.error("request error:[{}]", request.url(), cause);
             return null;
         }
     }
@@ -209,8 +210,11 @@ public class OkHttpClientService implements CookieJar {
     @NotNull
     @Override
     public List<Cookie> loadForRequest(@NotNull HttpUrl httpUrl) {
-        if (excludeCookieUrls.contains(httpUrl.toString())) {
-            return empty;
+        String url = httpUrl.toString();
+        for (String excludeCookieUrl : excludeCookieUrls) {
+            if (url.startsWith(excludeCookieUrl)) {
+                return empty;
+            }
         }
         String host = httpUrl.host();
         Set<Cookie> cookies = hostToCookies.get(host);
