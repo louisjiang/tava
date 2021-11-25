@@ -101,7 +101,7 @@ public abstract class AbstractDatabase implements Database {
                     continue;
                 }
 
-                Map<String, Object> puts = this.tableNameToPuts.get(key);
+                Map<String, Object> puts = this.tableNameToPuts.get(tableName);
                 Object value;
                 if (puts != null && (value = puts.get(key)) != null) {
                     values.put(key, value);
@@ -138,7 +138,7 @@ public abstract class AbstractDatabase implements Database {
                 return null;
             }
 
-            Map<String, Object> puts = this.tableNameToPuts.get(key);
+            Map<String, Object> puts = this.tableNameToPuts.get(tableName);
             Object value;
             if (puts != null && (value = puts.get(key)) != null) {
                 return value;
