@@ -22,6 +22,7 @@ import sun.nio.ch.DirectBuffer;
 
 import java.lang.invoke.SerializedLambda;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -197,6 +198,7 @@ public class KryoSerialization extends BasePooledObjectFactory<Kryo> implements 
 
         kryo.register(ClosureSerializer.Closure.class, new ClosureSerializer(), 90);
         kryo.register(SerializedLambda.class, 91);
+        kryo.register(BigInteger.class, 92);
 
         if (this.configurator != null) {
             this.configurator.accept(kryo);
