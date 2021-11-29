@@ -34,20 +34,23 @@ public class OkHttpClientService implements CookieJar {
     private final List<String> excludeCookieUrls = new ArrayList<>();
     private final OkHttpClient okHttpClient;
 
-
     public OkHttpClientService() {
+        this(5, 5, 5, 5, 512);
+    }
+
+    public OkHttpClientService(long connectTimeout, long readTimeout, long writeTimeout, long callTimeout, int maxIdleConnections) {
         X509TrustManager trustManager = buildTrustManager();
         SSLSocketFactory sslSocketFactory = buildSSLSocketFactory(trustManager);
         if (sslSocketFactory == null) {
             throw new NullPointerException("sslSocketFactory is null");
         }
-        okHttpClient = new OkHttpClient.Builder().
-                connectTimeout(5, TimeUnit.SECONDS).
-                readTimeout(5, TimeUnit.SECONDS).
-                writeTimeout(5, TimeUnit.SECONDS).
-                callTimeout(5, TimeUnit.SECONDS).
+        this.okHttpClient = new OkHttpClient.Builder().
+                connectTimeout(connectTimeout, TimeUnit.SECONDS).
+                readTimeout(readTimeout, TimeUnit.SECONDS).
+                writeTimeout(writeTimeout, TimeUnit.SECONDS).
+                callTimeout(callTimeout, TimeUnit.SECONDS).
                 sslSocketFactory(sslSocketFactory, trustManager).
-                connectionPool(new ConnectionPool(512, 5, TimeUnit.MINUTES)).
+                connectionPool(new ConnectionPool(maxIdleConnections, 5, TimeUnit.MINUTES)).
                 connectionSpecs(Util.immutableListOf(ConnectionSpec.COMPATIBLE_TLS, ConnectionSpec.CLEARTEXT)).cookieJar(this).build();
     }
 
