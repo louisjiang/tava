@@ -25,7 +25,6 @@ public abstract class AbstractDatabase implements Database {
     private final Map<String, Map<String, Object>> tableNameToPuts = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> tableNameToDeletes = new ConcurrentHashMap<>();
     private final Map<String, Long> tableNameToTimestamps = new ConcurrentHashMap<>();
-    private final Map<String, Set<String>> tableNameToResidentMemories = new ConcurrentHashMap<>();
     private final Serialization serialization;
     private final int batchSize;
     private final int interval;
@@ -39,25 +38,19 @@ public abstract class AbstractDatabase implements Database {
     }
 
     @Override
-    public void put(String tableName, Map<String, Object> keyValues, boolean residentMemory) {
+    public void put(String tableName, Map<String, Object> keyValues) {
         writeLock(tableName, () -> {
             this.tableNameToPuts.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).putAll(keyValues);
             Set<String> keys = keyValues.keySet();
             this.tableNameToDeletes.computeIfAbsent(tableName, s -> new HashSet<>(this.initialCapacity)).removeAll(keys);
-            if (residentMemory) {
-                this.tableNameToResidentMemories.computeIfAbsent(tableName, s -> new HashSet<>()).addAll(keys);
-            }
         });
     }
 
     @Override
-    public void put(String tableName, String key, Object value, boolean residentMemory) {
+    public void put(String tableName, String key, Object value) {
         writeLock(tableName, () -> {
             this.tableNameToPuts.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).put(key, value);
             this.tableNameToDeletes.computeIfAbsent(tableName, s -> new HashSet<>(this.initialCapacity)).remove(key);
-            if (residentMemory) {
-                this.tableNameToResidentMemories.computeIfAbsent(tableName, s -> new HashSet<>()).add(key);
-            }
         });
     }
 
@@ -68,7 +61,6 @@ public abstract class AbstractDatabase implements Database {
             if (puts != null) {
                 keys.forEach(puts::remove);
             }
-            this.tableNameToResidentMemories.computeIfAbsent(tableName, s -> new HashSet<>()).removeAll(keys);
             Set<String> deletes = this.tableNameToDeletes.computeIfAbsent(tableName, key -> new HashSet<>(this.initialCapacity));
             deletes.addAll(keys);
         });
@@ -81,7 +73,6 @@ public abstract class AbstractDatabase implements Database {
             if (puts != null) {
                 puts.remove(key);
             }
-            this.tableNameToResidentMemories.computeIfAbsent(tableName, s -> new HashSet<>()).remove(key);
             this.tableNameToDeletes.computeIfAbsent(tableName, s -> new HashSet<>(this.initialCapacity)).add(key);
         });
     }
@@ -189,14 +180,9 @@ public abstract class AbstractDatabase implements Database {
             puts = this.tableNameToPuts.remove(tableName);
             if (puts != null) {
                 putBytes = new HashMap<>(puts.size());
-                Set<String> residentMemories = this.tableNameToResidentMemories.get(tableName);
                 for (Map.Entry<String, Object> entry : puts.entrySet()) {
                     String key = entry.getKey();
                     Object value = entry.getValue();
-                    if (residentMemories != null && residentMemories.contains(key)) {
-                        this.logger.info("resident memory key:[{}]", key);
-                        this.tableNameToPuts.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).put(key, value);
-                    }
                     byte[] bytesKey = key.getBytes(StandardCharsets.UTF_8);
                     byte[] bytesValue = toBytes(value);
                     totalBytes += bytesKey.length;
@@ -244,7 +230,6 @@ public abstract class AbstractDatabase implements Database {
         this.tableNameToPuts.remove(tableName);
         this.tableNameToDeletes.remove(tableName);
         this.tableNameToTimestamps.remove(tableName);
-        this.tableNameToResidentMemories.remove(tableName);
         return true;
     }
 
@@ -254,7 +239,6 @@ public abstract class AbstractDatabase implements Database {
         tableNames.addAll(this.tableNameToPuts.keySet());
         tableNames.addAll(this.tableNameToDeletes.keySet());
         tableNames.addAll(this.tableNameToTimestamps.keySet());
-        tableNames.addAll(this.tableNameToResidentMemories.keySet());
         return tableNames;
     }
 

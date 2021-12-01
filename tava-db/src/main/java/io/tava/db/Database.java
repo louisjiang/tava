@@ -16,29 +16,13 @@ public interface Database {
         this.put("default", keyValues);
     }
 
-    default void put(Map<String, Object> keyValues, boolean residentMemory) {
-        this.put("default", keyValues, residentMemory);
-    }
-
-    default void put(String tableName, Map<String, Object> keyValues) {
-        this.put(tableName, keyValues, false);
-    }
-
-    void put(String tableName, Map<String, Object> keyValues, boolean residentMemory);
+    void put(String tableName, Map<String, Object> keyValues);
 
     default void put(String key, Object value) {
         this.put("default", key, value);
     }
 
-    default void put(String key, Object value, boolean residentMemory) {
-        this.put("default", key, value, residentMemory);
-    }
-
-    default void put(String tableName, String key, Object value) {
-        this.put(tableName, key, value, false);
-    }
-
-    void put(String tableName, String key, Object value, boolean residentMemory);
+    void put(String tableName, String key, Object value);
 
     default void delete(Set<String> keys) {
         this.delete("default", keys);

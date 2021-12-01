@@ -19,7 +19,7 @@ public class DatabaseCache extends MemoryCache {
     @Override
     public void put(String key, Object value) {
         super.put(key, value);
-        this.database.put(key, value, false);
+        this.database.put(key, value);
     }
 
     @Override
