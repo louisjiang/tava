@@ -16,6 +16,8 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -25,7 +27,7 @@ import java.util.concurrent.TimeUnit;
  * @version 2020-03-18 16:29:16
  */
 @Service
-public class OkHttpClientService implements CookieJar {
+public class OkHttpClientService implements CookieJar, X509TrustManager {
 
     private static final MediaType JSON_MEDIA_TYPE = MediaType.get("application/json; charset=utf-8");
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -39,19 +41,11 @@ public class OkHttpClientService implements CookieJar {
     }
 
     public OkHttpClientService(long connectTimeout, long readTimeout, long writeTimeout, long callTimeout, int maxIdleConnections) {
-        X509TrustManager trustManager = buildTrustManager();
-        SSLSocketFactory sslSocketFactory = buildSSLSocketFactory(trustManager);
+        SSLSocketFactory sslSocketFactory = buildSSLSocketFactory(this);
         if (sslSocketFactory == null) {
             throw new NullPointerException("sslSocketFactory is null");
         }
-        this.okHttpClient = new OkHttpClient.Builder().
-                connectTimeout(connectTimeout, TimeUnit.SECONDS).
-                readTimeout(readTimeout, TimeUnit.SECONDS).
-                writeTimeout(writeTimeout, TimeUnit.SECONDS).
-                callTimeout(callTimeout, TimeUnit.SECONDS).
-                sslSocketFactory(sslSocketFactory, trustManager).
-                connectionPool(new ConnectionPool(maxIdleConnections, 5, TimeUnit.MINUTES)).
-                connectionSpecs(Util.immutableListOf(ConnectionSpec.COMPATIBLE_TLS, ConnectionSpec.CLEARTEXT)).cookieJar(this).build();
+        this.okHttpClient = new OkHttpClient.Builder().connectTimeout(connectTimeout, TimeUnit.SECONDS).readTimeout(readTimeout, TimeUnit.SECONDS).writeTimeout(writeTimeout, TimeUnit.SECONDS).callTimeout(callTimeout, TimeUnit.SECONDS).sslSocketFactory(sslSocketFactory, this).connectionPool(new ConnectionPool(maxIdleConnections, 5, TimeUnit.MINUTES)).connectionSpecs(Util.immutableListOf(ConnectionSpec.COMPATIBLE_TLS, ConnectionSpec.CLEARTEXT)).cookieJar(this).build();
     }
 
     private SSLSocketFactory buildSSLSocketFactory(X509TrustManager trustManager) {
@@ -63,23 +57,6 @@ public class OkHttpClientService implements CookieJar {
             this.logger.error("buildSSLSocketFactory", cause);
         }
         return null;
-    }
-
-    private X509TrustManager buildTrustManager() {
-        return new X509TrustManager() {
-            @Override
-            public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) {
-            }
-
-            @Override
-            public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) {
-            }
-
-            @Override
-            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                return new java.security.cert.X509Certificate[]{};
-            }
-        };
     }
 
     public void clearCookies() {
@@ -231,4 +208,20 @@ public class OkHttpClientService implements CookieJar {
     public void saveFromResponse(@NotNull HttpUrl httpUrl, @NotNull List<Cookie> list) {
         hostToCookies.computeIfAbsent(httpUrl.host(), k -> new HashSet<>()).addAll(list);
     }
+
+    @Override
+    public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+
+    }
+
+    @Override
+    public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+
+    }
+
+    @Override
+    public X509Certificate[] getAcceptedIssuers() {
+        return new X509Certificate[0];
+    }
+
 }
