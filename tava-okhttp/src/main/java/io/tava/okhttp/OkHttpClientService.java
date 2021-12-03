@@ -14,6 +14,11 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import java.io.IOException;
+import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.SocketAddress;
+import java.net.URI;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
@@ -27,7 +32,7 @@ import java.util.concurrent.TimeUnit;
  * @version 2020-03-18 16:29:16
  */
 @Service
-public class OkHttpClientService implements CookieJar, X509TrustManager {
+public class OkHttpClientService extends ProxySelector implements CookieJar, X509TrustManager, io.tava.util.Util {
 
     private static final MediaType JSON_MEDIA_TYPE = MediaType.get("application/json; charset=utf-8");
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -35,23 +40,35 @@ public class OkHttpClientService implements CookieJar, X509TrustManager {
     private final List<Cookie> empty = new ArrayList<>();
     private final List<String> excludeCookieUrls = new ArrayList<>();
     private final OkHttpClient okHttpClient;
+    private List<Proxy> proxies;
 
     public OkHttpClientService() {
-        this(5, 5, 5, 5, 512);
+        this(5, 5, 5, 5, 5, 512);
     }
 
-    public OkHttpClientService(long connectTimeout, long readTimeout, long writeTimeout, long callTimeout, int maxIdleConnections) {
-        SSLSocketFactory sslSocketFactory = buildSSLSocketFactory(this);
+    public OkHttpClientService(long connectTimeout, long readTimeout, long writeTimeout, long callTimeout, long pingInterval, int maxIdleConnections) {
+        SSLSocketFactory sslSocketFactory = buildSSLSocketFactory();
         if (sslSocketFactory == null) {
             throw new NullPointerException("sslSocketFactory is null");
         }
-        this.okHttpClient = new OkHttpClient.Builder().connectTimeout(connectTimeout, TimeUnit.SECONDS).readTimeout(readTimeout, TimeUnit.SECONDS).writeTimeout(writeTimeout, TimeUnit.SECONDS).callTimeout(callTimeout, TimeUnit.SECONDS).sslSocketFactory(sslSocketFactory, this).connectionPool(new ConnectionPool(maxIdleConnections, 5, TimeUnit.MINUTES)).connectionSpecs(Util.immutableListOf(ConnectionSpec.COMPATIBLE_TLS, ConnectionSpec.CLEARTEXT)).cookieJar(this).build();
+        this.okHttpClient = new OkHttpClient.Builder().
+                connectTimeout(connectTimeout, TimeUnit.SECONDS).
+                readTimeout(readTimeout, TimeUnit.SECONDS).
+                writeTimeout(writeTimeout, TimeUnit.SECONDS).
+                callTimeout(callTimeout, TimeUnit.SECONDS).
+                pingInterval(pingInterval, TimeUnit.SECONDS).
+                sslSocketFactory(sslSocketFactory, this).
+                connectionPool(new ConnectionPool(maxIdleConnections, 5, TimeUnit.MINUTES)).
+                connectionSpecs(Util.immutableListOf(ConnectionSpec.COMPATIBLE_TLS, ConnectionSpec.CLEARTEXT)).
+                proxySelector(this).
+                cookieJar(this).
+                build();
     }
 
-    private SSLSocketFactory buildSSLSocketFactory(X509TrustManager trustManager) {
+    private SSLSocketFactory buildSSLSocketFactory() {
         try {
             SSLContext sslContext = SSLContext.getInstance("SSL");
-            sslContext.init(null, new TrustManager[]{trustManager}, new java.security.SecureRandom());
+            sslContext.init(null, new TrustManager[]{this}, new java.security.SecureRandom());
             return sslContext.getSocketFactory();
         } catch (NoSuchAlgorithmException | KeyManagementException cause) {
             this.logger.error("buildSSLSocketFactory", cause);
@@ -128,46 +145,77 @@ public class OkHttpClientService implements CookieJar, X509TrustManager {
         return request(builder.build());
     }
 
-
     public Response post(String url, Map<String, String> forms) {
-        return post(url, forms, null);
+        return post(url, forms, 1);
+    }
+
+    public Response post(String url, Map<String, String> forms, int retry) {
+        return post(url, forms, null, retry);
     }
 
     public Response post(String url, Map<String, String> forms, Map<String, String> headers) {
+        return post(url, forms, headers, 1);
+    }
+
+    public Response post(String url, Map<String, String> forms, Map<String, String> headers, int retry) {
         FormBody.Builder formBodyBuilder = new FormBody.Builder();
         if (forms != null && forms.size() > 0) {
             forms.forEach(formBodyBuilder::add);
         }
-        return post(url, formBodyBuilder.build(), headers);
+        return post(url, formBodyBuilder.build(), headers, retry);
     }
 
     public Response post(String url, JSON json) {
-        return post(url, json, JSON_MEDIA_TYPE);
+        return post(url, json, 1);
+    }
+
+    public Response post(String url, JSON json, int retry) {
+        return post(url, json, JSON_MEDIA_TYPE, retry);
     }
 
     public Response post(String url, JSON json, Map<String, String> headers) {
-        return post(url, json, JSON_MEDIA_TYPE, headers);
+        return post(url, json, headers, 1);
+    }
+
+    public Response post(String url, JSON json, Map<String, String> headers, int retry) {
+        return post(url, json, JSON_MEDIA_TYPE, headers, retry);
     }
 
     public Response post(String url, JSON json, MediaType mediaType) {
-        return post(url, json, mediaType, null);
+        return post(url, json, mediaType, 1);
+    }
+
+    public Response post(String url, JSON json, MediaType mediaType, int retry) {
+        return post(url, json, mediaType, null, retry);
     }
 
     public Response post(String url, JSON json, MediaType mediaType, Map<String, String> headers) {
+        return post(url, json, mediaType, headers, 1);
+    }
+
+    public Response post(String url, JSON json, MediaType mediaType, Map<String, String> headers, int retry) {
         RequestBody requestBody = RequestBody.create(json.toJSONString(), mediaType);
-        return post(url, requestBody, headers);
+        return post(url, requestBody, headers, retry);
     }
 
     public Response post(String url, RequestBody requestBody) {
-        return post(url, requestBody, null);
+        return post(url, requestBody, 1);
+    }
+
+    public Response post(String url, RequestBody requestBody, int retry) {
+        return post(url, requestBody, null, retry);
     }
 
     public Response post(String url, RequestBody requestBody, Map<String, String> headers) {
+        return post(url, requestBody, headers, 1);
+    }
+
+    public Response post(String url, RequestBody requestBody, Map<String, String> headers, int retry) {
         Request.Builder builder = new Request.Builder().url(url).post(requestBody);
         if (headers != null && headers.size() > 0) {
             headers.forEach(builder::addHeader);
         }
-        return request(builder.build());
+        return request(builder.build(), retry);
     }
 
     public Response request(Request request, int retry) {
@@ -222,6 +270,29 @@ public class OkHttpClientService implements CookieJar, X509TrustManager {
     @Override
     public X509Certificate[] getAcceptedIssuers() {
         return new X509Certificate[0];
+    }
+
+
+    @Override
+    public List<Proxy> select(URI uri) {
+        if (isNull(this.proxies)) {
+            return null;
+        }
+        return proxies;
+    }
+
+    @Override
+    public void connectFailed(URI uri, SocketAddress sa, IOException ioe) {
+
+    }
+
+
+    public List<Proxy> getProxies() {
+        return proxies;
+    }
+
+    public void setProxies(List<Proxy> proxies) {
+        this.proxies = proxies;
     }
 
 }
