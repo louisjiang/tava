@@ -14,6 +14,9 @@ public interface Option<T> {
         if (hasValue()) {
             return get();
         }
+        if (defaultValue == null) {
+            return null;
+        }
         return defaultValue.apply();
     }
 
