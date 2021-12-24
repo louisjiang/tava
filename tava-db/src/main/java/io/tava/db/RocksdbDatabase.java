@@ -156,18 +156,30 @@ public class RocksdbDatabase extends AbstractDatabase {
     }
 
     @Override
-    public Iterator iterator(String tableName) {
-        this.readLock(tableName).lock();
+    public Iterator iterator(String tableName, boolean useSnapshot) {
         ReadOptions readOptions = new ReadOptions();
         readOptions.setBackgroundPurgeOnIteratorCleanup(true);
+        Snapshot snapshot = null;
+        if (useSnapshot) {
+            snapshot = this.db.getSnapshot();
+            readOptions.setSnapshot(snapshot);
+        } else {
+            this.readLock(tableName).lock();
+        }
+
         RocksIterator iterator = this.db.newIterator(columnFamilyHandle(tableName), readOptions);
         iterator.seekToFirst();
+        Snapshot finalSnapshot = snapshot;
         return new Iterator() {
             @Override
             public void close() throws IOException {
                 RocksdbDatabase.this.close(iterator);
                 RocksdbDatabase.this.close(readOptions);
-                readLock(tableName).unlock();
+                if (useSnapshot) {
+                    db.releaseSnapshot(finalSnapshot);
+                } else {
+                    readLock(tableName).unlock();
+                }
             }
 
             @Override

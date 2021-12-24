@@ -58,7 +58,11 @@ public interface Database {
         return this.iterator("default");
     }
 
-    Iterator iterator(String tableName);
+    default Iterator iterator(String tableName) {
+        return this.iterator(tableName, false);
+    }
+
+    Iterator iterator(String tableName, boolean useSnapshot);
 
     void tryCommit(String tableName);
 
