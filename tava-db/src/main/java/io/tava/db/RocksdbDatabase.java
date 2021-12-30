@@ -155,31 +155,38 @@ public class RocksdbDatabase extends AbstractDatabase {
         }
     }
 
-    @Override
-    public Iterator iterator(String tableName, boolean useSnapshot) {
+    private Tuple2<ReadOptions, Snapshot> newReadOptions(boolean useSnapshot) {
         ReadOptions readOptions = new ReadOptions();
         readOptions.setBackgroundPurgeOnIteratorCleanup(true);
-        Snapshot snapshot = null;
         if (useSnapshot) {
-            snapshot = this.db.getSnapshot();
+            Snapshot snapshot = this.db.getSnapshot();
             readOptions.setSnapshot(snapshot);
-        } else {
+            return Tava.of(readOptions, snapshot);
+        }
+        return Tava.of(readOptions, null);
+    }
+
+    @Override
+    public Iterator iterator(String tableName, boolean useSnapshot) {
+        Tuple2<ReadOptions, Snapshot> tuple2 = newReadOptions(useSnapshot);
+        ReadOptions readOptions = tuple2.getValue1();
+        Snapshot snapshot = tuple2.getValue2();
+        if (snapshot == null) {
             this.readLock(tableName).lock();
         }
 
         RocksIterator iterator = this.db.newIterator(columnFamilyHandle(tableName), readOptions);
         iterator.seekToFirst();
-        Snapshot finalSnapshot = snapshot;
         return new Iterator() {
             @Override
             public void close() throws IOException {
                 RocksdbDatabase.this.close(iterator);
                 RocksdbDatabase.this.close(readOptions);
-                if (useSnapshot) {
-                    db.releaseSnapshot(finalSnapshot);
-                } else {
-                    readLock(tableName).unlock();
+                if (snapshot != null) {
+                    db.releaseSnapshot(snapshot);
+                    return;
                 }
+                readLock(tableName).unlock();
             }
 
             @Override
