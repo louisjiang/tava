@@ -10,6 +10,13 @@ public interface Option<T> {
 
     T get();
 
+    default T getOrNull() {
+        if (hasValue()) {
+            return get();
+        }
+        return null;
+    }
+
     default T getOrElse(Function0<T> defaultValue) {
         if (hasValue()) {
             return get();

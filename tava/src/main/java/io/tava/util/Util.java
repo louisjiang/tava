@@ -11,11 +11,11 @@ import java.util.Map;
  */
 public interface Util {
 
-    default <T> String mkString(java.util.List<T> values, String separator) {
+    default <T> String mkString(java.util.Collection<T> values, String separator) {
         return mkString(values, null, separator, null);
     }
 
-    default <T> String mkString(java.util.List<T> values, String start, String separator, String end) {
+    default <T> String mkString(java.util.Collection<T> values, String start, String separator, String end) {
         StringBuilder builder = new StringBuilder();
         if (nonEmpty(start)) {
             builder.append(start);
