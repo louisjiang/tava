@@ -90,4 +90,6 @@ public interface Database {
 
     void compact(String tableName);
 
+    void compact();
+
 }
