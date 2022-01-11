@@ -1,5 +1,6 @@
 package io.tava.lang;
 
+import io.tava.function.Consumer1;
 import io.tava.function.Function0;
 import io.tava.function.Function1;
 
@@ -42,6 +43,8 @@ public interface Option<T> {
 
     <R> Option<R> map(Function1<T, R> map);
 
+    void forEach(Consumer1<T> foreach);
+
     static <V> Option.Some<V> some(V value) {
         return new Some<>(value);
     }
@@ -76,6 +79,11 @@ public interface Option<T> {
         }
 
         @Override
+        public void forEach(Consumer1<T> foreach) {
+            foreach.accept(get());
+        }
+
+        @Override
         public boolean isEmpty() {
             return false;
         }
@@ -104,6 +112,11 @@ public interface Option<T> {
         @Override
         public <R> Option.None<R> map(Function1<T, R> map) {
             return (Option.None<R>) this;
+        }
+
+        @Override
+        public void forEach(Consumer1<T> foreach) {
+
         }
 
         @Override
