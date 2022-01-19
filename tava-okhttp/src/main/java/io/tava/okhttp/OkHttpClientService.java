@@ -40,7 +40,8 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     private final List<Cookie> empty = new ArrayList<>();
     private final List<String> excludeCookieUrls = new ArrayList<>();
     private final OkHttpClient okHttpClient;
-    private List<Proxy> proxies;
+    private final List<Proxy> proxies = new ArrayList<>();
+    private final List<String> proxyHosts = new ArrayList<>();
 
     public OkHttpClientService() {
         this(5, 5, 5, 5, 5, 512);
@@ -235,6 +236,11 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
         return request(request, 1);
     }
 
+    public WebSocket webSocket(String url, WebSocketListener webSocketListener) {
+        Request request = new Request.Builder().get().url(url).build();
+        return this.okHttpClient.newWebSocket(request, webSocketListener);
+    }
+
     @NotNull
     @Override
     public List<Cookie> loadForRequest(@NotNull HttpUrl httpUrl) {
@@ -278,6 +284,10 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
         if (isNull(this.proxies)) {
             return null;
         }
+        String host = uri.getHost();
+        if (!proxyHosts.contains(host)) {
+            return null;
+        }
         return proxies;
     }
 
@@ -292,7 +302,15 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     }
 
     public void setProxies(List<Proxy> proxies) {
-        this.proxies = proxies;
+        this.proxies.addAll(proxies);
+    }
+
+    public void addProxy(Proxy proxy) {
+        this.proxies.add(proxy);
+    }
+
+    public void addProxyHost(String host) {
+        this.proxyHosts.add(host);
     }
 
 }
