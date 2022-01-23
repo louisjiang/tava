@@ -281,11 +281,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
 
     @Override
     public List<Proxy> select(URI uri) {
-        if (isNull(this.proxies)) {
-            return null;
-        }
-        String host = uri.getHost();
-        if (!proxyHosts.contains(host)) {
+        if (isNull(this.proxies) || !proxyHosts.contains(uri.getHost())) {
             return null;
         }
         return proxies;
