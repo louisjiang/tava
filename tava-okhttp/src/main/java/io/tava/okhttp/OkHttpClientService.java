@@ -309,4 +309,8 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
         this.proxyHosts.add(host);
     }
 
+    public OkHttpClient getOkHttpClient() {
+        return okHttpClient;
+    }
+    
 }
