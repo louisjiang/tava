@@ -233,7 +233,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     }
 
     public Response request(Request request) {
-        return request(request, 1);
+        return request(request, 0);
     }
 
     public WebSocket webSocket(String url, WebSocketListener webSocketListener) {
