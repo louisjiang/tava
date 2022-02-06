@@ -227,7 +227,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
                 return call.execute();
             });
         } catch (Exception cause) {
-            this.logger.error("request error:[{}]", request.url(), cause);
+            this.logger.error("{}:[{}]", cause.getMessage(), request.url());
             return null;
         }
     }
@@ -312,5 +312,5 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     public OkHttpClient getOkHttpClient() {
         return okHttpClient;
     }
-    
+
 }
