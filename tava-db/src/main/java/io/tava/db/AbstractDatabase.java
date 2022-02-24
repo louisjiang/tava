@@ -2,6 +2,8 @@ package io.tava.db;
 
 import io.tava.configuration.Configuration;
 import io.tava.function.Consumer0;
+import io.tava.function.Consumer2;
+import io.tava.function.Consumer3;
 import io.tava.function.Function0;
 import io.tava.serialization.Serialization;
 import org.slf4j.Logger;
@@ -21,6 +23,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public abstract class AbstractDatabase implements Database {
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
+    private final Map<String, Consumer3<String, byte[], byte[]>> putCallbacks = new ConcurrentHashMap<>();
+    private final Map<String, Consumer2<String, byte[]>> deleteCallbacks = new ConcurrentHashMap<>();
     private final Map<String, ReadWriteLock> locks = new ConcurrentHashMap<>();
     private final Map<String, Map<String, Object>> tableNameToPuts = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> tableNameToDeletes = new ConcurrentHashMap<>();
@@ -77,11 +81,6 @@ public abstract class AbstractDatabase implements Database {
         });
     }
 
-    @Override
-    public Object get(String tableName, String key) {
-        return get(tableName, key, true);
-    }
-
     public Map<String, Object> get(String tableName, Set<String> keys) {
         return readLock(tableName, () -> {
             Map<String, Object> values = new HashMap<>();
@@ -122,7 +121,7 @@ public abstract class AbstractDatabase implements Database {
     }
 
     @Override
-    public Object get(String tableName, String key, boolean forUpdate) {
+    public Object get(String tableName, String key) {
         return readLock(tableName, () -> {
             Set<String> deletes = this.tableNameToDeletes.get(tableName);
             if (deletes != null && deletes.contains(key)) {
@@ -139,9 +138,6 @@ public abstract class AbstractDatabase implements Database {
                 return null;
             }
             value = toObject(bytes);
-            if (forUpdate) {
-                this.tableNameToPuts.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).put(key, value);
-            }
             return value;
         });
     }
@@ -175,6 +171,9 @@ public abstract class AbstractDatabase implements Database {
             if (!force && size < this.batchSize && timestamp + interval > now) {
                 return;
             }
+            Consumer3<String, byte[], byte[]> putCallback = this.putCallbacks.get(tableName);
+            Consumer2<String, byte[]> deleteCallback = this.deleteCallbacks.get(tableName);
+
             long totalBytes = 0;
             Map<byte[], byte[]> putBytes = null;
             puts = this.tableNameToPuts.remove(tableName);
@@ -188,6 +187,9 @@ public abstract class AbstractDatabase implements Database {
                     totalBytes += bytesKey.length;
                     totalBytes += bytesValue.length;
                     putBytes.put(bytesKey, bytesValue);
+                    if (putCallback != null) {
+                        putCallback.accept(key, bytesKey, bytesValue);
+                    }
                 }
             }
 
@@ -199,6 +201,9 @@ public abstract class AbstractDatabase implements Database {
                     byte[] key = delete.getBytes(StandardCharsets.UTF_8);
                     totalBytes += key.length;
                     deleteBytes.add(key);
+                    if (deleteCallback != null) {
+                        deleteCallback.accept(delete, key);
+                    }
                 }
             }
             long elapsedTime = System.currentTimeMillis() - now;
@@ -296,5 +301,13 @@ public abstract class AbstractDatabase implements Database {
         return byteLength + "GB";
     }
 
-
+    @Override
+    public void addCommitCallback(String tableName, Consumer3<String, byte[], byte[]> putCallback, Consumer2<String, byte[]> deleteCallback) {
+        if (putCallback != null) {
+            this.putCallbacks.put(tableName, putCallback);
+        }
+        if (deleteCallback != null) {
+            this.deleteCallbacks.put(tableName, deleteCallback);
+        }
+    }
 }

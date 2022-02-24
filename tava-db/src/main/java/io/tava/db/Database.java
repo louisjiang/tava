@@ -1,5 +1,7 @@
 package io.tava.db;
 
+import io.tava.function.Consumer2;
+import io.tava.function.Consumer3;
 import io.tava.lang.Tuple2;
 
 import java.util.Map;
@@ -41,12 +43,6 @@ public interface Database {
     }
 
     Object get(String tableName, String key);
-
-    default Object get(String key, boolean forUpdate) {
-        return this.get("default", key, forUpdate);
-    }
-
-    Object get(String tableName, String key, boolean forUpdate);
 
     default Map<String, Object> get(Set<String> keys) {
         return this.get("default", keys);
@@ -91,5 +87,7 @@ public interface Database {
     void compact(String tableName);
 
     void compact();
+
+    void addCommitCallback(String tableName, Consumer3<String, byte[], byte[]> putCallback, Consumer2<String, byte[]> deleteCallback);
 
 }
