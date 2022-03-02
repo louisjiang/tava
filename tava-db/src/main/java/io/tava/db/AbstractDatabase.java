@@ -171,13 +171,12 @@ public abstract class AbstractDatabase implements Database {
             if (!force && size < this.batchSize && timestamp + interval > now) {
                 return;
             }
-            Consumer3<String, byte[], byte[]> putCallback = this.putCallbacks.get(tableName);
-            Consumer2<String, byte[]> deleteCallback = this.deleteCallbacks.get(tableName);
 
             long totalBytes = 0;
             Map<byte[], byte[]> putBytes = null;
             puts = this.tableNameToPuts.remove(tableName);
             if (puts != null) {
+                Consumer3<String, byte[], byte[]> putCallback = this.putCallbacks.get(tableName);
                 putBytes = new HashMap<>(puts.size());
                 for (Map.Entry<String, Object> entry : puts.entrySet()) {
                     String key = entry.getKey();
@@ -196,6 +195,7 @@ public abstract class AbstractDatabase implements Database {
             Set<byte[]> deleteBytes = null;
             deletes = this.tableNameToDeletes.remove(tableName);
             if (deletes != null) {
+                Consumer2<String, byte[]> deleteCallback = this.deleteCallbacks.get(tableName);
                 deleteBytes = new HashSet<>(deletes.size());
                 for (String delete : deletes) {
                     byte[] key = delete.getBytes(StandardCharsets.UTF_8);

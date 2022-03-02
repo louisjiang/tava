@@ -36,9 +36,9 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>org.opendaylight.odlparent</groupId>
-                <artifactId>leveldbjni-all</artifactId>
-                <version>6.0.13</version>
+                <groupId>com.typesafe</groupId>
+                <artifactId>config</artifactId>
+                <version>1.4.2</version>
             </dependency>
             <dependency>
                 <groupId>org.rocksdb</groupId>
@@ -145,16 +145,6 @@
                 <version>9.2</version>
             </dependency>
             <dependency>
-                <groupId>org.fusesource.leveldbjni</groupId>
-                <artifactId>leveldbjni</artifactId>
-                <version>1.8</version>
-            </dependency>
-            <dependency>
-                <groupId>org.fusesource.leveldbjni</groupId>
-                <artifactId>leveldbjni-linux64</artifactId>
-                <version>1.8</version>
-            </dependency>
-            <dependency>
                 <groupId>org.lmdbjava</groupId>
                 <artifactId>lmdbjava</artifactId>
                 <version>0.8.2</version>
@@ -177,7 +167,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>31.0.1-jre</version>
+                <version>31.1-jre</version>
             </dependency>
             <dependency>
                 <groupId>org.junit.jupiter</groupId>

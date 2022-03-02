@@ -5,13 +5,21 @@ import io.tava.configuration.Configuration;
 import io.tava.lang.Tuple2;
 import io.tava.lang.Tuple3;
 import io.tava.serialization.Serialization;
+import org.apache.commons.pool2.BasePooledObjectFactory;
+import org.apache.commons.pool2.PooledObject;
+import org.apache.commons.pool2.impl.DefaultPooledObject;
+import org.apache.commons.pool2.impl.GenericObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.rocksdb.*;
 import org.rocksdb.util.SizeUnit;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -23,6 +31,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RocksdbDatabase extends AbstractDatabase {
 
     private final Map<String, ColumnFamilyHandle> columnFamilyHandles = new ConcurrentHashMap<>();
+    private final WriteOptions writeOptions = new WriteOptions();
+    private final GenericObjectPool<WriteBatch> pool;
     private final ColumnFamilyOptions columnFamilyOptions;
     private final File directory;
     private final RocksDB db;
@@ -48,42 +58,69 @@ public class RocksdbDatabase extends AbstractDatabase {
         } catch (RocksDBException cause) {
             throw new RuntimeException("open RocksDB:" + path, cause);
         }
+        this.pool = new GenericObjectPool<>(new BasePooledObjectFactory<WriteBatch>() {
+            @Override
+            public WriteBatch create() throws Exception {
+                return new WriteBatch();
+            }
+
+            @Override
+            public void passivateObject(PooledObject<WriteBatch> p) throws Exception {
+                p.getObject().clear();
+            }
+
+            @Override
+            public PooledObject<WriteBatch> wrap(WriteBatch writeBatch) {
+                return new DefaultPooledObject<>(writeBatch);
+            }
+        }, createPoolConfig(configuration.getInt("maxTotal", 16), configuration.getInt("maxIdle", 16), configuration.getInt("minIdle", 1), configuration.getLong("maxWaitMilliseconds", -1)));
     }
 
+    private GenericObjectPoolConfig<WriteBatch> createPoolConfig(int maxTotal,
+                                                                 int maxIdle,
+                                                                 int minIdle,
+                                                                 long maxWaitMilliseconds) {
+        GenericObjectPoolConfig<WriteBatch> poolConfig = new GenericObjectPoolConfig<>();
+        poolConfig.setMaxTotal(maxTotal);
+        poolConfig.setMaxIdle(maxIdle);
+        poolConfig.setMinIdle(minIdle);
+        if (maxWaitMilliseconds != -1) {
+            poolConfig.setMaxWait(java.time.Duration.ofMillis(maxWaitMilliseconds));
+        }
+        return poolConfig;
+    }
 
     private static Tuple3<DBOptions, ColumnFamilyOptions, List<ColumnFamilyDescriptor>> createOptions(Configuration configuration) {
         DBOptions options = new DBOptions();
-//        options.setWriteBufferSize(writeBufferSize * SizeUnit.MB);
-//        options.setCompressionType(CompressionType.LZ4_COMPRESSION);
-//        options.setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION);
         options.setAtomicFlush(true);
         options.setCreateIfMissing(true);
         options.setParanoidChecks(true);
         options.setMaxOpenFiles(1024);
-        int availableProcessors = Runtime.getRuntime().availableProcessors();
-        options.setMaxBackgroundJobs(availableProcessors);
-//        options.setLevelCompactionDynamicLevelBytes(true);
+        options.setMaxBackgroundJobs(Runtime.getRuntime().availableProcessors());
         options.setBytesPerSync(SizeUnit.MB);
-//        options.setCompactionPriority(CompactionPriority.MinOverlappingRatio);
-
-//        Env env = options.getEnv();
-//        env.setBackgroundThreads(availableProcessors / 2, Priority.LOW);
-//        env.setBackgroundThreads(availableProcessors / 2, Priority.HIGH);
+        long writeBufferSize = configuration.getInt("write_buffer_size", 8) * SizeUnit.MB;
+        LRUCache blockCache = new LRUCache(configuration.getInt("block_cache_size", 64) * SizeUnit.MB);
+        options.setWriteBufferManager(new WriteBufferManager(writeBufferSize, blockCache, true));
 
         ColumnFamilyOptions columnFamilyOptions = new ColumnFamilyOptions();
-        columnFamilyOptions.setWriteBufferSize(configuration.getInt("write_buffer_size", 8) * SizeUnit.MB);
+        columnFamilyOptions.setWriteBufferSize(writeBufferSize);
+        columnFamilyOptions.setMaxWriteBufferNumber(2);
         columnFamilyOptions.setCompressionType(CompressionType.LZ4_COMPRESSION);
         columnFamilyOptions.setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION);
         columnFamilyOptions.setLevelCompactionDynamicLevelBytes(true);
         columnFamilyOptions.setCompactionPriority(CompactionPriority.MinOverlappingRatio);
 
         BlockBasedTableConfig tableConfig = new BlockBasedTableConfig();
+        tableConfig.setIndexType(IndexType.kTwoLevelIndexSearch);
         tableConfig.setFilterPolicy(new BloomFilter(10, false));
-        tableConfig.setBlockCache(new LRUCache(configuration.getInt("block_cache_size", 64) * SizeUnit.MB));
-        tableConfig.setBlockSize(configuration.getInt("block_size", 16) * SizeUnit.KB);
+        tableConfig.setPartitionFilters(true);
+        tableConfig.setMetadataBlockSize(4096);
         tableConfig.setCacheIndexAndFilterBlocks(true);
+        tableConfig.setPinTopLevelIndexAndFilter(true);
         tableConfig.setCacheIndexAndFilterBlocksWithHighPriority(true);
         tableConfig.setPinL0FilterAndIndexBlocksInCache(true);
+        tableConfig.setBlockSize(configuration.getInt("block_size", 16) * SizeUnit.KB);
+        tableConfig.setBlockCache(blockCache);
 
         columnFamilyOptions.setTableFormatConfig(tableConfig);
 
@@ -133,8 +170,9 @@ public class RocksdbDatabase extends AbstractDatabase {
         if (puts == null && deletes == null) {
             return;
         }
-        WriteBatch writeBatch = new WriteBatch();
+        WriteBatch writeBatch = null;
         try {
+            writeBatch = this.pool.borrowObject();
             ColumnFamilyHandle columnFamilyHandle = columnFamilyHandle(tableName);
             if (puts != null) {
                 for (Map.Entry<byte[], byte[]> entry : puts.entrySet()) {
@@ -146,12 +184,13 @@ public class RocksdbDatabase extends AbstractDatabase {
                     writeBatch.delete(columnFamilyHandle, delete);
                 }
             }
-            WriteOptions writeOptions = new WriteOptions();
             this.db.write(writeOptions, writeBatch);
-            close(writeBatch);
-            close(writeOptions);
-        } catch (RocksDBException cause) {
+        } catch (Exception cause) {
             logger.info("commit", cause);
+        } finally {
+            if (writeBatch != null) {
+                this.pool.returnObject(writeBatch);
+            }
         }
     }
 
@@ -291,10 +330,8 @@ public class RocksdbDatabase extends AbstractDatabase {
         });
     }
 
-    private void close(AbstractImmutableNativeReference reference) {
-        if (reference.isOwningHandle()) {
-            reference.close();
-        }
+    private void close(AbstractNativeReference reference) {
+        reference.close();
     }
 
 }
