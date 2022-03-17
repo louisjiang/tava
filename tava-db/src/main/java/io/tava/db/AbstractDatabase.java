@@ -121,7 +121,7 @@ public abstract class AbstractDatabase implements Database {
     }
 
     @Override
-    public Object get(String tableName, String key) {
+    public <T> T get(String tableName, String key) {
         return readLock(tableName, () -> {
             Set<String> deletes = this.tableNameToDeletes.get(tableName);
             if (deletes != null && deletes.contains(key)) {
@@ -131,14 +131,14 @@ public abstract class AbstractDatabase implements Database {
             Map<String, Object> puts = this.tableNameToPuts.get(tableName);
             Object value;
             if (puts != null && (value = puts.get(key)) != null) {
-                return value;
+                return (T) value;
             }
             byte[] bytes = this.get(tableName, key.getBytes(StandardCharsets.UTF_8));
             if (bytes == null || bytes.length == 0) {
                 return null;
             }
             value = toObject(bytes);
-            return value;
+            return (T) value;
         });
     }
 

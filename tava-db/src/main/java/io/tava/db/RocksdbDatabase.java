@@ -91,16 +91,20 @@ public class RocksdbDatabase extends AbstractDatabase {
     }
 
     private static Tuple3<DBOptions, ColumnFamilyOptions, List<ColumnFamilyDescriptor>> createOptions(Configuration configuration) {
+        int availableProcessors = Runtime.getRuntime().availableProcessors();
         DBOptions options = new DBOptions();
         options.setAtomicFlush(true);
         options.setCreateIfMissing(true);
         options.setParanoidChecks(true);
         options.setMaxOpenFiles(1024);
-        options.setMaxBackgroundJobs(Runtime.getRuntime().availableProcessors());
-        options.setBytesPerSync(SizeUnit.MB);
-        long writeBufferSize = configuration.getInt("write_buffer_size", 8) * SizeUnit.MB;
+        options.setMaxBackgroundJobs(availableProcessors * 2);
+        options.setBytesPerSync(32 * SizeUnit.MB);
+        long writeBufferSize = configuration.getInt("write_buffer_size", 64) * SizeUnit.MB;
         LRUCache blockCache = new LRUCache(configuration.getInt("block_cache_size", 64) * SizeUnit.MB);
-        options.setWriteBufferManager(new WriteBufferManager(writeBufferSize, blockCache, true));
+        options.setWriteBufferManager(new WriteBufferManager(writeBufferSize * 2, blockCache, true));
+        Env env = Env.getDefault();
+        env.setBackgroundThreads(availableProcessors * 2);
+        options.setEnv(env);
 
         ColumnFamilyOptions columnFamilyOptions = new ColumnFamilyOptions();
         columnFamilyOptions.setWriteBufferSize(writeBufferSize);
@@ -280,6 +284,7 @@ public class RocksdbDatabase extends AbstractDatabase {
         }
         try {
             this.db.dropColumnFamily(columnFamilyHandle);
+            this.db.compactRange(columnFamilyHandle);
             this.columnFamilyHandles.remove(tableName);
             return super.dropTable(tableName);
         } catch (RocksDBException cause) {

@@ -1,5 +1,6 @@
 package io.tava.db;
 
+import io.tava.db.segment.*;
 import io.tava.function.Consumer2;
 import io.tava.function.Consumer3;
 import io.tava.lang.Tuple2;
@@ -13,6 +14,30 @@ import java.util.concurrent.locks.Lock;
  * @version 2021-05-07 14:37
  */
 public interface Database {
+
+    default <V> SegmentList<V> newList(String key, int capacity) {
+        return newList("default", key, capacity);
+    }
+
+    default <V> SegmentList<V> newList(String tableName, String key, int capacity) {
+        return new SegmentArrayList<>(this, tableName, key, capacity);
+    }
+
+    default <V> SegmentSet<V> newSet(String key, int capacity) {
+        return newSet("default", key, capacity);
+    }
+
+    default <V> SegmentSet<V> newSet(String tableName, String key, int capacity) {
+        return new SegmentHashSet<>(this, tableName, key, capacity);
+    }
+
+    default <K, V> SegmentMap<K, V> newMap(String key, int segment) {
+        return newMap("default", key, segment);
+    }
+
+    default <K, V> SegmentMap<K, V> newMap(String tableName, String key, int segment) {
+        return new SegmentHashMap<>(this, tableName, key, segment);
+    }
 
     default void put(Map<String, Object> keyValues) {
         this.put("default", keyValues);
@@ -38,11 +63,11 @@ public interface Database {
 
     void delete(String tableName, String key);
 
-    default Object get(String key) {
+    default <T> T get(String key) {
         return this.get("default", key);
     }
 
-    Object get(String tableName, String key);
+    <T> T get(String tableName, String key);
 
     default Map<String, Object> get(Set<String> keys) {
         return this.get("default", keys);
