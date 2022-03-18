@@ -23,10 +23,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
         Map<String, Object> status = this.database.get(this.tableName, this.key);
         if (status == null) {
             this.segment = segment;
-            status = new HashMap<>();
-            status.put("size", 0);
-            status.put("segment", this.segment);
-            this.database.put(this.tableName, this.key, status);
+            updateStatus();
             return;
         }
         this.size = (Integer) status.get("size");
@@ -45,7 +42,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
 
     @Override
     public boolean containsKey(K key) {
-        Map<K, V> map = this.database.get(this.tableName, segmentKey(key));
+        Map<K, V> map = this.database.get(this.tableName, this.segmentKey(key));
         if (map == null) {
             return false;
         }
@@ -56,7 +53,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
     @Override
     public boolean containsValue(V value) {
         for (int i = 0; i < this.segment; i++) {
-            Map<K, V> map = this.database.get(this.tableName, segmentKey(i));
+            Map<K, V> map = this.database.get(this.tableName, this.segmentKey(i));
             if (map == null) {
                 continue;
             }
@@ -69,7 +66,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
 
     @Override
     public V get(K key) {
-        Map<K, V> map = this.database.get(this.tableName, segmentKey(key));
+        Map<K, V> map = this.database.get(this.tableName, this.segmentKey(key));
         if (map == null) {
             return null;
         }
@@ -78,7 +75,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
 
     @Override
     public V put(K key, V value) {
-        String segmentKey = segmentKey(key);
+        String segmentKey = this.segmentKey(key);
         Map<K, V> map = this.database.get(this.tableName, segmentKey);
         if (map == null) {
             map = new HashMap<>();
@@ -94,7 +91,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
 
     @Override
     public V remove(K key) {
-        String segmentKey = segmentKey(key);
+        String segmentKey = this.segmentKey(key);
         Map<K, V> map = this.database.get(this.tableName, segmentKey);
         if (map == null) {
             return null;
@@ -120,7 +117,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
         this.size = 0;
         updateStatus();
         for (int i = 0; i < this.segment; i++) {
-            this.database.delete(this.tableName, segmentKey(i));
+            this.database.delete(this.tableName, this.segmentKey(i));
         }
     }
 
@@ -148,7 +145,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
     public void destroy() {
         this.database.delete(this.tableName, this.key);
         for (int i = 0; i < this.segment; i++) {
-            this.database.delete(this.tableName, segmentKey(i));
+            this.database.delete(this.tableName, this.segmentKey(i));
         }
         this.commit();
     }
@@ -216,7 +213,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
 
     private String segmentKey(Object key) {
         int value = hash(key) % this.segment;
-        return segmentKey(value);
+        return this.segmentKey(value);
     }
 
     private String segmentKey(int value) {

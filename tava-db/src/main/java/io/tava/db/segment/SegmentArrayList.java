@@ -181,8 +181,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
         List<V> list = new ArrayList<>();
         for (int i = 0; i <= this.segment; i++) {
             List<V> l = this.database.get(this.tableName, this.key + "@" + i);
-            l.retainAll(c);
-            if (l.isEmpty()) {
+            if (!l.retainAll(c) || l.isEmpty()) {
                 continue;
             }
             list.addAll(l);
@@ -192,10 +191,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
         }
         this.size = 0;
         if (list.isEmpty()) {
-            Map<String, Object> status = new HashMap<>();
-            status.put("size", this.size);
-            status.put("capacity", this.capacity);
-            this.database.put(this.tableName, this.key, status);
+            updateStatus();
             return false;
         }
         addAll(list);
