@@ -17,18 +17,6 @@ import java.util.*;
 public class MainApp {
 
     public static void main(String[] args) throws ReflectionException, NoSuchFieldException, NoSuchMethodException {
-        List<String> list = new ArrayList<>();
-        list.add("1");
-        list.add("2");
-        list.add("3");
-        List<String> list1 = new ArrayList<>();
-        list1.add("3");
-        list1.add("5");
-
-        list.add(2, "6");
-
-        boolean f = list.retainAll(list1);
-
         Class<Test> testClass = Test.class;
         Constructor<Test> constructor = (Constructor<Test>) testClass.getConstructors()[0];
         Accessor accessor = new JavassistAccessor();

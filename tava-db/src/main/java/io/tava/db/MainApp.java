@@ -6,14 +6,28 @@ import io.tava.db.segment.SegmentList;
 import io.tava.db.segment.SegmentMap;
 import io.tava.serialization.kryo.KryoSerialization;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class MainApp {
 
     public static void main(String[] args) {
+
+        Map<Integer, Integer> integers = new HashMap<>();
+        Map<Integer, Integer> integers1 = new HashMap<>();
+        for (int i = 0; i < 1000; i++) {
+            String key = UUID.randomUUID().toString();
+            int h;
+            h = (h = key.hashCode()) ^ (h >>> 16);
+
+            int v1 =integers1.getOrDefault(Math.abs(h % 16),0);
+            integers1.put(Math.abs(h % 16),v1+1);
+
+            h = h & (16 - 1);
+            int v = integers.getOrDefault(h, 0);
+            integers.put(h,v+1);
+
+            System.out.println(h);
+        }
 
         Map<String, Object> values = new HashMap<>();
         values.put("path", "D:\\gome\\tava\\data");

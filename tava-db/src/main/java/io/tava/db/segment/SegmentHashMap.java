@@ -82,10 +82,10 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
         }
         int size = map.size();
         map.put(key, value);
-        if (map.size() != size) {
+        if (map.size() - 1 == size) {
             this.incrementSize();
-            this.database.put(this.tableName, segmentKey, map);
         }
+        this.database.put(this.tableName, segmentKey, map);
         return value;
     }
 
@@ -98,10 +98,10 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
         }
         int size = map.size();
         V v = map.remove(key);
-        if (map.size() != size) {
+        if (map.size() + 1 == size) {
             this.decrementSize();
-            this.database.put(this.tableName, segmentKey, map);
         }
+        this.database.put(this.tableName, segmentKey, map);
         return v;
     }
 
@@ -154,7 +154,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
     public Map<K, V> toMap() {
         Map<K, V> map = new HashMap<>();
         for (int i = 0; i < this.segment; i++) {
-            Map<K, V> m = this.database.get(this.tableName, this.key + "@" + i);
+            Map<K, V> m = this.database.get(this.tableName, this.segmentKey(i));
             if (m == null) {
                 continue;
             }
@@ -178,7 +178,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
 
     public void forEach(Consumer2<? super K, ? super V> action) {
         for (int i = 0; i < this.segment; i++) {
-            Map<K, V> map = this.database.get(this.tableName, this.key + "@" + i);
+            Map<K, V> map = this.database.get(this.tableName, this.segmentKey(i));
             if (map == null) {
                 continue;
             }
@@ -212,8 +212,12 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
     }
 
     private String segmentKey(Object key) {
-        int value = hash(key) % this.segment;
+        int value = this.indexFor(this.hash(key));
         return this.segmentKey(value);
+    }
+
+    private int indexFor(int h) {
+        return h & (this.segment - 1);
     }
 
     private String segmentKey(int value) {

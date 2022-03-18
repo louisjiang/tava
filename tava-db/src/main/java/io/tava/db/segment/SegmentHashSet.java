@@ -229,8 +229,12 @@ public class SegmentHashSet<V> implements SegmentSet<V> {
         return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
     }
 
+    private int indexFor(int h) {
+        return h & (this.segment - 1);
+    }
+
     private String segmentKey(Object key) {
-        int value = hash(key) % this.segment;
+        int value = indexFor(hash(key));
         return segmentKey(value);
     }
 
