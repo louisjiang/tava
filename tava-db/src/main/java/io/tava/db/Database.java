@@ -3,6 +3,7 @@ package io.tava.db;
 import io.tava.db.segment.*;
 import io.tava.function.Consumer2;
 import io.tava.function.Consumer3;
+import io.tava.lang.Option;
 import io.tava.lang.Tuple2;
 
 import java.util.Map;
@@ -15,29 +16,55 @@ import java.util.concurrent.locks.Lock;
  */
 public interface Database {
 
-    default <V> SegmentList<V> newList(String key, int capacity) {
-        return newList("default", key, capacity);
+    default <V> SegmentList<V> newSegmentList(String key, int capacity) {
+        return newSegmentList("default", key, capacity);
     }
 
-    default <V> SegmentList<V> newList(String tableName, String key, int capacity) {
+    default <V> SegmentList<V> newSegmentList(String tableName, String key, int capacity) {
         return new SegmentArrayList<>(this, tableName, key, capacity);
     }
 
-    default <V> SegmentSet<V> newSet(String key, int capacity) {
-        return newSet("default", key, capacity);
+    default <V> Option<SegmentList<V>> getSegmentList(String key) {
+        return getSegmentList("default", key);
     }
 
-    default <V> SegmentSet<V> newSet(String tableName, String key, int capacity) {
-        return new SegmentHashSet<>(this, tableName, key, capacity);
+    default <V> Option<SegmentList<V>> getSegmentList(String tableName, String key) {
+        return SegmentList.get(this, tableName, key);
     }
 
-    default <K, V> SegmentMap<K, V> newMap(String key, int segment) {
-        return newMap("default", key, segment);
+    default <V> SegmentSet<V> newSegmentSet(String key, int segment) {
+        return newSegmentSet("default", key, segment);
     }
 
-    default <K, V> SegmentMap<K, V> newMap(String tableName, String key, int segment) {
+    default <V> SegmentSet<V> newSegmentSet(String tableName, String key, int segment) {
+        return new SegmentHashSet<>(this, tableName, key, segment);
+    }
+
+    default <V> Option<SegmentSet<V>> getSegmentSet(String key) {
+        return getSegmentSet("default", key);
+    }
+
+    default <V> Option<SegmentSet<V>> getSegmentSet(String tableName, String key) {
+        return SegmentSet.get(this, tableName, key);
+
+    }
+
+    default <K, V> SegmentMap<K, V> newSegmentMap(String key, int segment) {
+        return newSegmentMap("default", key, segment);
+    }
+
+    default <K, V> SegmentMap<K, V> newSegmentMap(String tableName, String key, int segment) {
         return new SegmentHashMap<>(this, tableName, key, segment);
     }
+
+    default <K, V> Option<SegmentMap<K, V>> getSegmentMap(String key) {
+        return getSegmentMap("default", key);
+    }
+
+    default <K, V> Option<SegmentMap<K, V>> getSegmentMap(String tableName, String key) {
+        return SegmentMap.get(this, tableName, key);
+    }
+
 
     default void put(Map<String, Object> keyValues) {
         this.put("default", keyValues);
