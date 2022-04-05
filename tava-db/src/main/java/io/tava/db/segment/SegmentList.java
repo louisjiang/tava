@@ -1,8 +1,12 @@
 package io.tava.db.segment;
 
+import io.tava.db.Database;
+import io.tava.lang.Option;
+
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 public interface SegmentList<V> extends Segment {
 
@@ -45,5 +49,13 @@ public interface SegmentList<V> extends Segment {
     List<V> toList();
 
     SegmentList<V> relist(int capacity);
+
+    static <V> Option<SegmentList<V>> get(Database database, String tableName, String key) {
+        Map<String, Object> status = database.get(tableName, key);
+        if (status == null) {
+            return Option.none();
+        }
+        return Option.option(new SegmentArrayList<>(database, tableName, key, status));
+    }
 
 }

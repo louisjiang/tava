@@ -1,6 +1,7 @@
 package io.tava.db.segment;
 
 import io.tava.db.Database;
+import io.tava.lang.Option;
 
 import java.util.*;
 
@@ -10,8 +11,8 @@ public class SegmentArrayList<V> implements SegmentList<V> {
     private final String tableName;
     private final String key;
     private final int capacity;
-    private int segment = 0;
-    private int size = 0;
+    private int segment;
+    private int size;
 
     public SegmentArrayList(Database database, String tableName, String key, int capacity) {
         this.database = database;
@@ -21,11 +22,22 @@ public class SegmentArrayList<V> implements SegmentList<V> {
         Map<String, Object> status = this.database.get(this.tableName, this.key);
         if (status == null) {
             this.capacity = capacity;
+            this.size = 0;
+            this.segment = 0;
             updateStatus();
             return;
         }
-        this.size = (Integer) status.get("size");
         this.capacity = (Integer) status.get("capacity");
+        this.size = (Integer) status.get("size");
+        this.segment = this.size / this.capacity;
+    }
+
+    public SegmentArrayList(Database database, String tableName, String key, Map<String, Object> status) {
+        this.database = database;
+        this.tableName = tableName;
+        this.key = key;
+        this.capacity = (Integer) status.get("capacity");
+        this.size = (Integer) status.get("size");
         this.segment = this.size / this.capacity;
     }
 
@@ -42,7 +54,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
     @Override
     public boolean contains(V o) {
         for (int i = 0; i < this.segment; i++) {
-            List<V> list = this.database.get(this.tableName, this.key + "@" + i);
+            List<V> list = this.database.get(this.tableName, this.segmentKey(i));
             if (list == null) {
                 break;
             }
@@ -67,13 +79,13 @@ public class SegmentArrayList<V> implements SegmentList<V> {
                         return false;
                     }
 
-                    List<V> list = database.get(tableName, key + "@" + index);
+                    List<V> list = database.get(tableName, segmentKey(index));
                     if (list == null) {
                         return false;
                     }
                     index++;
                     iterator = list.iterator();
-                    return iterator.hasNext();
+                    return hasNext();
                 }
                 return true;
             }
@@ -101,13 +113,13 @@ public class SegmentArrayList<V> implements SegmentList<V> {
     @Override
     public boolean remove(V o) {
         for (int i = 0; i <= this.segment; i++) {
-            String key = this.key + "@" + i;
-            List<V> list = this.database.get(this.tableName, key);
+            String segmentKey = this.segmentKey(i);
+            List<V> list = this.database.get(this.tableName, segmentKey);
             boolean flag = list.remove(o);
             if (!flag) {
                 continue;
             }
-            this.database.put(this.tableName, key, list);
+            this.database.put(this.tableName, segmentKey, list);
             this.size = i * capacity + list.size();
             if (i == this.segment) {
                 updateStatus();
@@ -116,7 +128,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
             int index = i + 1;
             List<V> l = toList(index, this.segment);
             for (int j = index; j <= this.segment; j++) {
-                this.database.delete(this.tableName, this.key + "@" + j);
+                this.database.delete(this.tableName, this.segmentKey(j));
             }
             this.addAll(l);
             return true;
@@ -146,7 +158,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
     public boolean addAll(int index, Collection<? extends V> c) {
         rangeCheckForAdd(index);
         int segment = index / this.capacity;
-        List<V> list = this.database.get(this.tableName, this.key + "@" + segment);
+        List<V> list = this.database.get(this.tableName, this.segmentKey(segment));
         if (list == null) {
             list = new ArrayList<>();
         }
@@ -156,7 +168,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
         if (segment < this.segment) {
             values = toList(segment + 1, this.segment);
             for (int i = segment; i <= this.segment; i++) {
-                this.database.delete(this.tableName, this.key + "@" + i);
+                this.database.delete(this.tableName, this.segmentKey(i));
             }
         }
         this.size = segment * this.capacity;
@@ -180,14 +192,14 @@ public class SegmentArrayList<V> implements SegmentList<V> {
     public boolean retainAll(Collection<? extends V> c) {
         List<V> list = new ArrayList<>();
         for (int i = 0; i <= this.segment; i++) {
-            List<V> l = this.database.get(this.tableName, this.key + "@" + i);
+            List<V> l = this.database.get(this.tableName, this.segmentKey(i));
             if (!l.retainAll(c) || l.isEmpty()) {
                 continue;
             }
             list.addAll(l);
         }
         for (int i = 0; i <= this.segment; i++) {
-            this.database.delete(this.tableName, this.key + "@" + i);
+            this.database.delete(this.tableName, this.segmentKey(i));
         }
         this.size = 0;
         if (list.isEmpty()) {
@@ -203,7 +215,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
         this.size = 0;
         updateStatus();
         for (int i = 0; i <= this.segment; i++) {
-            this.database.delete(this.tableName, this.key + "@" + i);
+            this.database.delete(this.tableName, this.segmentKey(i));
         }
         this.segment = 0;
         this.commit();
@@ -213,7 +225,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
     public V get(int index) {
         rangeCheck(index);
         int segment = index / this.capacity;
-        List<V> list = this.database.get(this.tableName, this.key + "@" + segment);
+        List<V> list = this.database.get(this.tableName, this.segmentKey(segment));
         index = index % this.capacity;
         return list.get(index);
     }
@@ -222,7 +234,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
     public V set(int index, V element) {
         rangeCheck(index);
         int segment = index / this.capacity;
-        List<V> list = this.database.get(this.tableName, this.key + "@" + segment);
+        List<V> list = this.database.get(this.tableName, this.segmentKey(segment));
         index = index % this.capacity;
         return list.set(index, element);
     }
@@ -236,7 +248,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
     public V remove(int index) {
         rangeCheck(index);
         int segment = index / this.capacity;
-        String segmentKey = this.key + "@" + segment;
+        String segmentKey = this.segmentKey(segment);
         List<V> list = this.database.get(this.tableName, segmentKey);
         index = index % this.capacity;
         V v = list.remove(index);
@@ -247,8 +259,8 @@ public class SegmentArrayList<V> implements SegmentList<V> {
         }
         segment += 1;
         List<V> l = toList(segment, this.segment);
-        for (int j = segment; j <= this.segment; j++) {
-            this.database.delete(this.tableName, this.key + "@" + j);
+        for (int i = segment; i <= this.segment; i++) {
+            this.database.delete(this.tableName, this.segmentKey(i));
         }
         addAll(l);
         return v;
@@ -257,7 +269,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
     @Override
     public int indexOf(V o) {
         for (int i = 0; i <= this.segment; i++) {
-            List<V> list = this.database.get(this.tableName, this.key + "@" + i);
+            List<V> list = this.database.get(this.tableName, this.segmentKey(i));
             int indexOf = list.indexOf(o);
             if (indexOf == -1) {
                 continue;
@@ -270,7 +282,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
     @Override
     public int lastIndexOf(V o) {
         for (int i = this.segment; i >= 0; i--) {
-            List<V> list = this.database.get(this.tableName, this.key + "@" + i);
+            List<V> list = this.database.get(this.tableName, this.segmentKey(i));
             int lastIndexOf = list.lastIndexOf(o);
             if (lastIndexOf == -1) {
                 continue;
@@ -305,7 +317,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
         }
         List<V> list = new ArrayList<>((end - start + 1) * this.capacity);
         for (int i = start; i <= end; i++) {
-            List<V> l = this.database.get(this.tableName, this.key + "@" + i);
+            List<V> l = this.database.get(this.tableName, this.segmentKey(i));
             if (l == null) {
                 continue;
             }
@@ -323,7 +335,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
     public void destroy() {
         this.database.delete(this.tableName, this.key);
         for (int i = 0; i <= this.segment; i++) {
-            this.database.delete(this.tableName, this.key + "@" + i);
+            this.database.delete(this.tableName, this.segmentKey(i));
         }
         this.commit();
     }
@@ -331,7 +343,11 @@ public class SegmentArrayList<V> implements SegmentList<V> {
 
     private String segmentKey() {
         this.segment = this.size / this.capacity;
-        return this.key + "@" + this.segment;
+        return segmentKey(this.segment);
+    }
+
+    private String segmentKey(int segment) {
+        return this.key + "@" + segment;
     }
 
     private void incrementSize() {
@@ -359,4 +375,6 @@ public class SegmentArrayList<V> implements SegmentList<V> {
     private String outOfBoundsMsg(int index) {
         return "Index: " + index + ", Size: " + size;
     }
+
+
 }

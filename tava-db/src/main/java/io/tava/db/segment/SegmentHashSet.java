@@ -1,6 +1,7 @@
 package io.tava.db.segment;
 
 import io.tava.db.Database;
+import io.tava.lang.Option;
 
 import java.util.*;
 
@@ -9,21 +10,38 @@ public class SegmentHashSet<V> implements SegmentSet<V> {
     private final Database database;
     private final String tableName;
     private final String key;
+    private final long sequence;
     private final int segment;
-    private int size = 0;
+    private int size;
 
     public SegmentHashSet(Database database, String tableName, String key, int segment) {
+        this(database, tableName, key, segment, false);
+    }
+
+    protected SegmentHashSet(Database database, String tableName, String key, int segment, boolean initialize) {
         this.database = database;
         this.tableName = tableName;
         this.key = key;
-        Map<String, Object> status = this.database.get(this.tableName, this.key);
-        if (status == null) {
+        Map<String, Object> status;
+        if (initialize || (status = this.database.get(this.tableName, this.key)) == null) {
+            this.sequence = SnowFlakeUtil.nextId();
             this.segment = segment;
+            this.size = 0;
             updateStatus();
             return;
         }
-        this.size = (Integer) status.get("size");
+        this.sequence = (Long) status.get("sequence");
         this.segment = (Integer) status.get("segment");
+        this.size = (Integer) status.get("size");
+    }
+
+    public SegmentHashSet(Database database, String tableName, String key, Map<String, Object> status) {
+        this.database = database;
+        this.tableName = tableName;
+        this.key = key;
+        this.sequence = (Long) status.get("sequence");
+        this.segment = (Integer) status.get("segment");
+        this.size = (Integer) status.get("size");
     }
 
     @Override
@@ -59,12 +77,12 @@ public class SegmentHashSet<V> implements SegmentSet<V> {
                         return false;
                     }
                     Set<V> set = database.get(tableName, segmentKey(index));
+                    index++;
                     if (set == null) {
-                        index++;
                         return hasNext();
                     }
                     iterator = set.iterator();
-                    return iterator.hasNext();
+                    return hasNext();
                 }
                 return true;
             }
@@ -181,15 +199,35 @@ public class SegmentHashSet<V> implements SegmentSet<V> {
     }
 
     @Override
+    public SegmentSet<V> reset() {
+        int segment = this.size / 1024;
+        if (segment < this.segment) {
+            return this;
+        }
+        int index = (int) Math.sqrt(this.segment) + 1;
+        int newSegment;
+        while ((newSegment = (int) Math.pow(2, index)) < segment) {
+            index++;
+        }
+        return reset(newSegment);
+    }
+
+    @Override
     public SegmentSet<V> reset(int segment) {
         if (this.segment == segment) {
             return this;
         }
-        Set<V> set = toSet();
-        this.destroy();
-        SegmentSet<V> segmentSet = new SegmentHashSet<>(this.database, this.tableName, this.key, segment);
-        segmentSet.addAll(set);
-        this.commit();
+        SegmentSet<V> segmentSet = new SegmentHashSet<>(this.database, this.tableName, this.key, segment, true);
+        for (int i = 0; i < this.segment; i++) {
+            String segmentKey = this.segmentKey(i);
+            Set<V> set = this.database.get(this.tableName, segmentKey);
+            if (set == null) {
+                continue;
+            }
+            this.database.delete(this.tableName, segmentKey);
+            segmentSet.addAll(set);
+        }
+        segmentSet.commit();
         return segmentSet;
     }
 
@@ -219,8 +257,9 @@ public class SegmentHashSet<V> implements SegmentSet<V> {
 
     private void updateStatus() {
         Map<String, Object> status = new HashMap<>();
-        status.put("size", this.size);
+        status.put("sequence", this.sequence);
         status.put("segment", this.segment);
+        status.put("size", this.size);
         this.database.put(this.tableName, this.key, status);
     }
 
@@ -239,7 +278,7 @@ public class SegmentHashSet<V> implements SegmentSet<V> {
     }
 
     private String segmentKey(int value) {
-        return this.key + "@" + Math.abs(value);
+        return this.key + "@" + sequence + "@" + Math.abs(value);
     }
 
 }
