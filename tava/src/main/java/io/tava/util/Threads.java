@@ -1,6 +1,10 @@
 package io.tava.util;
 
+import one.util.streamex.StreamEx;
+
 import java.lang.management.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author louisjiang <493509534@qq.com>
@@ -43,10 +47,13 @@ public class Threads implements Util {
         builder.append(",DAEMON THREAD:").append(threadBean.getDaemonThreadCount());
         builder.append(",TOTAL STARTED THREAD:").append(threadBean.getTotalStartedThreadCount());
         builder.append(",THREAD:").append(threadBean.getThreadCount());
-        builder.append(",BLOCKED:").append(threadInfoList.count(threadInfo -> threadInfo.getThreadState().equals(Thread.State.BLOCKED)));
-        builder.append(",RUNNABLE:").append(threadInfoList.count(threadInfo -> threadInfo.getThreadState().equals(Thread.State.RUNNABLE)));
-        builder.append(",WAITING:").append(threadInfoList.count(threadInfo -> threadInfo.getThreadState().equals(Thread.State.WAITING)));
-        builder.append(",TIMED_WAITING:").append(threadInfoList.count(threadInfo -> threadInfo.getThreadState().equals(Thread.State.TIMED_WAITING)));
+
+        ;
+
+        builder.append(",BLOCKED:").append(StreamEx.of(threadInfoList).filter(threadInfo -> threadInfo.getThreadState().equals(Thread.State.BLOCKED)).count());
+        builder.append(",RUNNABLE:").append(StreamEx.of(threadInfoList).filter(threadInfo -> threadInfo.getThreadState().equals(Thread.State.RUNNABLE)).count());
+        builder.append(",WAITING:").append(StreamEx.of(threadInfoList).filter(threadInfo -> threadInfo.getThreadState().equals(Thread.State.WAITING)).count());
+        builder.append(",TIMED_WAITING:").append(StreamEx.of(threadInfoList).filter(threadInfo -> threadInfo.getThreadState().equals(Thread.State.TIMED_WAITING)).count());
         builder.append("\r\n\r\n");
         for (ThreadInfo info : threadInfoList) {
             builder.append("\"").append(info.getThreadName()).append("\"");
