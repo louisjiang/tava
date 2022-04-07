@@ -101,7 +101,7 @@ public class RocksdbDatabase extends AbstractDatabase {
         options.setAtomicFlush(true);
         options.setCreateIfMissing(true);
         options.setParanoidChecks(true);
-        options.setMaxOpenFiles(1024);
+        options.setMaxOpenFiles(configuration.getInt("max_open_files", 1024));
         options.setMaxBackgroundJobs(availableProcessors * 2);
         options.setBytesPerSync(32 * SizeUnit.MB);
         long writeBufferSize = configuration.getInt("write_buffer_size", 64) * SizeUnit.MB;
@@ -290,7 +290,7 @@ public class RocksdbDatabase extends AbstractDatabase {
     public boolean dropTable(String tableName) {
         ColumnFamilyHandle columnFamilyHandle = this.columnFamilyHandles.get(tableName);
         if (columnFamilyHandle == null) {
-            this.logger.warn("table:[{}] does not exist", tableName);
+            this.logger.warn("drop table:[{}] does not exist", tableName);
             return false;
         }
         try {
@@ -313,8 +313,13 @@ public class RocksdbDatabase extends AbstractDatabase {
 
     @Override
     public void compact(String tableName) {
+        ColumnFamilyHandle columnFamilyHandle = this.columnFamilyHandles.get(tableName);
+        if (columnFamilyHandle == null) {
+            this.logger.warn("compact table:[{}] does not exist", tableName);
+            return;
+        }
         try {
-            this.db.compactRange(columnFamilyHandle(tableName));
+            this.db.compactRange(columnFamilyHandle);
         } catch (RocksDBException cause) {
             this.logger.error("compact:[{}]", tableName, cause);
         }
