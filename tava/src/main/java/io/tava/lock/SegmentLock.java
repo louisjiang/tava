@@ -1,10 +1,6 @@
 package io.tava.lock;
 
 
-import io.tava.function.CheckedFunction0;
-import io.tava.function.Consumer0;
-import io.tava.function.Function0;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -41,34 +37,6 @@ public class SegmentLock<T> implements Lock<T> {
 
     public void unlock(T key) {
         this.locks.get((key.hashCode() >>> 1) % this.segments).unlock();
-    }
-
-
-    public void execute(T key, Consumer0 consumer0) {
-        try {
-            lock(key);
-            consumer0.accept();
-        } finally {
-            unlock(key);
-        }
-    }
-
-    public <R> void call(T key, Function0<R> function0) {
-        try {
-            lock(key);
-            function0.apply();
-        } finally {
-            unlock(key);
-        }
-    }
-
-    public <R> void call(T key, CheckedFunction0<R> function0) throws Throwable {
-        try {
-            lock(key);
-            function0.apply();
-        } finally {
-            unlock(key);
-        }
     }
 
 

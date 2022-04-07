@@ -3,9 +3,8 @@ package io.tave.test;
 
 import io.tava.hash.ConsistentHash;
 import io.tava.hash.Node;
-
-import java.util.ArrayList;
-import java.util.List;
+import io.tava.util.ArrayList;
+import io.tava.util.List;
 
 /**
  * @author louisjiang <493509534@qq.com>

@@ -70,11 +70,6 @@ public class RocksdbDatabase extends AbstractDatabase {
             }
 
             @Override
-            public void destroyObject(PooledObject<WriteBatch> p) throws Exception {
-                p.getObject().close();
-            }
-
-            @Override
             public PooledObject<WriteBatch> wrap(WriteBatch writeBatch) {
                 return new DefaultPooledObject<>(writeBatch);
             }
@@ -113,17 +108,11 @@ public class RocksdbDatabase extends AbstractDatabase {
 
         ColumnFamilyOptions columnFamilyOptions = new ColumnFamilyOptions();
         columnFamilyOptions.setWriteBufferSize(writeBufferSize);
-        columnFamilyOptions.setMaxWriteBufferNumber(configuration.getInt("max_write_buffer_number", 2));
+        columnFamilyOptions.setMaxWriteBufferNumber(2);
         columnFamilyOptions.setCompressionType(CompressionType.LZ4_COMPRESSION);
         columnFamilyOptions.setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION);
-//        columnFamilyOptions.setLevelCompactionDynamicLevelBytes(true);
+        columnFamilyOptions.setLevelCompactionDynamicLevelBytes(true);
         columnFamilyOptions.setCompactionPriority(CompactionPriority.MinOverlappingRatio);
-
-        columnFamilyOptions.setMaxBytesForLevelBase(configuration.getInt("max_bytes_for_level_base", 64) * SizeUnit.MB);
-        columnFamilyOptions.setMaxBytesForLevelMultiplier(configuration.getInt("max_bytes_for_level_multiplier", 10));
-        columnFamilyOptions.setLevel0FileNumCompactionTrigger(5);
-        columnFamilyOptions.setLevel0SlowdownWritesTrigger(20);
-        columnFamilyOptions.setLevel0StopWritesTrigger(40);
 
         BlockBasedTableConfig tableConfig = new BlockBasedTableConfig();
         tableConfig.setIndexType(IndexType.kTwoLevelIndexSearch);

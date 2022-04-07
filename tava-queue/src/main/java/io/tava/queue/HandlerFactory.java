@@ -7,7 +7,7 @@ package io.tava.queue;
 public interface HandlerFactory<T, H extends Handler<T>> {
 
     default int threadNumber() {
-        return Runtime.getRuntime().availableProcessors();
+        return Runtime.getRuntime().availableProcessors() * 3;
     }
 
     H newInstance();

@@ -13,10 +13,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>fastjson</artifactId>
-        </dependency>
-        <dependency>
             <groupId>one.util</groupId>
             <artifactId>streamex</artifactId>
         </dependency>
