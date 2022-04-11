@@ -1,9 +1,10 @@
 package io.tava.db.segment;
 
 import io.tava.db.Database;
-import io.tava.lang.Option;
 
+import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.locks.Lock;
 
 public class SegmentHashSet<V> implements SegmentSet<V> {
 
@@ -27,7 +28,7 @@ public class SegmentHashSet<V> implements SegmentSet<V> {
             this.sequence = SnowFlakeUtil.nextId();
             this.segment = segment;
             this.size = 0;
-            updateStatus();
+            this.updateStatus();
             return;
         }
         this.sequence = (Long) status.get("sequence");
@@ -65,10 +66,12 @@ public class SegmentHashSet<V> implements SegmentSet<V> {
 
     @Override
     public Iterator<V> iterator() {
+        final Lock readLock = this.database.readLock(this.tableName);
+        readLock.lock();
         return new Iterator<V>() {
 
             private int index = 0;
-            private Iterator<V> iterator;
+            private java.util.Iterator<V> iterator;
 
             @Override
             public boolean hasNext() {
@@ -91,6 +94,11 @@ public class SegmentHashSet<V> implements SegmentSet<V> {
             public V next() {
                 return iterator.next();
             }
+
+            @Override
+            public void close() throws IOException {
+                readLock.unlock();
+            }
         };
 
     }
@@ -98,31 +106,35 @@ public class SegmentHashSet<V> implements SegmentSet<V> {
     @Override
     public boolean add(V v) {
         String segmentKey = this.segmentKey(v);
-        Set<V> set = this.database.get(this.tableName, segmentKey);
-        if (set == null) {
-            set = new HashSet<>();
-        }
-        if (set.add(v)) {
-            this.incrementSize();
-            this.database.put(this.tableName, segmentKey, set);
-            return true;
-        }
-        return false;
+        return this.database.writeLock(this.tableName, () -> {
+            Set<V> set = this.database.get(this.tableName, segmentKey);
+            if (set == null) {
+                set = new HashSet<>();
+            }
+            if (set.add(v)) {
+                this.incrementSize();
+                this.database.put(this.tableName, segmentKey, set);
+                return true;
+            }
+            return false;
+        });
     }
 
     @Override
     public boolean remove(V o) {
         String segmentKey = this.segmentKey(o);
-        Set<V> set = this.database.get(this.tableName, segmentKey);
-        if (set == null) {
+        return this.database.writeLock(this.tableName, () -> {
+            Set<V> set = this.database.get(this.tableName, segmentKey);
+            if (set == null) {
+                return false;
+            }
+            if (set.remove(o)) {
+                this.decrementSize();
+                this.database.put(this.tableName, segmentKey, set);
+                return true;
+            }
             return false;
-        }
-        if (set.remove(o)) {
-            this.decrementSize();
-            this.database.put(this.tableName, segmentKey, set);
-            return true;
-        }
-        return false;
+        });
     }
 
     @Override
@@ -146,44 +158,49 @@ public class SegmentHashSet<V> implements SegmentSet<V> {
     @Override
     public boolean retainAll(Collection<? extends V> c) {
         Set<V> set = new HashSet<>();
-        for (int i = 0; i < this.segment; i++) {
-            Set<V> s = this.database.get(this.tableName, this.segmentKey(i));
-            if (s == null) {
-                continue;
+        return this.database.writeLock(this.tableName, () -> {
+            for (int i = 0; i < this.segment; i++) {
+                Set<V> s = this.database.get(this.tableName, this.segmentKey(i));
+                if (s == null) {
+                    continue;
+                }
+                if (!s.retainAll(c) || s.isEmpty()) {
+                    continue;
+                }
+                set.addAll(s);
             }
-            if (!s.retainAll(c) || s.isEmpty()) {
-                continue;
+            for (int i = 0; i < this.segment; i++) {
+                this.database.delete(this.tableName, this.segmentKey(i));
             }
-            set.addAll(s);
-        }
-        for (int i = 0; i < this.segment; i++) {
-            this.database.delete(this.tableName, this.segmentKey(i));
-        }
-        this.size = 0;
-        if (set.isEmpty()) {
-            updateStatus();
-            return false;
-        }
-        addAll(set);
-        return true;
+            this.size = 0;
+            if (set.isEmpty()) {
+                this.updateStatus();
+                return false;
+            }
+            this.addAll(set);
+            return true;
+        });
+
     }
 
     @Override
     public boolean removeAll(Collection<? extends V> c) {
-        boolean flag = false;
+        boolean remove = false;
         for (V v : c) {
-            flag |= remove(v);
+            remove |= remove(v);
         }
-        return flag;
+        return remove;
     }
 
     @Override
     public void clear() {
-        this.size = 0;
-        updateStatus();
-        for (int i = 0; i < this.segment; i++) {
-            this.database.delete(this.tableName, this.segmentKey(i));
-        }
+        this.database.writeLock(this.tableName, () -> {
+            this.size = 0;
+            this.updateStatus();
+            for (int i = 0; i < this.segment; i++) {
+                this.database.delete(this.tableName, this.segmentKey(i));
+            }
+        });
     }
 
     @Override
@@ -217,18 +234,20 @@ public class SegmentHashSet<V> implements SegmentSet<V> {
         if (this.segment == segment) {
             return this;
         }
-        SegmentSet<V> segmentSet = new SegmentHashSet<>(this.database, this.tableName, this.key, segment, true);
-        for (int i = 0; i < this.segment; i++) {
-            String segmentKey = this.segmentKey(i);
-            Set<V> set = this.database.get(this.tableName, segmentKey);
-            if (set == null) {
-                continue;
+        return this.database.writeLock(this.tableName, () -> {
+            SegmentSet<V> segmentSet = new SegmentHashSet<>(this.database, this.tableName, this.key, segment, true);
+            for (int i = 0; i < this.segment; i++) {
+                String segmentKey = this.segmentKey(i);
+                Set<V> set = this.database.get(this.tableName, segmentKey);
+                if (set == null) {
+                    continue;
+                }
+                this.database.delete(this.tableName, segmentKey);
+                segmentSet.addAll(set);
             }
-            this.database.delete(this.tableName, segmentKey);
-            segmentSet.addAll(set);
-        }
-        segmentSet.commit();
-        return segmentSet;
+            segmentSet.commit();
+            return segmentSet;
+        });
     }
 
     @Override
@@ -238,21 +257,23 @@ public class SegmentHashSet<V> implements SegmentSet<V> {
 
     @Override
     public void destroy() {
-        this.database.delete(this.tableName, this.key);
-        for (int i = 0; i < this.segment; i++) {
-            this.database.delete(this.tableName, segmentKey(i));
-        }
-        this.commit();
+        this.database.writeLock(this.tableName, () -> {
+            this.database.delete(this.tableName, this.key);
+            for (int i = 0; i < this.segment; i++) {
+                this.database.delete(this.tableName, segmentKey(i));
+            }
+            this.commit();
+        });
     }
 
     private void incrementSize() {
         this.size++;
-        updateStatus();
+        this.updateStatus();
     }
 
     private void decrementSize() {
         this.size--;
-        updateStatus();
+        this.updateStatus();
     }
 
     private void updateStatus() {

@@ -113,7 +113,7 @@ public class RocksdbDatabase extends AbstractDatabase {
 
         ColumnFamilyOptions columnFamilyOptions = new ColumnFamilyOptions();
         columnFamilyOptions.setWriteBufferSize(writeBufferSize);
-        columnFamilyOptions.setMaxWriteBufferNumber(configuration.getInt("max_write_buffer_number", 2));
+        columnFamilyOptions.setMaxWriteBufferNumber(configuration.getInt("max_write_buffer_number", 8));
         columnFamilyOptions.setCompressionType(CompressionType.LZ4_COMPRESSION);
         columnFamilyOptions.setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION);
 //        columnFamilyOptions.setLevelCompactionDynamicLevelBytes(true);
@@ -121,9 +121,9 @@ public class RocksdbDatabase extends AbstractDatabase {
 
         columnFamilyOptions.setMaxBytesForLevelBase(configuration.getInt("max_bytes_for_level_base", 64) * SizeUnit.MB);
         columnFamilyOptions.setMaxBytesForLevelMultiplier(configuration.getInt("max_bytes_for_level_multiplier", 10));
-        columnFamilyOptions.setLevel0FileNumCompactionTrigger(5);
-        columnFamilyOptions.setLevel0SlowdownWritesTrigger(20);
-        columnFamilyOptions.setLevel0StopWritesTrigger(40);
+        columnFamilyOptions.setLevel0FileNumCompactionTrigger(4);
+        columnFamilyOptions.setLevel0SlowdownWritesTrigger(16);
+        columnFamilyOptions.setLevel0StopWritesTrigger(32);
 
         BlockBasedTableConfig tableConfig = new BlockBasedTableConfig();
         tableConfig.setIndexType(IndexType.kTwoLevelIndexSearch);
@@ -188,7 +188,7 @@ public class RocksdbDatabase extends AbstractDatabase {
         WriteBatch writeBatch = null;
         try {
             writeBatch = this.pool.borrowObject();
-            ColumnFamilyHandle columnFamilyHandle = columnFamilyHandle(tableName);
+            ColumnFamilyHandle columnFamilyHandle = this.columnFamilyHandle(tableName);
             if (puts != null) {
                 for (Map.Entry<byte[], byte[]> entry : puts.entrySet()) {
                     writeBatch.put(columnFamilyHandle, entry.getKey(), entry.getValue());

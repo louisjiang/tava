@@ -267,7 +267,7 @@ public abstract class AbstractDatabase implements Database {
         }
     }
 
-    protected <T> T readLock(String tableName, Function0<T> function) {
+    public <T> T readLock(String tableName, Function0<T> function) {
         try {
             this.readLock(tableName).lock();
             return function.apply();
@@ -276,10 +276,20 @@ public abstract class AbstractDatabase implements Database {
         }
     }
 
-    protected void writeLock(String tableName, Consumer0 consumer) {
+    public void writeLock(String tableName, Consumer0 consumer) {
         try {
             this.writeLock(tableName).lock();
             consumer.accept();
+        } finally {
+            this.writeLock(tableName).unlock();
+        }
+    }
+
+    @Override
+    public <T> T writeLock(String tableName, Function0<T> function) {
+        try {
+            this.writeLock(tableName).lock();
+            return function.apply();
         } finally {
             this.writeLock(tableName).unlock();
         }

@@ -6,7 +6,6 @@ import io.tava.function.Consumer2;
 import io.tava.lang.Option;
 
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 

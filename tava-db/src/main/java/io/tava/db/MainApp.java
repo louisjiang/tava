@@ -14,8 +14,9 @@ import java.util.Map;
 public class MainApp {
 
     public static void main(String[] args) {
+
         Map<String, Object> values = new HashMap<>();
-        values.put("path", "D:\\gome\\tava\\data");
+        values.put("path", "data");
         RocksdbDatabase rocksdbDatabase = new RocksdbDatabase(new Configuration(ConfigFactory.parseMap(values)), new KryoSerialization());
         SegmentMap<String, String> segmentMap = rocksdbDatabase.newSegmentMap("testMap", 16);
         for (int i = 0; i < 16 * 2000; i++) {
@@ -23,6 +24,8 @@ public class MainApp {
         }
 
         segmentMap.commit();
+        segmentMap.remove("key");
+        segmentMap.put("key", "value");
         SegmentMap<String, String> m = segmentMap.remap();
         SegmentList<String> segmentList = rocksdbDatabase.newSegmentList("test", 3);
         segmentList.clear();

@@ -2,9 +2,13 @@ package io.tava.db.segment;
 
 import io.tava.db.Database;
 import io.tava.function.Consumer2;
-import io.tava.lang.Option;
 
-import java.util.*;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.locks.Lock;
 
 public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
 
@@ -28,7 +32,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
             this.sequence = SnowFlakeUtil.nextId();
             this.segment = segment;
             this.size = 0;
-            updateStatus();
+            this.updateStatus();
             return;
         }
         this.sequence = (Long) status.get("sequence");
@@ -52,7 +56,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
 
     @Override
     public boolean isEmpty() {
-        return size() == 0;
+        return this.size() == 0;
     }
 
     @Override
@@ -91,49 +95,57 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
     @Override
     public V put(K key, V value) {
         String segmentKey = this.segmentKey(key);
-        Map<K, V> map = this.database.get(this.tableName, segmentKey);
-        if (map == null) {
-            map = new HashMap<>();
-        }
-        int size = map.size();
-        map.put(key, value);
-        if (map.size() - 1 == size) {
-            this.incrementSize();
-        }
-        this.database.put(this.tableName, segmentKey, map);
-        return value;
+        return this.database.writeLock(this.tableName, () -> {
+            Map<K, V> map = this.database.get(this.tableName, segmentKey);
+            if (map == null) {
+                map = new HashMap<>();
+            }
+            int size = map.size();
+            map.put(key, value);
+            if (map.size() - 1 == size) {
+                this.incrementSize();
+            }
+            this.database.put(this.tableName, segmentKey, map);
+            return value;
+        });
     }
 
     @Override
     public V remove(K key) {
         String segmentKey = this.segmentKey(key);
-        Map<K, V> map = this.database.get(this.tableName, segmentKey);
-        if (map == null) {
-            return null;
-        }
-        int size = map.size();
-        V v = map.remove(key);
-        if (map.size() + 1 == size) {
-            this.decrementSize();
-        }
-        this.database.put(this.tableName, segmentKey, map);
-        return v;
+        return this.database.writeLock(this.tableName, () -> {
+            Map<K, V> map = this.database.get(this.tableName, segmentKey);
+            if (map == null) {
+                return null;
+            }
+            int size = map.size();
+            V v = map.remove(key);
+            if (map.size() + 1 == size) {
+                this.decrementSize();
+                this.database.put(this.tableName, segmentKey, map);
+            }
+            return v;
+        });
     }
 
     @Override
-    public void putAll(Map<? extends K, ? extends V> m) {
-        for (Map.Entry<? extends K, ? extends V> entry : m.entrySet()) {
-            put(entry.getKey(), entry.getValue());
-        }
+    public void putAll(Map<? extends K, ? extends V> map) {
+        this.database.writeLock(this.tableName, () -> {
+            for (Map.Entry<? extends K, ? extends V> entry : map.entrySet()) {
+                put(entry.getKey(), entry.getValue());
+            }
+        });
     }
 
     @Override
     public void clear() {
-        this.size = 0;
-        updateStatus();
-        for (int i = 0; i < this.segment; i++) {
-            this.database.delete(this.tableName, this.segmentKey(i));
-        }
+        this.database.writeLock(this.tableName, () -> {
+            this.size = 0;
+            this.updateStatus();
+            for (int i = 0; i < this.segment; i++) {
+                this.database.delete(this.tableName, this.segmentKey(i));
+            }
+        });
     }
 
     @Override
@@ -153,10 +165,12 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
 
     @Override
     public Iterator<Map.Entry<K, V>> iterator() {
+        final Lock readLock = this.database.readLock(this.tableName);
+        readLock.lock();
         return new Iterator<Map.Entry<K, V>>() {
 
             private int index = 0;
-            private Iterator<Map.Entry<K, V>> iterator;
+            private java.util.Iterator<Map.Entry<K, V>> iterator;
 
             @Override
             public boolean hasNext() {
@@ -179,6 +193,11 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
             public Map.Entry<K, V> next() {
                 return iterator.next();
             }
+
+            @Override
+            public void close() throws IOException {
+                readLock.unlock();
+            }
         };
 
     }
@@ -190,24 +209,28 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
 
     @Override
     public void destroy() {
-        this.database.delete(this.tableName, this.key);
-        for (int i = 0; i < this.segment; i++) {
-            this.database.delete(this.tableName, this.segmentKey(i));
-        }
-        this.commit();
+        this.database.writeLock(this.tableName, () -> {
+            this.database.delete(this.tableName, this.key);
+            for (int i = 0; i < this.segment; i++) {
+                this.database.delete(this.tableName, this.segmentKey(i));
+            }
+            this.commit();
+        });
     }
 
     @Override
     public Map<K, V> toMap() {
-        Map<K, V> map = new HashMap<>();
-        for (int i = 0; i < this.segment; i++) {
-            Map<K, V> m = this.database.get(this.tableName, this.segmentKey(i));
-            if (m == null) {
-                continue;
+        return this.database.readLock(this.tableName, () -> {
+            Map<K, V> map = new HashMap<>();
+            for (int i = 0; i < this.segment; i++) {
+                Map<K, V> m = this.database.get(this.tableName, this.segmentKey(i));
+                if (m == null) {
+                    continue;
+                }
+                map.putAll(m);
             }
-            map.putAll(m);
-        }
-        return map;
+            return map;
+        });
     }
 
     @Override
@@ -229,18 +252,20 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
         if (segment == this.segment) {
             return this;
         }
-        SegmentMap<K, V> segmentMap = new SegmentHashMap<>(this.database, this.tableName, this.key, segment, true);
-        for (int i = 0; i < this.segment; i++) {
-            String segmentKey = this.segmentKey(i);
-            Map<K, V> map = this.database.get(this.tableName, segmentKey);
-            if (map == null) {
-                continue;
+        return this.database.writeLock(this.tableName, () -> {
+            SegmentMap<K, V> segmentMap = new SegmentHashMap<>(this.database, this.tableName, this.key, segment, true);
+            for (int i = 0; i < this.segment; i++) {
+                String segmentKey = this.segmentKey(i);
+                Map<K, V> map = this.database.get(this.tableName, segmentKey);
+                if (map == null) {
+                    continue;
+                }
+                this.database.delete(this.tableName, segmentKey);
+                segmentMap.putAll(map);
             }
-            this.database.delete(this.tableName, segmentKey);
-            segmentMap.putAll(map);
-        }
-        segmentMap.commit();
-        return segmentMap;
+            segmentMap.commit();
+            return segmentMap;
+        });
     }
 
     public void forEach(Consumer2<? super K, ? super V> action) {
@@ -257,12 +282,12 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
 
     private void incrementSize() {
         this.size++;
-        updateStatus();
+        this.updateStatus();
     }
 
     private void decrementSize() {
         this.size--;
-        updateStatus();
+        this.updateStatus();
     }
 
 
@@ -291,6 +316,5 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
     private String segmentKey(int value) {
         return this.key + "@" + this.sequence + "@" + Math.abs(value);
     }
-
 
 }

@@ -1,8 +1,10 @@
 package io.tava.db;
 
 import io.tava.db.segment.*;
+import io.tava.function.Consumer0;
 import io.tava.function.Consumer2;
 import io.tava.function.Consumer3;
+import io.tava.function.Function0;
 import io.tava.lang.Option;
 import io.tava.lang.Tuple2;
 
@@ -122,7 +124,13 @@ public interface Database {
 
     Lock writeLock(String tableName);
 
+    void writeLock(String tableName, Consumer0 consumer);
+
+    <T> T writeLock(String tableName, Function0<T> function);
+
     Lock readLock(String tableName);
+
+    <T> T readLock(String tableName, Function0<T> function);
 
     boolean createTable(String tableName);
 
