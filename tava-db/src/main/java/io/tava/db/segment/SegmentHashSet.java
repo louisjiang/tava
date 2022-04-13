@@ -235,6 +235,7 @@ public class SegmentHashSet<V> implements SegmentSet<V> {
             return this;
         }
         return this.database.writeLock(this.tableName, () -> {
+            this.commit();
             SegmentSet<V> segmentSet = new SegmentHashSet<>(this.database, this.tableName, this.key, segment, true);
             for (int i = 0; i < this.segment; i++) {
                 String segmentKey = this.segmentKey(i);

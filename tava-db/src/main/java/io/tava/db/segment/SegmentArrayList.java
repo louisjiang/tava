@@ -337,6 +337,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
             return this;
         }
         return this.database.writeLock(this.tableName, () -> {
+            this.commit();
             SegmentList<V> segmentList = new SegmentArrayList<>(this.database, this.tableName, this.key, capacity, true);
             for (int i = 0; i <= this.segment; i++) {
                 String segmentKey = this.segmentKey(i);

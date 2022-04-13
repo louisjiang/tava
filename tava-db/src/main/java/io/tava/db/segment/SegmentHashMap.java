@@ -253,6 +253,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
             return this;
         }
         return this.database.writeLock(this.tableName, () -> {
+            this.commit();
             SegmentMap<K, V> segmentMap = new SegmentHashMap<>(this.database, this.tableName, this.key, segment, true);
             for (int i = 0; i < this.segment; i++) {
                 String segmentKey = this.segmentKey(i);
