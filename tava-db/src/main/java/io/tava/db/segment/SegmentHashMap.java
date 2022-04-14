@@ -8,7 +8,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.locks.Lock;
 
 public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
 
@@ -95,7 +94,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
     @Override
     public V put(K key, V value) {
         String segmentKey = this.segmentKey(key);
-        return this.database.writeLock(this.tableName, () -> {
+        return this.database.writeLock(this.key, () -> {
             Map<K, V> map = this.database.get(this.tableName, segmentKey);
             if (map == null) {
                 map = new HashMap<>();
@@ -113,7 +112,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
     @Override
     public V remove(K key) {
         String segmentKey = this.segmentKey(key);
-        return this.database.writeLock(this.tableName, () -> {
+        return this.database.writeLock(this.key, () -> {
             Map<K, V> map = this.database.get(this.tableName, segmentKey);
             if (map == null) {
                 return null;
@@ -130,7 +129,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
 
     @Override
     public void putAll(Map<? extends K, ? extends V> map) {
-        this.database.writeLock(this.tableName, () -> {
+        this.database.writeLock(this.key, () -> {
             for (Map.Entry<? extends K, ? extends V> entry : map.entrySet()) {
                 put(entry.getKey(), entry.getValue());
             }
@@ -139,7 +138,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
 
     @Override
     public void clear() {
-        this.database.writeLock(this.tableName, () -> {
+        this.database.writeLock(this.key, () -> {
             this.size = 0;
             this.updateStatus();
             for (int i = 0; i < this.segment; i++) {
@@ -165,8 +164,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
 
     @Override
     public Iterator<Map.Entry<K, V>> iterator() {
-        final Lock readLock = this.database.readLock(this.tableName);
-        readLock.lock();
+        this.database.readLock(this.key).lock();
         return new Iterator<Map.Entry<K, V>>() {
 
             private int index = 0;
@@ -196,7 +194,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
 
             @Override
             public void close() throws IOException {
-                readLock.unlock();
+                database.readLock(key).unlock();
             }
         };
 
@@ -209,7 +207,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
 
     @Override
     public void destroy() {
-        this.database.writeLock(this.tableName, () -> {
+        this.database.writeLock(this.key, () -> {
             this.database.delete(this.tableName, this.key);
             for (int i = 0; i < this.segment; i++) {
                 this.database.delete(this.tableName, this.segmentKey(i));
@@ -220,17 +218,15 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
 
     @Override
     public Map<K, V> toMap() {
-        return this.database.readLock(this.tableName, () -> {
-            Map<K, V> map = new HashMap<>();
-            for (int i = 0; i < this.segment; i++) {
-                Map<K, V> m = this.database.get(this.tableName, this.segmentKey(i));
-                if (m == null) {
-                    continue;
-                }
-                map.putAll(m);
+        Map<K, V> map = new HashMap<>();
+        for (int i = 0; i < this.segment; i++) {
+            Map<K, V> m = this.database.get(this.tableName, this.segmentKey(i));
+            if (m == null) {
+                continue;
             }
-            return map;
-        });
+            map.putAll(m);
+        }
+        return map;
     }
 
     @Override
@@ -252,7 +248,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
         if (segment == this.segment) {
             return this;
         }
-        return this.database.writeLock(this.tableName, () -> {
+        return this.database.writeLock(this.key, () -> {
             this.commit();
             SegmentMap<K, V> segmentMap = new SegmentHashMap<>(this.database, this.tableName, this.key, segment, true);
             for (int i = 0; i < this.segment; i++) {

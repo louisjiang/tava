@@ -7,11 +7,7 @@ import java.nio.charset.StandardCharsets;
  * @author louisjiang <493509534@qq.com>
  * @version 2021-07-06 14:19
  */
-public interface Iterator extends Closeable {
-
-    boolean hasNext();
-
-    Entry next();
+public interface Iterator extends java.util.Iterator<Iterator.Entry>, Closeable {
 
     class Entry {
 

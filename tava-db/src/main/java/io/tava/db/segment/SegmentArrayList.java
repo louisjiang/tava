@@ -4,7 +4,6 @@ import io.tava.db.Database;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.locks.Lock;
 
 public class SegmentArrayList<V> implements SegmentList<V> {
 
@@ -76,9 +75,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
 
     @Override
     public Iterator<V> iterator() {
-        final Lock readLock = this.database.readLock(this.tableName);
-        readLock.lock();
-
+        this.database.readLock(this.key).lock();
         return new Iterator<V>() {
 
             private int index = 0;
@@ -109,7 +106,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
 
             @Override
             public void close() throws IOException {
-                readLock.unlock();
+                database.readLock(key).unlock();
             }
 
         };
@@ -117,7 +114,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
 
     @Override
     public boolean add(V v) {
-        this.database.writeLock(this.tableName, () -> {
+        this.database.writeLock(this.key, () -> {
             String segmentKey = this.segmentKey();
             List<V> list = this.database.get(this.tableName, segmentKey);
             if (list == null) {
@@ -132,7 +129,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
 
     @Override
     public boolean remove(V o) {
-        return this.database.writeLock(this.tableName, () -> {
+        return this.database.writeLock(this.key, () -> {
             for (int i = 0; i <= this.segment; i++) {
                 String segmentKey = this.segmentKey(i);
                 List<V> list = this.database.get(this.tableName, segmentKey);
@@ -179,7 +176,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
     @Override
     public boolean addAll(int index, Collection<? extends V> c) {
         rangeCheckForAdd(index);
-        return this.database.writeLock(this.tableName, () -> {
+        return this.database.writeLock(this.key, () -> {
             int idx = index;
             int segment = idx / this.capacity;
             List<V> list = this.database.get(this.tableName, this.segmentKey(segment));
@@ -215,7 +212,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
 
     @Override
     public boolean retainAll(Collection<? extends V> c) {
-        return this.database.writeLock(this.tableName, () -> {
+        return this.database.writeLock(this.key, () -> {
             List<V> list = new ArrayList<>();
             for (int i = 0; i <= this.segment; i++) {
                 List<V> l = this.database.get(this.tableName, this.segmentKey(i));
@@ -239,7 +236,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
 
     @Override
     public void clear() {
-        this.database.writeLock(this.tableName, () -> {
+        this.database.writeLock(this.key, () -> {
             this.size = 0;
             this.updateStatus();
             for (int i = 0; i <= this.segment; i++) {
@@ -263,7 +260,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
     public V set(int index, V element) {
         rangeCheck(index);
         String segmentKey = this.segmentKey(index / this.capacity);
-        return this.database.writeLock(this.tableName, () -> {
+        return this.database.writeLock(this.key, () -> {
             List<V> list = this.database.get(this.tableName, segmentKey);
             V v = list.set(index % this.capacity, element);
             this.database.put(this.tableName, segmentKey, list);
@@ -279,7 +276,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
     @Override
     public V remove(int index) {
         rangeCheck(index);
-        return this.database.writeLock(this.tableName, () -> {
+        return this.database.writeLock(this.key, () -> {
             int segment = index / this.capacity;
             String segmentKey = this.segmentKey(segment);
             List<V> list = this.database.get(this.tableName, segmentKey);
@@ -336,7 +333,7 @@ public class SegmentArrayList<V> implements SegmentList<V> {
         if (this.capacity == capacity) {
             return this;
         }
-        return this.database.writeLock(this.tableName, () -> {
+        return this.database.writeLock(this.key, () -> {
             this.commit();
             SegmentList<V> segmentList = new SegmentArrayList<>(this.database, this.tableName, this.key, capacity, true);
             for (int i = 0; i <= this.segment; i++) {
@@ -375,17 +372,19 @@ public class SegmentArrayList<V> implements SegmentList<V> {
 
     @Override
     public void destroy() {
-        this.database.delete(this.tableName, this.key);
-        for (int i = 0; i <= this.segment; i++) {
-            this.database.delete(this.tableName, this.segmentKey(i));
-        }
-        this.commit();
+        this.database.writeLock(this.key, () -> {
+            this.database.delete(this.tableName, this.key);
+            for (int i = 0; i <= this.segment; i++) {
+                this.database.delete(this.tableName, this.segmentKey(i));
+            }
+            this.commit();
+        });
     }
 
 
     private String segmentKey() {
         this.segment = this.size / this.capacity;
-        return segmentKey(this.segment);
+        return this.segmentKey(this.segment);
     }
 
     private String segmentKey(int segment) {

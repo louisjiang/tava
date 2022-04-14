@@ -23,11 +23,11 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public abstract class AbstractDatabase implements Database {
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
+    private final Object DELETE_FLAG = new Object();
     private final Map<String, Consumer3<String, byte[], byte[]>> putCallbacks = new ConcurrentHashMap<>();
     private final Map<String, Consumer2<String, byte[]>> deleteCallbacks = new ConcurrentHashMap<>();
-    private final Map<String, ReadWriteLock> locks = new ConcurrentHashMap<>();
+    private final List<ReadWriteLock> locks = new ArrayList<>();
     private final Map<String, Map<String, Object>> tableNameToPuts = new ConcurrentHashMap<>();
-    private final Map<String, Set<String>> tableNameToDeletes = new ConcurrentHashMap<>();
     private final Map<String, Long> tableNameToTimestamps = new ConcurrentHashMap<>();
     private final Serialization serialization;
     private final int batchSize;
@@ -39,105 +39,40 @@ public abstract class AbstractDatabase implements Database {
         this.batchSize = configuration.getInt("batch_size", 2048);
         this.interval = configuration.getInt("interval", 10000);
         this.initialCapacity = this.batchSize / 2;
-    }
-
-    @Override
-    public void put(String tableName, Map<String, Object> keyValues) {
-        writeLock(tableName, () -> {
-            this.tableNameToPuts.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).putAll(keyValues);
-            Set<String> keys = keyValues.keySet();
-            this.tableNameToDeletes.computeIfAbsent(tableName, s -> new HashSet<>(this.initialCapacity)).removeAll(keys);
-        });
+        int lockSize = configuration.getInt("lock_size", 256);
+        for (int i = 0; i < lockSize; i++) {
+            this.locks.add(new ReentrantReadWriteLock());
+        }
     }
 
     @Override
     public void put(String tableName, String key, Object value) {
-        writeLock(tableName, () -> {
+        writeLock(key, () -> {
             this.tableNameToPuts.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).put(key, value);
-            this.tableNameToDeletes.computeIfAbsent(tableName, s -> new HashSet<>(this.initialCapacity)).remove(key);
-        });
-    }
-
-    @Override
-    public void delete(String tableName, Set<String> keys) {
-        writeLock(tableName, () -> {
-            Map<String, Object> puts = this.tableNameToPuts.get(tableName);
-            if (puts != null) {
-                keys.forEach(puts::remove);
-            }
-            Set<String> deletes = this.tableNameToDeletes.computeIfAbsent(tableName, key -> new HashSet<>(this.initialCapacity));
-            deletes.addAll(keys);
         });
     }
 
     @Override
     public void delete(String tableName, String key) {
-        writeLock(tableName, () -> {
-            Map<String, Object> puts = this.tableNameToPuts.get(tableName);
-            if (puts != null) {
-                puts.remove(key);
-            }
-            this.tableNameToDeletes.computeIfAbsent(tableName, s -> new HashSet<>(this.initialCapacity)).add(key);
-        });
-    }
-
-    public Map<String, Object> get(String tableName, Set<String> keys) {
-        return readLock(tableName, () -> {
-            Map<String, Object> values = new HashMap<>();
-            for (String key : keys) {
-                Set<String> deletes = this.tableNameToDeletes.get(tableName);
-                if (deletes != null && deletes.contains(key)) {
-                    values.put(key, null);
-                    continue;
-                }
-
-                Map<String, Object> puts = this.tableNameToPuts.get(tableName);
-                Object value;
-                if (puts != null && (value = puts.get(key)) != null) {
-                    values.put(key, value);
-                }
-            }
-
-            keys.removeAll(values.keySet());
-            List<byte[]> keyList = new ArrayList<>();
-            for (String key : keys) {
-                keyList.add(key.getBytes(StandardCharsets.UTF_8));
-            }
-
-            List<byte[]> bytes = get(tableName, keyList);
-            for (int index = 0; index < keyList.size(); index++) {
-                byte[] keyBytes = keyList.get(index);
-                byte[] valueBytes = bytes.get(index);
-                String key = new String(keyBytes, StandardCharsets.UTF_8);
-                if (valueBytes == null || valueBytes.length == 0) {
-                    values.put(key, null);
-                    continue;
-                }
-                values.put(key, toObject(valueBytes));
-            }
-
-            return values;
-        });
+        this.put(tableName, key, DELETE_FLAG);
     }
 
     @Override
     public <T> T get(String tableName, String key) {
-        return readLock(tableName, () -> {
-            Set<String> deletes = this.tableNameToDeletes.get(tableName);
-            if (deletes != null && deletes.contains(key)) {
-                return null;
-            }
-
+        return readLock(key, () -> {
             Map<String, Object> puts = this.tableNameToPuts.get(tableName);
             Object value;
             if (puts != null && (value = puts.get(key)) != null) {
+                if (value == DELETE_FLAG) {
+                    return null;
+                }
                 return (T) value;
             }
             byte[] bytes = this.get(tableName, key.getBytes(StandardCharsets.UTF_8));
             if (bytes == null || bytes.length == 0) {
                 return null;
             }
-            value = toObject(bytes);
+            value = this.toObject(bytes);
             return (T) value;
         });
     }
@@ -153,65 +88,54 @@ public abstract class AbstractDatabase implements Database {
     }
 
     private void commit(String tableName, boolean force) {
-        this.writeLock(tableName, () -> {
-            int size = 0;
-            Map<String, Object> puts = this.tableNameToPuts.get(tableName);
-            if (puts != null) {
-                size += puts.size();
-            }
-            Set<String> deletes = this.tableNameToDeletes.get(tableName);
-            if (deletes != null) {
-                size += deletes.size();
-            }
-            if (size == 0) {
-                return;
-            }
-            long now = System.currentTimeMillis();
-            long timestamp = tableNameToTimestamps.computeIfAbsent(tableName, s -> 0L);
-            if (!force && size < this.batchSize && timestamp + interval > now) {
-                return;
-            }
+        Map<String, Object> puts = this.tableNameToPuts.get(tableName);
+        if (puts == null || puts.isEmpty()) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        long timestamp = tableNameToTimestamps.computeIfAbsent(tableName, s -> 0L);
+        if (!force && puts.size() < this.batchSize && timestamp + interval > now) {
+            return;
+        }
 
-            long totalBytes = 0;
-            Map<byte[], byte[]> putBytes = null;
-            puts = this.tableNameToPuts.remove(tableName);
-            if (puts != null) {
-                Consumer3<String, byte[], byte[]> putCallback = this.putCallbacks.get(tableName);
-                putBytes = new HashMap<>(puts.size());
-                for (Map.Entry<String, Object> entry : puts.entrySet()) {
-                    String key = entry.getKey();
-                    Object value = entry.getValue();
-                    byte[] bytesKey = key.getBytes(StandardCharsets.UTF_8);
-                    byte[] bytesValue = toBytes(value);
-                    totalBytes += bytesKey.length;
-                    totalBytes += bytesValue.length;
-                    putBytes.put(bytesKey, bytesValue);
-                    if (putCallback != null) {
-                        putCallback.accept(key, bytesKey, bytesValue);
-                    }
-                }
-            }
+        long totalBytes = 0;
+        Map<byte[], byte[]> putBytes = new HashMap<>();
+        Set<byte[]> deleteBytes = new HashSet<>();
+        Consumer3<String, byte[], byte[]> putCallback = this.putCallbacks.get(tableName);
+        Consumer2<String, byte[]> deleteCallback = this.deleteCallbacks.get(tableName);
 
-            Set<byte[]> deleteBytes = null;
-            deletes = this.tableNameToDeletes.remove(tableName);
-            if (deletes != null) {
-                Consumer2<String, byte[]> deleteCallback = this.deleteCallbacks.get(tableName);
-                deleteBytes = new HashSet<>(deletes.size());
-                for (String delete : deletes) {
-                    byte[] key = delete.getBytes(StandardCharsets.UTF_8);
-                    totalBytes += key.length;
-                    deleteBytes.add(key);
-                    if (deleteCallback != null) {
-                        deleteCallback.accept(delete, key);
-                    }
+        Set<String> keys = new HashSet<>();
+        for (Map.Entry<String, Object> entry : puts.entrySet()) {
+            String key = entry.getKey();
+            this.writeLock(key).lock();
+            keys.add(key);
+            puts.remove(key);
+
+            byte[] bytesKey = key.getBytes(StandardCharsets.UTF_8);
+            totalBytes += bytesKey.length;
+            Object value = entry.getValue();
+            if (value == DELETE_FLAG) {
+                deleteBytes.add(bytesKey);
+                if (deleteCallback != null) {
+                    deleteCallback.accept(key, bytesKey);
                 }
+                continue;
             }
-            long elapsedTime = System.currentTimeMillis() - now;
-            commit(tableName, putBytes, deleteBytes);
-            timestamp = System.currentTimeMillis();
-            tableNameToTimestamps.put(tableName, timestamp);
-            logger.info("commit data to db [{}][{}][{}][{}][{}][{}][{}]", path(), tableName, putBytes == null ? 0 : putBytes.size(), deleteBytes == null ? 0 : deleteBytes.size(), byteToString(totalBytes), elapsedTime, timestamp - now);
-        });
+            byte[] bytesValue = this.toBytes(value);
+            totalBytes += bytesValue.length;
+            putBytes.put(bytesKey, bytesValue);
+            if (putCallback != null) {
+                putCallback.accept(key, bytesKey, bytesValue);
+            }
+        }
+        long elapsedTime = System.currentTimeMillis() - now;
+        commit(tableName, putBytes, deleteBytes);
+        for (String key : keys) {
+            this.writeLock(key).unlock();
+        }
+        timestamp = System.currentTimeMillis();
+        tableNameToTimestamps.put(tableName, timestamp);
+        logger.info("commit data to db [{}][{}][{}][{}][{}][{}][{}]", path(), tableName, putBytes.size(), deleteBytes.size(), byteToString(totalBytes), elapsedTime, timestamp - now);
     }
 
     protected abstract List<byte[]> get(String tableName, List<byte[]> keys);
@@ -221,19 +145,18 @@ public abstract class AbstractDatabase implements Database {
     protected abstract void commit(String tableName, Map<byte[], byte[]> puts, Set<byte[]> deletes);
 
     @Override
-    public Lock writeLock(String tableName) {
-        return this.locks.computeIfAbsent(tableName, s -> new ReentrantReadWriteLock()).writeLock();
+    public Lock writeLock(String key) {
+        return this.locks.get(indexFor(hash(key))).writeLock();
     }
 
     @Override
-    public Lock readLock(String tableName) {
-        return this.locks.computeIfAbsent(tableName, s -> new ReentrantReadWriteLock()).readLock();
+    public Lock readLock(String key) {
+        return this.locks.get(indexFor(hash(key))).readLock();
     }
 
     @Override
     public boolean dropTable(String tableName) {
         this.tableNameToPuts.remove(tableName);
-        this.tableNameToDeletes.remove(tableName);
         this.tableNameToTimestamps.remove(tableName);
         return true;
     }
@@ -242,7 +165,6 @@ public abstract class AbstractDatabase implements Database {
     public Set<String> getTableNames() {
         Set<String> tableNames = new HashSet<>();
         tableNames.addAll(this.tableNameToPuts.keySet());
-        tableNames.addAll(this.tableNameToDeletes.keySet());
         tableNames.addAll(this.tableNameToTimestamps.keySet());
         return tableNames;
     }
@@ -267,31 +189,31 @@ public abstract class AbstractDatabase implements Database {
         }
     }
 
-    public <T> T readLock(String tableName, Function0<T> function) {
+    public <T> T readLock(String key, Function0<T> function) {
         try {
-            this.readLock(tableName).lock();
+            this.readLock(key).lock();
             return function.apply();
         } finally {
-            this.readLock(tableName).unlock();
+            this.readLock(key).unlock();
         }
     }
 
-    public void writeLock(String tableName, Consumer0 consumer) {
+    public void writeLock(String key, Consumer0 consumer) {
         try {
-            this.writeLock(tableName).lock();
+            this.writeLock(key).lock();
             consumer.accept();
         } finally {
-            this.writeLock(tableName).unlock();
+            this.writeLock(key).unlock();
         }
     }
 
     @Override
-    public <T> T writeLock(String tableName, Function0<T> function) {
+    public <T> T writeLock(String key, Function0<T> function) {
         try {
-            this.writeLock(tableName).lock();
+            this.writeLock(key).lock();
             return function.apply();
         } finally {
-            this.writeLock(tableName).unlock();
+            this.writeLock(key).unlock();
         }
     }
 
@@ -309,6 +231,15 @@ public abstract class AbstractDatabase implements Database {
         }
         byteLength = byteLength / 1024;
         return byteLength + "GB";
+    }
+
+    private int hash(Object key) {
+        int h;
+        return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
+    }
+
+    private int indexFor(int h) {
+        return h & (this.locks.size() - 1);
     }
 
     @Override

@@ -8,6 +8,7 @@ import io.tava.function.Function0;
 import io.tava.lang.Option;
 import io.tava.lang.Tuple2;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
@@ -72,7 +73,11 @@ public interface Database {
         this.put("default", keyValues);
     }
 
-    void put(String tableName, Map<String, Object> keyValues);
+    default void put(String tableName, Map<String, Object> keyValues) {
+        for (Map.Entry<String, Object> entry : keyValues.entrySet()) {
+            this.put(tableName, entry.getKey(), entry.getValue());
+        }
+    }
 
     default void put(String key, Object value) {
         this.put("default", key, value);
@@ -84,7 +89,11 @@ public interface Database {
         this.delete("default", keys);
     }
 
-    void delete(String tableName, Set<String> keys);
+    default void delete(String tableName, Set<String> keys) {
+        for (String key : keys) {
+            this.delete(tableName, key);
+        }
+    }
 
     default void delete(String key) {
         this.delete("default", key);
@@ -102,7 +111,13 @@ public interface Database {
         return this.get("default", keys);
     }
 
-    Map<String, Object> get(String tableName, Set<String> keys);
+    default Map<String, Object> get(String tableName, Set<String> keys) {
+        Map<String, Object> keyValues = new HashMap<>();
+        for (String key : keys) {
+            keyValues.put(key, this.get(tableName, key));
+        }
+        return keyValues;
+    }
 
     default Iterator iterator() {
         return this.iterator("default");
@@ -122,15 +137,15 @@ public interface Database {
 
     String path();
 
-    Lock writeLock(String tableName);
+    Lock writeLock(String key);
 
-    void writeLock(String tableName, Consumer0 consumer);
+    void writeLock(String key, Consumer0 consumer);
 
-    <T> T writeLock(String tableName, Function0<T> function);
+    <T> T writeLock(String key, Function0<T> function);
 
-    Lock readLock(String tableName);
+    Lock readLock(String key);
 
-    <T> T readLock(String tableName, Function0<T> function);
+    <T> T readLock(String key, Function0<T> function);
 
     boolean createTable(String tableName);
 

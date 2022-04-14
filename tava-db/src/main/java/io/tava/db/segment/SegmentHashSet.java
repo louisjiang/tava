@@ -4,7 +4,6 @@ import io.tava.db.Database;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.locks.Lock;
 
 public class SegmentHashSet<V> implements SegmentSet<V> {
 
@@ -66,8 +65,7 @@ public class SegmentHashSet<V> implements SegmentSet<V> {
 
     @Override
     public Iterator<V> iterator() {
-        final Lock readLock = this.database.readLock(this.tableName);
-        readLock.lock();
+        this.database.readLock(this.key).lock();
         return new Iterator<V>() {
 
             private int index = 0;
@@ -75,11 +73,11 @@ public class SegmentHashSet<V> implements SegmentSet<V> {
 
             @Override
             public boolean hasNext() {
-                if (iterator == null || !iterator.hasNext()) {
-                    if (index == segment) {
+                if (this.iterator == null || !this.iterator.hasNext()) {
+                    if (this.index == segment) {
                         return false;
                     }
-                    Set<V> set = database.get(tableName, segmentKey(index));
+                    Set<V> set = database.get(tableName, segmentKey(this.index));
                     index++;
                     if (set == null) {
                         return hasNext();
@@ -97,7 +95,7 @@ public class SegmentHashSet<V> implements SegmentSet<V> {
 
             @Override
             public void close() throws IOException {
-                readLock.unlock();
+                database.readLock(key).unlock();
             }
         };
 
@@ -106,7 +104,7 @@ public class SegmentHashSet<V> implements SegmentSet<V> {
     @Override
     public boolean add(V v) {
         String segmentKey = this.segmentKey(v);
-        return this.database.writeLock(this.tableName, () -> {
+        return this.database.writeLock(this.key, () -> {
             Set<V> set = this.database.get(this.tableName, segmentKey);
             if (set == null) {
                 set = new HashSet<>();
@@ -123,7 +121,7 @@ public class SegmentHashSet<V> implements SegmentSet<V> {
     @Override
     public boolean remove(V o) {
         String segmentKey = this.segmentKey(o);
-        return this.database.writeLock(this.tableName, () -> {
+        return this.database.writeLock(this.key, () -> {
             Set<V> set = this.database.get(this.tableName, segmentKey);
             if (set == null) {
                 return false;
@@ -158,7 +156,7 @@ public class SegmentHashSet<V> implements SegmentSet<V> {
     @Override
     public boolean retainAll(Collection<? extends V> c) {
         Set<V> set = new HashSet<>();
-        return this.database.writeLock(this.tableName, () -> {
+        return this.database.writeLock(this.key, () -> {
             for (int i = 0; i < this.segment; i++) {
                 Set<V> s = this.database.get(this.tableName, this.segmentKey(i));
                 if (s == null) {
@@ -194,7 +192,7 @@ public class SegmentHashSet<V> implements SegmentSet<V> {
 
     @Override
     public void clear() {
-        this.database.writeLock(this.tableName, () -> {
+        this.database.writeLock(this.key, () -> {
             this.size = 0;
             this.updateStatus();
             for (int i = 0; i < this.segment; i++) {
@@ -234,7 +232,7 @@ public class SegmentHashSet<V> implements SegmentSet<V> {
         if (this.segment == segment) {
             return this;
         }
-        return this.database.writeLock(this.tableName, () -> {
+        return this.database.writeLock(this.key, () -> {
             this.commit();
             SegmentSet<V> segmentSet = new SegmentHashSet<>(this.database, this.tableName, this.key, segment, true);
             for (int i = 0; i < this.segment; i++) {
@@ -258,7 +256,7 @@ public class SegmentHashSet<V> implements SegmentSet<V> {
 
     @Override
     public void destroy() {
-        this.database.writeLock(this.tableName, () -> {
+        this.database.writeLock(this.key, () -> {
             this.database.delete(this.tableName, this.key);
             for (int i = 0; i < this.segment; i++) {
                 this.database.delete(this.tableName, segmentKey(i));

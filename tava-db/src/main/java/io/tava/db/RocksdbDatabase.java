@@ -182,26 +182,22 @@ public class RocksdbDatabase extends AbstractDatabase {
 
     @Override
     protected void commit(String tableName, Map<byte[], byte[]> puts, Set<byte[]> deletes) {
-        if (puts == null && deletes == null) {
+        if (puts.isEmpty() && deletes.isEmpty()) {
             return;
         }
         WriteBatch writeBatch = null;
         try {
             writeBatch = this.pool.borrowObject();
             ColumnFamilyHandle columnFamilyHandle = this.columnFamilyHandle(tableName);
-            if (puts != null) {
-                for (Map.Entry<byte[], byte[]> entry : puts.entrySet()) {
-                    writeBatch.put(columnFamilyHandle, entry.getKey(), entry.getValue());
-                }
+            for (Map.Entry<byte[], byte[]> entry : puts.entrySet()) {
+                writeBatch.put(columnFamilyHandle, entry.getKey(), entry.getValue());
             }
-            if (deletes != null) {
-                for (byte[] delete : deletes) {
-                    writeBatch.delete(columnFamilyHandle, delete);
-                }
+            for (byte[] delete : deletes) {
+                writeBatch.delete(columnFamilyHandle, delete);
             }
             this.db.write(writeOptions, writeBatch);
         } catch (Exception cause) {
-            logger.info("commit", cause);
+            logger.error("commit", cause);
         } finally {
             if (writeBatch != null) {
                 this.pool.returnObject(writeBatch);
@@ -228,20 +224,9 @@ public class RocksdbDatabase extends AbstractDatabase {
         if (snapshot == null) {
             this.readLock(tableName).lock();
         }
-
         RocksIterator iterator = this.db.newIterator(columnFamilyHandle(tableName), readOptions);
         iterator.seekToFirst();
         return new Iterator() {
-            @Override
-            public void close() throws IOException {
-                RocksdbDatabase.this.close(iterator);
-                RocksdbDatabase.this.close(readOptions);
-                if (snapshot != null) {
-                    db.releaseSnapshot(snapshot);
-                    return;
-                }
-                readLock(tableName).unlock();
-            }
 
             @Override
             public boolean hasNext() {
@@ -254,6 +239,17 @@ public class RocksdbDatabase extends AbstractDatabase {
                 byte[] value = iterator.value();
                 iterator.next();
                 return new Entry(key, value, RocksdbDatabase.this);
+            }
+
+            @Override
+            public void close() throws IOException {
+                RocksdbDatabase.this.close(iterator);
+                RocksdbDatabase.this.close(readOptions);
+                if (snapshot != null) {
+                    db.releaseSnapshot(snapshot);
+                    return;
+                }
+                readLock(tableName).unlock();
             }
         };
     }
@@ -278,7 +274,7 @@ public class RocksdbDatabase extends AbstractDatabase {
             return false;
         }
         try {
-            columnFamilyHandle(tableName);
+            this.columnFamilyHandle(tableName);
             return true;
         } catch (Exception cause) {
             this.logger.error("createTable", cause);
