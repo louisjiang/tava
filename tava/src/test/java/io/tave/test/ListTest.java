@@ -1,9 +1,12 @@
 package io.tave.test;
 
 import io.tava.lang.Option;
-import io.tava.lang.Tuples;
 import io.tava.lang.Tuple2;
-import io.tava.util.*;
+import io.tava.lang.Tuples;
+import io.tava.util.ArrayList;
+import io.tava.util.Collection;
+import io.tava.util.List;
+import io.tava.util.Map;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

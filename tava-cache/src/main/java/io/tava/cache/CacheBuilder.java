@@ -1,7 +1,7 @@
 package io.tava.cache;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
-import io.tava.db.*;
+import io.tava.db.Database;
 
 import java.util.concurrent.TimeUnit;
 

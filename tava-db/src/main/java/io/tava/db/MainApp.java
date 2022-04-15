@@ -2,55 +2,25 @@ package io.tava.db;
 
 import com.typesafe.config.ConfigFactory;
 import io.tava.configuration.Configuration;
-import io.tava.db.segment.SegmentList;
 import io.tava.db.segment.SegmentMap;
 import io.tava.serialization.kryo.KryoSerialization;
 
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class MainApp {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
 
         Map<String, Object> values = new HashMap<>();
         values.put("path", "data");
         RocksdbDatabase rocksdbDatabase = new RocksdbDatabase(new Configuration(ConfigFactory.parseMap(values)), new KryoSerialization());
-        SegmentMap<String, String> segmentMap = rocksdbDatabase.newSegmentMap("testMap", 16);
-        for (int i = 0; i < 16 * 2000; i++) {
+        SegmentMap<String, String> segmentMap = rocksdbDatabase.newSegmentMap("token-holder", 16);
+        for (int i = 0; i < 100000; i++) {
             segmentMap.put("key" + i, "value" + i);
+            segmentMap = segmentMap.remap();
         }
-
-        segmentMap.commit();
-        segmentMap.remove("key");
-        segmentMap.put("key", "value");
-        SegmentMap<String, String> m = segmentMap.remap();
-        SegmentList<String> segmentList = rocksdbDatabase.newSegmentList("test", 3);
-        segmentList.clear();
-
-        for (int i = 0; i < 10; i++) {
-            segmentList.add("value" + i);
-        }
-        segmentList.commit();
-        segmentList.remove("value8");
-        segmentList.commit();
-        List<String> list1 = segmentList.toList();
-        List<String> l = new ArrayList<>();
-        l.add("value11");
-        l.add("value22");
-        segmentList.addAll(2, l);
-        segmentList.commit();
-        List<String> list2 = segmentList.toList();
-        l.add("v");
-        segmentList.removeAll(l);
-        segmentList.commit();
-        List<String> list3 = segmentList.toList();
-        segmentList.remove(3);
-        segmentList.commit();
-        List<String> list4 = segmentList.toList();
-        System.exit(-1);
     }
 
 }

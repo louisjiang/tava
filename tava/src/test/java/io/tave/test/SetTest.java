@@ -1,8 +1,8 @@
 package io.tave.test;
 
 import io.tava.lang.Option;
-import io.tava.lang.Tuples;
 import io.tava.lang.Tuple2;
+import io.tava.lang.Tuples;
 import io.tava.util.HashSet;
 import io.tava.util.Set;
 import org.junit.jupiter.api.Assertions;

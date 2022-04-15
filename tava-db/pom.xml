@@ -19,6 +19,7 @@
 
 
     <dependencies>
+
         <dependency>
             <groupId>org.rocksdb</groupId>
             <artifactId>rocksdbjni</artifactId>
@@ -39,6 +40,11 @@
         <dependency>
             <groupId>io.tava</groupId>
             <artifactId>tava-serialization</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.tava</groupId>
+            <artifactId>tava-okhttp</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

@@ -2,8 +2,8 @@ package io.tava.util;
 
 import io.tava.function.*;
 import io.tava.lang.Option;
-import io.tava.lang.Tuples;
 import io.tava.lang.Tuple2;
+import io.tava.lang.Tuples;
 import io.tava.util.builder.MapBuilder;
 
 import java.util.Iterator;
