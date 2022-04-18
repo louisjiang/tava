@@ -3,12 +3,14 @@ package io.tava.db.segment;
 import io.tava.db.Database;
 import io.tava.function.Consumer2;
 
-import java.util.*;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
-public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
+public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<K, V> {
 
-    private final Database database;
-    private final String tableName;
     private final String key;
     private final long sequence;
     private final int segment;
@@ -19,11 +21,10 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
     }
 
     protected SegmentHashMap(Database database, String tableName, String key, int segment, boolean initialize) {
+        super(database, tableName);
         if (Integer.bitCount(segment) != 1) {
             throw new IllegalArgumentException("segment must be a power of 2");
         }
-        this.database = database;
-        this.tableName = tableName;
         this.key = key;
         Map<String, Object> status;
         if (initialize || (status = this.database.get(this.tableName, this.key)) == null) {
@@ -39,8 +40,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
     }
 
     public SegmentHashMap(Database database, String tableName, String key, Map<String, Object> status) {
-        this.database = database;
-        this.tableName = tableName;
+        super(database, tableName);
         this.key = key;
         this.sequence = (Long) status.get("sequence");
         this.segment = (Integer) status.get("segment");
@@ -59,7 +59,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
 
     @Override
     public boolean containsKey(K key) {
-        Map<K, V> map = this.database.get(this.tableName, this.segmentKey(key));
+        Map<K, V> map = this.readLock(() -> this.database.get(this.tableName, this.segmentKey(key)));
         if (map == null) {
             return false;
         }
@@ -70,7 +70,8 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
     @Override
     public boolean containsValue(V value) {
         for (int i = 0; i < this.segment; i++) {
-            Map<K, V> map = this.database.get(this.tableName, this.segmentKey(i));
+            int index = i;
+            Map<K, V> map = this.readLock(() -> this.database.get(this.tableName, this.segmentKey(index)));
             if (map == null) {
                 continue;
             }
@@ -83,7 +84,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
 
     @Override
     public V get(K key) {
-        Map<K, V> map = this.database.get(this.tableName, this.segmentKey(key));
+        Map<K, V> map = this.readLock(() -> this.database.get(this.tableName, this.segmentKey(key)));
         if (map == null) {
             return null;
         }
@@ -92,34 +93,38 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
 
     @Override
     public V put(K key, V value) {
-        String segmentKey = this.segmentKey(key);
-        Map<K, V> map = this.database.get(this.tableName, segmentKey);
-        if (map == null) {
-            map = new HashMap<>();
-        }
-        int size = map.size();
-        map.put(key, value);
-        if (map.size() - 1 == size) {
-            this.incrementSize();
-        }
-        this.database.put(this.tableName, segmentKey, map);
-        return value;
+        return this.writeLock(() -> {
+            String segmentKey = this.segmentKey(key);
+            Map<K, V> map = this.database.get(this.tableName, segmentKey);
+            if (map == null) {
+                map = new HashMap<>();
+            }
+            int size = map.size();
+            map.put(key, value);
+            if (map.size() - 1 == size) {
+                this.incrementSize();
+            }
+            this.database.put(this.tableName, segmentKey, map);
+            return value;
+        });
     }
 
     @Override
     public V remove(K key) {
-        String segmentKey = this.segmentKey(key);
-        Map<K, V> map = this.database.get(this.tableName, segmentKey);
-        if (map == null) {
-            return null;
-        }
-        int size = map.size();
-        V v = map.remove(key);
-        if (map.size() + 1 == size) {
-            this.decrementSize();
-            this.database.put(this.tableName, segmentKey, map);
-        }
-        return v;
+        return this.writeLock(() -> {
+            String segmentKey = this.segmentKey(key);
+            Map<K, V> map = this.database.get(this.tableName, segmentKey);
+            if (map == null) {
+                return null;
+            }
+            int size = map.size();
+            V v = map.remove(key);
+            if (map.size() + 1 == size) {
+                this.decrementSize();
+                this.database.put(this.tableName, segmentKey, map);
+            }
+            return v;
+        });
     }
 
     @Override
@@ -131,11 +136,13 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
 
     @Override
     public void clear() {
-        this.size = 0;
-        this.updateStatus();
-        for (int i = 0; i < this.segment; i++) {
-            this.database.delete(this.tableName, this.segmentKey(i));
-        }
+        this.writeLock(() -> {
+            this.size = 0;
+            this.updateStatus();
+            for (int i = 0; i < this.segment; i++) {
+                this.database.delete(this.tableName, this.segmentKey(i));
+            }
+        });
     }
 
     @Override
@@ -155,6 +162,7 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
 
     @Override
     public Iterator<Map.Entry<K, V>> iterator() {
+        this.readWriteLock.readLock().lock();
         return new Iterator<Map.Entry<K, V>>() {
 
             private int index = 0;
@@ -182,29 +190,31 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
                 return iterator.next();
             }
 
+            @Override
+            public void close() throws IOException {
+                readWriteLock.readLock().unlock();
+            }
         };
 
     }
 
     @Override
-    public void commit() {
-        this.database.commit(this.tableName);
-    }
-
-    @Override
     public void destroy() {
-        this.database.delete(this.tableName, this.key);
-        for (int i = 0; i < this.segment; i++) {
-            this.database.delete(this.tableName, this.segmentKey(i));
-        }
-        this.commit();
+        this.writeLock(() -> {
+            this.database.delete(this.tableName, this.key);
+            for (int i = 0; i < this.segment; i++) {
+                this.database.delete(this.tableName, this.segmentKey(i));
+            }
+            this.commit();
+        });
     }
 
     @Override
     public Map<K, V> toMap() {
         Map<K, V> map = new HashMap<>();
         for (int i = 0; i < this.segment; i++) {
-            Map<K, V> m = this.database.get(this.tableName, this.segmentKey(i));
+            int index = i;
+            Map<K, V> m = this.readLock(() -> this.database.get(this.tableName, this.segmentKey(index)));
             if (m == null) {
                 continue;
             }
@@ -228,19 +238,21 @@ public class SegmentHashMap<K, V> implements SegmentMap<K, V> {
         if (segment == this.segment) {
             return this;
         }
-        this.commit();
-        SegmentMap<K, V> segmentMap = new SegmentHashMap<>(this.database, this.tableName, this.key, segment, true);
-        for (int i = 0; i < this.segment; i++) {
-            String segmentKey = this.segmentKey(i);
-            Map<K, V> map = this.database.get(this.tableName, segmentKey);
-            if (map == null) {
-                continue;
+        return this.writeLock(() -> {
+            this.commit();
+            SegmentMap<K, V> segmentMap = new SegmentHashMap<>(this.database, this.tableName, this.key, segment, true);
+            for (int i = 0; i < this.segment; i++) {
+                String segmentKey = this.segmentKey(i);
+                Map<K, V> map = this.database.get(this.tableName, segmentKey);
+                if (map == null) {
+                    continue;
+                }
+                this.database.delete(this.tableName, segmentKey);
+                segmentMap.putAll(map);
             }
-            this.database.delete(this.tableName, segmentKey);
-            segmentMap.putAll(map);
-        }
-        segmentMap.commit();
-        return segmentMap;
+            segmentMap.commit();
+            return segmentMap;
+        });
     }
 
     public void forEach(Consumer2<? super K, ? super V> action) {
