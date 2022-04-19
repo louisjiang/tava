@@ -39,6 +39,7 @@
         <agrona.version>1.15.1</agrona.version>
         <streamex.version>0.8.1</streamex.version>
         <fastjson.version>1.2.80</fastjson.version>
+        <fastjson2.version>2.0.1</fastjson2.version>
         <disruptor.version>3.4.4</disruptor.version>
         <okhttp.version>4.9.3</okhttp.version>
         <kotlin.version>1.4.10</kotlin.version>
@@ -93,6 +94,11 @@
                 <version>${fastjson.version}</version>
             </dependency>
             <dependency>
+                <groupId>com.alibaba.fastjson2</groupId>
+                <artifactId>fastjson2</artifactId>
+                <version>${fastjson2.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>com.lmax</groupId>
                 <artifactId>disruptor</artifactId>
                 <version>${disruptor.version}</version>
@@ -106,11 +112,20 @@
                         <groupId>org.jetbrains.kotlin</groupId>
                         <artifactId>kotlin-stdlib</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>org.jetbrains.kotlin</groupId>
+                        <artifactId>kotlin-stdlib-common</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-stdlib</artifactId>
+                <version>${kotlin.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-stdlib-common</artifactId>
                 <version>${kotlin.version}</version>
             </dependency>
             <dependency>

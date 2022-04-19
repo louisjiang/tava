@@ -1,6 +1,7 @@
 package io.tava.okhttp;
 
-import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson2.JSONArray;
+import com.alibaba.fastjson2.JSONObject;
 import net.jodah.failsafe.Failsafe;
 import net.jodah.failsafe.RetryPolicy;
 import okhttp3.*;
@@ -117,20 +118,37 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
         return put(url, formBodyBuilder.build(), headers);
     }
 
-    public Response put(String url, JSON json) {
+    public Response put(String url, JSONObject json) {
         return put(url, json, JSON_MEDIA_TYPE);
     }
 
-    public Response put(String url, JSON json, MediaType mediaType) {
+    public Response put(String url, JSONObject json, MediaType mediaType) {
         return put(url, json, mediaType, null);
     }
 
-    public Response put(String url, JSON json, Map<String, String> headers) {
+    public Response put(String url, JSONObject json, Map<String, String> headers) {
         return put(url, json, null, headers);
     }
 
-    public Response put(String url, JSON json, MediaType mediaType, Map<String, String> headers) {
-        RequestBody requestBody = RequestBody.create(json.toJSONString(), mediaType);
+    public Response put(String url, JSONObject json, MediaType mediaType, Map<String, String> headers) {
+        RequestBody requestBody = RequestBody.create(json.toString(), mediaType);
+        return put(url, requestBody, headers);
+    }
+
+    public Response put(String url, JSONArray json) {
+        return put(url, json, JSON_MEDIA_TYPE);
+    }
+
+    public Response put(String url, JSONArray json, MediaType mediaType) {
+        return put(url, json, mediaType, null);
+    }
+
+    public Response put(String url, JSONArray json, Map<String, String> headers) {
+        return put(url, json, null, headers);
+    }
+
+    public Response put(String url, JSONArray json, MediaType mediaType, Map<String, String> headers) {
+        RequestBody requestBody = RequestBody.create(json.toString(), mediaType);
         return put(url, requestBody, headers);
     }
 
@@ -166,36 +184,70 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
         return post(url, formBodyBuilder.build(), headers, retry);
     }
 
-    public Response post(String url, JSON json) {
+    public Response post(String url, JSONObject json) {
         return post(url, json, 1);
     }
 
-    public Response post(String url, JSON json, int retry) {
+    public Response post(String url, JSONObject json, int retry) {
         return post(url, json, JSON_MEDIA_TYPE, retry);
     }
 
-    public Response post(String url, JSON json, Map<String, String> headers) {
+    public Response post(String url, JSONObject json, Map<String, String> headers) {
         return post(url, json, headers, 1);
     }
 
-    public Response post(String url, JSON json, Map<String, String> headers, int retry) {
+    public Response post(String url, JSONObject json, Map<String, String> headers, int retry) {
         return post(url, json, JSON_MEDIA_TYPE, headers, retry);
     }
 
-    public Response post(String url, JSON json, MediaType mediaType) {
+    public Response post(String url, JSONObject json, MediaType mediaType) {
         return post(url, json, mediaType, 1);
     }
 
-    public Response post(String url, JSON json, MediaType mediaType, int retry) {
+    public Response post(String url, JSONObject json, MediaType mediaType, int retry) {
         return post(url, json, mediaType, null, retry);
     }
 
-    public Response post(String url, JSON json, MediaType mediaType, Map<String, String> headers) {
+    public Response post(String url, JSONObject json, MediaType mediaType, Map<String, String> headers) {
         return post(url, json, mediaType, headers, 1);
     }
 
-    public Response post(String url, JSON json, MediaType mediaType, Map<String, String> headers, int retry) {
-        RequestBody requestBody = RequestBody.create(json.toJSONString(), mediaType);
+    public Response post(String url, JSONObject json, MediaType mediaType, Map<String, String> headers, int retry) {
+        RequestBody requestBody = RequestBody.create(json.toString(), mediaType);
+        return post(url, requestBody, headers, retry);
+    }
+
+
+    public Response post(String url, JSONArray json) {
+        return post(url, json, 1);
+    }
+
+    public Response post(String url, JSONArray json, int retry) {
+        return post(url, json, JSON_MEDIA_TYPE, retry);
+    }
+
+    public Response post(String url, JSONArray json, Map<String, String> headers) {
+        return post(url, json, headers, 1);
+    }
+
+    public Response post(String url, JSONArray json, Map<String, String> headers, int retry) {
+        return post(url, json, JSON_MEDIA_TYPE, headers, retry);
+    }
+
+    public Response post(String url, JSONArray json, MediaType mediaType) {
+        return post(url, json, mediaType, 1);
+    }
+
+    public Response post(String url, JSONArray json, MediaType mediaType, int retry) {
+        return post(url, json, mediaType, null, retry);
+    }
+
+    public Response post(String url, JSONArray json, MediaType mediaType, Map<String, String> headers) {
+        return post(url, json, mediaType, headers, 1);
+    }
+
+    public Response post(String url, JSONArray json, MediaType mediaType, Map<String, String> headers, int retry) {
+        RequestBody requestBody = RequestBody.create(json.toString(), mediaType);
         return post(url, requestBody, headers, retry);
     }
 
