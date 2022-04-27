@@ -1,17 +1,23 @@
 package io.tava.db;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.tava.configuration.Configuration;
+import io.tava.db.segment.*;
 import io.tava.function.Consumer0;
 import io.tava.function.Consumer2;
 import io.tava.function.Consumer3;
 import io.tava.function.Function0;
+import io.tava.lang.Option;
 import io.tava.serialization.Serialization;
+import io.tava.util.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -20,7 +26,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * @author louisjiang <493509534@qq.com>
  * @version 2021-07-14 13:31
  */
-public abstract class AbstractDatabase implements Database {
+public abstract class AbstractDatabase implements Database, Util {
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final Map<String, Consumer3<String, byte[], byte[]>> putCallbacks = new ConcurrentHashMap<>();
@@ -32,6 +38,7 @@ public abstract class AbstractDatabase implements Database {
     private final int batchSize;
     private final int interval;
     private final int initialCapacity;
+    private final Cache<String, Segment> cache;
 
     protected AbstractDatabase(Configuration configuration, Serialization serialization) {
         this.serialization = serialization;
@@ -42,6 +49,49 @@ public abstract class AbstractDatabase implements Database {
         for (int i = 0; i < lockSize; i++) {
             this.locks.add(new ReentrantReadWriteLock());
         }
+        Caffeine<Object, Object> caffeine = Caffeine.newBuilder();
+        caffeine.initialCapacity(512);
+        caffeine.maximumSize(2048);
+        caffeine.expireAfterAccess(60, TimeUnit.SECONDS);
+        caffeine.softValues();
+        caffeine.recordStats();
+        this.cache = caffeine.build();
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <V> SegmentList<V> newSegmentList(String tableName, String key, int capacity) {
+        return (SegmentList<V>) this.cache.get(toString("list@", tableName, "@", key), s -> new SegmentArrayList<V>(AbstractDatabase.this, tableName, key, capacity));
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <V> Option<SegmentList<V>> getSegmentList(String tableName, String key) {
+        return Option.option((SegmentList<V>) this.cache.get(toString("list@", tableName, "@", key), s -> SegmentList.get(AbstractDatabase.this, tableName, key)));
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <V> SegmentSet<V> newSegmentSet(String tableName, String key, int segment) {
+        return (SegmentSet<V>) this.cache.get(toString("set@", tableName, "@", key), s -> new SegmentHashSet<>(AbstractDatabase.this, tableName, key, segment));
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <V> Option<SegmentSet<V>> getSegmentSet(String tableName, String key) {
+        return Option.option((SegmentSet<V>) this.cache.get(toString("set@", tableName, "@", key), s -> SegmentSet.get(AbstractDatabase.this, tableName, key)));
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <K, V> SegmentMap<K, V> newSegmentMap(String tableName, String key, int segment) {
+        return (SegmentMap<K, V>) this.cache.get(toString("map@", tableName, "@", key), s -> new SegmentHashMap<>(AbstractDatabase.this, tableName, key, segment));
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <K, V> Option<SegmentMap<K, V>> getSegmentMap(String tableName, String key) {
+        return Option.option((SegmentMap<K, V>) this.cache.get(toString("map@", tableName, "@", key), s -> SegmentMap.get(AbstractDatabase.this, tableName, key)));
     }
 
     @Override

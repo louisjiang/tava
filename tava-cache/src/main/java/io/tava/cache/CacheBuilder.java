@@ -63,11 +63,11 @@ public final class CacheBuilder {
         return this;
     }
 
-    public Cache build() {
+    public <V> Cache<V> build() {
         if (this.database == null) {
-            return new MemoryCache(this.caffeine.build());
+            return new MemoryCache<>(this.caffeine.build());
         }
-        return new DatabaseCache(this.caffeine.build(new DatabaseCacheLoader(this.database)), database);
+        return new DatabaseCache<>(this.caffeine.build(new DatabaseCacheLoader<>(this.database)), this.database);
     }
 
 }

@@ -9,7 +9,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * @author louisjiang <493509534@qq.com>
  * @version 2021-05-31 13:58
  */
-public class DatabaseCacheLoader implements CacheLoader<String, Object> {
+public class DatabaseCacheLoader<V> implements CacheLoader<String, V> {
 
     private final Database database;
 
@@ -19,8 +19,8 @@ public class DatabaseCacheLoader implements CacheLoader<String, Object> {
 
     @Override
     @Nullable
-    public Object load(@NonNull String key) throws Exception {
-        return database.get(key);
+    public V load(@NonNull String key) throws Exception {
+        return this.database.get(key);
     }
 
 }
