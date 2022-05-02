@@ -1,5 +1,6 @@
 package io.tava.db;
 
+import io.tava.db.segment.Segment;
 import io.tava.db.segment.SegmentList;
 import io.tava.db.segment.SegmentMap;
 import io.tava.db.segment.SegmentSet;
@@ -153,4 +154,5 @@ public interface Database {
 
     void addCommitCallback(String tableName, Consumer3<String, byte[], byte[]> putCallback, Consumer2<String, byte[]> deleteCallback);
 
+    void updateSegmentCache(String key, Segment segment);
 }

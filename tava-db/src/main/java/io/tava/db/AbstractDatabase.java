@@ -303,6 +303,11 @@ public abstract class AbstractDatabase implements Database, Util {
         }
     }
 
+    @Override
+    public void updateSegmentCache(String key, Segment segment) {
+        this.cache.put(key, segment);
+    }
+
     static class Operation {
 
         private int version = 0;

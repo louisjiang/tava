@@ -240,6 +240,7 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
                 segmentSet.addAll(set);
             }
             segmentSet.commit();
+            this.database.updateSegmentCache(toString("set@", this.tableName, "@", this.key), segmentSet);
             return segmentSet;
         });
     }

@@ -1,6 +1,8 @@
 package io.tava.db.segment;
 
-public interface Segment {
+import io.tava.util.Util;
+
+public interface Segment extends Util {
 
     void commit();
 

@@ -251,6 +251,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
                 segmentMap.putAll(map);
             }
             segmentMap.commit();
+            this.database.updateSegmentCache(toString("map@", this.tableName, "@", this.key), segmentMap);
             return segmentMap;
         });
     }
