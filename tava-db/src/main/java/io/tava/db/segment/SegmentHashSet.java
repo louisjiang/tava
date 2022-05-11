@@ -213,17 +213,16 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
     }
 
     @Override
-    public SegmentSet<V> reset() {
-        int segment = this.size / 1024;
+    public SegmentSet<V> reset(int segmentSize) {
+        int segment = this.size / segmentSize;
         if (segment <= this.segment) {
             return this;
         }
         segment = this.segment * 2;
-        return reset(segment);
+        return reset_(segment);
     }
 
-    @Override
-    public SegmentSet<V> reset(int segment) {
+    private SegmentSet<V> reset_(int segment) {
         if (this.segment == segment) {
             return this;
         }

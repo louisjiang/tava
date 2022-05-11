@@ -224,17 +224,19 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
     }
 
     @Override
-    public SegmentMap<K, V> remap() {
-        int segment = this.size / 1024;
+    public SegmentMap<K, V> remap(int segmentSize) {
+        int segment = this.size / segmentSize;
         if (segment <= this.segment) {
             return this;
         }
         segment = this.segment * 2;
-        return remap(segment);
+        if (segment == this.segment) {
+            return this;
+        }
+        return remap_(segment);
     }
 
-    @Override
-    public SegmentMap<K, V> remap(int segment) {
+    private SegmentMap<K, V> remap_(int segment) {
         if (segment == this.segment) {
             return this;
         }

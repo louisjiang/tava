@@ -34,7 +34,7 @@
 
     <properties>
         <typesafe.config.version>1.4.2</typesafe.config.version>
-        <rocksdbjni.version>7.1.1</rocksdbjni.version>
+        <rocksdbjni.version>7.2.2</rocksdbjni.version>
         <netty.version>4.1.76.Final</netty.version>
         <agrona.version>1.15.1</agrona.version>
         <streamex.version>0.8.1</streamex.version>
@@ -47,7 +47,7 @@
         <slf4j.version>1.7.36</slf4j.version>
         <rxjava.version>3.1.4</rxjava.version>
         <joda.time.version>2.10.14</joda.time.version>
-        <spring.boot.version>2.6.6</spring.boot.version>
+        <spring.boot.version>2.6.7</spring.boot.version>
         <spring.context.version>5.3.19</spring.context.version>
         <aopalliance.version>1.0</aopalliance.version>
         <mustache.version>0.9.10</mustache.version>

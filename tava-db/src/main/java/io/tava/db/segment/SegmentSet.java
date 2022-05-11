@@ -32,9 +32,7 @@ public interface SegmentSet<V> extends Segment {
 
     Set<V> toSet();
 
-    SegmentSet<V> reset();
-
-    SegmentSet<V> reset(int segment);
+    SegmentSet<V> reset(int segmentSize);
 
     static <V> SegmentSet<V> get(Database database, String tableName, String key) {
         Map<String, Object> status = database.get(tableName, key);
