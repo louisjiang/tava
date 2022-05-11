@@ -142,21 +142,21 @@ public abstract class AbstractDatabase implements Database, Util {
         }
 
         long totalBytes = 0;
-        Map<byte[], byte[]> putBytes = new HashMap<>();
-        Set<byte[]> deleteBytes = new HashSet<>();
+        Map<byte[], byte[]> puts = new HashMap<>();
+        Set<byte[]> deletes = new HashSet<>();
         Consumer3<String, byte[], byte[]> putCallback = this.putCallbacks.get(tableName);
         Consumer2<String, byte[]> deleteCallback = this.deleteCallbacks.get(tableName);
 
-        Map<String, Operation> versions = new HashMap<>(operationMap.size());
+        Map<String, Operation> commits = new HashMap<>(operationMap.size());
         for (Map.Entry<String, Operation> entry : operationMap.entrySet()) {
             String key = entry.getKey();
             this.writeLock(key).lock();
             byte[] bytesKey = key.getBytes(StandardCharsets.UTF_8);
             totalBytes += bytesKey.length;
             Operation operation = entry.getValue();
-            versions.put(key, operation);
+            commits.put(key, operation);
             if (operation.isDelete()) {
-                deleteBytes.add(bytesKey);
+                deletes.add(bytesKey);
                 if (deleteCallback != null) {
                     deleteCallback.accept(key, bytesKey);
                 }
@@ -165,26 +165,26 @@ public abstract class AbstractDatabase implements Database, Util {
             }
             byte[] bytesValue = this.toBytes(operation.getValue());
             totalBytes += bytesValue.length;
-            putBytes.put(bytesKey, bytesValue);
+            puts.put(bytesKey, bytesValue);
             if (putCallback != null) {
                 putCallback.accept(key, bytesKey, bytesValue);
             }
             this.writeLock(key).unlock();
         }
         long elapsedTime = System.currentTimeMillis() - now;
-        this.commit(tableName, putBytes, deleteBytes);
-        int count = 0;
-        for (Map.Entry<String, Operation> entry : versions.entrySet()) {
+        this.commit(tableName, puts, deletes);
+        int changed = 0;
+        for (Map.Entry<String, Operation> entry : commits.entrySet()) {
             String key = entry.getKey();
             Operation value = entry.getValue();
             boolean flag = operationMap.remove(key, value);
             if (!flag) {
-                count++;
+                changed++;
             }
         }
         timestamp = System.currentTimeMillis();
         tableNameToTimestamps.put(tableName, timestamp);
-        logger.info("commit data to db [{}][{}][{}][{}][{}][{}][{}][{}]", path(), tableName, putBytes.size(), deleteBytes.size(), count, byteToString(totalBytes), elapsedTime, timestamp - now);
+        logger.info("commit data to db [{}][{}][{}][{}][{}][{}][{}][{}]", path(), tableName, puts.size(), deletes.size(), changed, byteToString(totalBytes), elapsedTime, timestamp - now);
     }
 
     protected abstract List<byte[]> get(String tableName, List<byte[]> keys);
