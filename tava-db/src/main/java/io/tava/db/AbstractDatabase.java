@@ -147,14 +147,14 @@ public abstract class AbstractDatabase implements Database, Util {
         Consumer3<String, byte[], byte[]> putCallback = this.putCallbacks.get(tableName);
         Consumer2<String, byte[]> deleteCallback = this.deleteCallbacks.get(tableName);
 
-        Map<String, Integer> versions = new HashMap<>(operationMap.size());
+        Map<String, Operation> versions = new HashMap<>(operationMap.size());
         for (Map.Entry<String, Operation> entry : operationMap.entrySet()) {
             String key = entry.getKey();
             this.writeLock(key).lock();
             byte[] bytesKey = key.getBytes(StandardCharsets.UTF_8);
             totalBytes += bytesKey.length;
             Operation operation = entry.getValue();
-            versions.put(key, operation.getVersion());
+            versions.put(key, operation);
             if (operation.isDelete()) {
                 deleteBytes.add(bytesKey);
                 if (deleteCallback != null) {
@@ -174,19 +174,17 @@ public abstract class AbstractDatabase implements Database, Util {
         long elapsedTime = System.currentTimeMillis() - now;
         this.commit(tableName, putBytes, deleteBytes);
         int count = 0;
-        for (Map.Entry<String, Integer> entry : versions.entrySet()) {
+        for (Map.Entry<String, Operation> entry : versions.entrySet()) {
             String key = entry.getKey();
-            this.writeLock(key).lock();
-            Operation operation = operationMap.get(key);
-            if (operation != null && operation.getVersion() == entry.getValue()) {
+            Operation value = entry.getValue();
+            boolean flag = operationMap.remove(key, value);
+            if (!flag) {
                 count++;
-                operationMap.remove(key);
             }
-            this.writeLock(key).unlock();
         }
         timestamp = System.currentTimeMillis();
         tableNameToTimestamps.put(tableName, timestamp);
-        logger.info("commit data to db [{}][{}][{}][{}][{}][{}][{}][{}]", path(), tableName, putBytes.size(), deleteBytes.size(), versions.size() - count, byteToString(totalBytes), elapsedTime, timestamp - now);
+        logger.info("commit data to db [{}][{}][{}][{}][{}][{}][{}][{}]", path(), tableName, putBytes.size(), deleteBytes.size(), count, byteToString(totalBytes), elapsedTime, timestamp - now);
     }
 
     protected abstract List<byte[]> get(String tableName, List<byte[]> keys);
@@ -314,13 +312,22 @@ public abstract class AbstractDatabase implements Database, Util {
         private boolean delete;
         private Object value;
 
-        private void delete() {
+        public synchronized void delete() {
+            if (delete) {
+                return;
+            }
             this.delete = true;
             this.value = null;
             this.version++;
         }
 
-        public void put(Object value) {
+        public synchronized void put(Object value) {
+            if (this.value == null && value == null) {
+                return;
+            }
+            if (this.value != null && this.value.equals(value)) {
+                return;
+            }
             this.delete = false;
             this.value = value;
             this.version++;
