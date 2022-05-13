@@ -117,6 +117,10 @@ public interface Util {
             return ((short[]) value).length == 0;
         }
 
+        if (value instanceof char[]) {
+            return ((char[]) value).length == 0;
+        }
+
         if (value instanceof int[]) {
             return ((int[]) value).length == 0;
         }

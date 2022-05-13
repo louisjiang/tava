@@ -4,6 +4,8 @@ import io.tava.function.Consumer1;
 import io.tava.function.Function0;
 import io.tava.function.Function1;
 
+import java.util.Collection;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
@@ -12,15 +14,12 @@ public interface Option<T> {
     T get();
 
     default T getOrNull() {
-        if (hasValue()) {
-            return get();
-        }
-        return null;
+        return this.getOrElse((T) null);
     }
 
     default T getOrElse(Function0<T> defaultValue) {
-        if (hasValue()) {
-            return get();
+        if (this.hasValue()) {
+            return this.get();
         }
         if (defaultValue == null) {
             return null;
@@ -29,8 +28,8 @@ public interface Option<T> {
     }
 
     default T getOrElse(T defaultValue) {
-        if (hasValue()) {
-            return get();
+        if (this.hasValue()) {
+            return this.get();
         }
         return defaultValue;
     }
@@ -57,6 +56,51 @@ public interface Option<T> {
         if (value == null) {
             return none();
         }
+        if (value instanceof String && ((String) value).isEmpty()) {
+            return none();
+        }
+
+        if (value instanceof Collection && ((Collection<?>) value).isEmpty()) {
+            return none();
+        }
+
+        if (value instanceof Map && ((Map<?, ?>) value).isEmpty()) {
+            return none();
+        }
+
+        if (value instanceof Object[] && ((Object[]) value).length == 0) {
+            return none();
+        }
+
+        if (value instanceof byte[] && ((byte[]) value).length == 0) {
+            return none();
+        }
+
+        if (value instanceof short[] && ((short[]) value).length == 0) {
+            return none();
+        }
+
+        if (value instanceof char[] && ((char[]) value).length == 0) {
+            return none();
+        }
+
+        if (value instanceof int[] && ((int[]) value).length == 0) {
+            return none();
+        }
+        if (value instanceof long[] && ((long[]) value).length == 0) {
+            return none();
+        }
+        if (value instanceof float[] && ((float[]) value).length == 0) {
+            return none();
+        }
+        if (value instanceof double[] && ((double[]) value).length == 0) {
+            return none();
+        }
+
+        if (value instanceof boolean[] && ((boolean[]) value).length == 0) {
+            return none();
+        }
+
         return some(value);
     }
 
@@ -110,6 +154,7 @@ public interface Option<T> {
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public <R> Option.None<R> map(Function1<T, R> map) {
             return (Option.None<R>) this;
         }
@@ -134,6 +179,7 @@ public interface Option<T> {
             return Optional.empty();
         }
 
+        @SuppressWarnings("unchecked")
         public static <T> None<T> getInstance() {
             return (None<T>) NoneHolder.none;
         }
