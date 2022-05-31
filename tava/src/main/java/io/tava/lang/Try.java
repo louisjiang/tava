@@ -67,8 +67,8 @@ public interface Try<T> {
         }
 
         @Override
-        public <R> Try.Success<R> map(Function1<T, R> map) {
-            return Try.success(map.apply(get()));
+        public <R> Try<R> map(Function1<T, R> map) {
+            return Try.run(() -> map.apply(get()));
         }
 
         @Override

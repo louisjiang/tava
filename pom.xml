@@ -35,11 +35,10 @@
     <properties>
         <typesafe.config.version>1.4.2</typesafe.config.version>
         <rocksdbjni.version>7.2.2</rocksdbjni.version>
-        <netty.version>4.1.76.Final</netty.version>
-        <agrona.version>1.15.1</agrona.version>
+        <netty.version>4.1.77.Final</netty.version>
+        <agrona.version>1.15.2</agrona.version>
         <streamex.version>0.8.1</streamex.version>
-        <fastjson.version>1.2.80</fastjson.version>
-        <fastjson2.version>2.0.1</fastjson2.version>
+        <fastjson2.version>2.0.5</fastjson2.version>
         <disruptor.version>3.4.4</disruptor.version>
         <okhttp.version>4.9.3</okhttp.version>
         <kotlin.version>1.4.10</kotlin.version>
@@ -47,11 +46,11 @@
         <slf4j.version>1.7.36</slf4j.version>
         <rxjava.version>3.1.4</rxjava.version>
         <joda.time.version>2.10.14</joda.time.version>
-        <spring.boot.version>2.6.7</spring.boot.version>
-        <spring.context.version>5.3.19</spring.context.version>
+        <spring.boot.version>2.7.0</spring.boot.version>
+        <spring.context.version>5.3.20</spring.context.version>
         <aopalliance.version>1.0</aopalliance.version>
         <mustache.version>0.9.10</mustache.version>
-        <javassist.version>3.28.0-GA</javassist.version>
+        <javassist.version>3.29.0-GA</javassist.version>
         <asm.version>9.3</asm.version>
         <lmdbjava.version>0.8.2</lmdbjava.version>
         <commons.pool2.version>2.11.1</commons.pool2.version>
@@ -87,11 +86,6 @@
                 <groupId>one.util</groupId>
                 <artifactId>streamex</artifactId>
                 <version>${streamex.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.alibaba</groupId>
-                <artifactId>fastjson</artifactId>
-                <version>${fastjson.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.alibaba.fastjson2</groupId>

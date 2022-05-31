@@ -111,7 +111,7 @@ public class JavassistAccessor implements Accessor, Util {
             }
             String fieldName = field.getName();
             Class<?> targetClass = field.getDeclaringClass();
-            if (Modifier.isPublic(modifiers)) {
+            if (Modifier.isPublic(modifiers) || Modifier.isProtected(modifiers) || Modifier.isPackage(modifiers)) {
                 String targetClassName = targetClass.getName();
                 String accessorName = toString(targetClassName, "$FieldAccessor$", fieldName, "$", ReflectionUtil.index(field)).replaceAll("-", "_");
                 CtClass ctClass;

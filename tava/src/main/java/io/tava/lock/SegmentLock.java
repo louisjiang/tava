@@ -35,14 +35,22 @@ public class SegmentLock<T> implements Lock<T> {
 
 
     public void lock(T key) {
-        this.locks.get((key.hashCode() >>> 1) % this.segments).lock();
+        this.locks.get(indexFor(hash(key))).lock();
     }
 
 
     public void unlock(T key) {
-        this.locks.get((key.hashCode() >>> 1) % this.segments).unlock();
+        this.locks.get(indexFor(hash(key))).unlock();
     }
 
+    private int hash(Object key) {
+        int h;
+        return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
+    }
+
+    private int indexFor(int h) {
+        return h & (this.segments - 1);
+    }
 
     public void execute(T key, Consumer0 consumer0) {
         try {

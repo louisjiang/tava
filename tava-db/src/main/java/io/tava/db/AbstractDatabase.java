@@ -105,6 +105,7 @@ public abstract class AbstractDatabase implements Database, Util {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <T> T get(String tableName, String key) {
         return readLock(key, () -> {
             Map<String, Operation> operationMap = this.tableNameToOperationMap.get(tableName);
