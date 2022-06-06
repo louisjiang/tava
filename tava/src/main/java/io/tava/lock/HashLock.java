@@ -25,13 +25,8 @@ public class HashLock<T> implements Lock<T> {
 
     public void lock(T key) {
         this.segmentLock.lock(key);
-        LockInfo lockInfo = this.locks.get(key);
-        if (lockInfo == null) {
-            lockInfo = new LockInfo(fair);
-            this.locks.put(key, lockInfo);
-        } else {
-            lockInfo.incrementAndGet();
-        }
+        LockInfo lockInfo = this.locks.computeIfAbsent(key, k -> new LockInfo(fair));
+        lockInfo.incrementAndGet();
         this.segmentLock.unlock(key);
         lockInfo.lock();
     }
@@ -39,6 +34,9 @@ public class HashLock<T> implements Lock<T> {
 
     public void unlock(T key) {
         LockInfo lockInfo = locks.get(key);
+        if (lockInfo == null) {
+            return;
+        }
         if (lockInfo.count() == 1) {
             segmentLock.lock(key);
             if (lockInfo.count.get() == 1) {
