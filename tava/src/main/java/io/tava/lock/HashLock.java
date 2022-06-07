@@ -16,7 +16,7 @@ public class HashLock<T> implements Lock<T> {
     private final boolean fair;
 
     public HashLock() {
-        this(false);
+        this(true);
     }
 
     public HashLock(boolean fair) {
@@ -24,25 +24,25 @@ public class HashLock<T> implements Lock<T> {
     }
 
     public void lock(T key) {
-        this.segmentLock.lock(key);
-        LockInfo lockInfo = this.locks.computeIfAbsent(key, k -> new LockInfo(fair));
-        lockInfo.incrementAndGet();
-        this.segmentLock.unlock(key);
-        lockInfo.lock();
+        this.segmentLock.doWithLock(key, () -> {
+            LockInfo lockInfo = this.locks.computeIfAbsent(key, k -> new LockInfo(fair));
+            lockInfo.incrementAndGet();
+            return lockInfo;
+        }).lock();
     }
 
 
     public void unlock(T key) {
-        LockInfo lockInfo = locks.get(key);
+        LockInfo lockInfo = this.locks.get(key);
         if (lockInfo == null) {
             return;
         }
         if (lockInfo.count() == 1) {
-            segmentLock.lock(key);
-            if (lockInfo.count.get() == 1) {
-                locks.remove(key);
-            }
-            segmentLock.unlock(key);
+            this.segmentLock.doWithLock(key, () -> {
+                if (lockInfo.count() == 1) {
+                    this.locks.remove(key);
+                }
+            });
         }
         lockInfo.decrementAndGet();
         lockInfo.unlock();
@@ -77,6 +77,5 @@ public class HashLock<T> implements Lock<T> {
         public int count() {
             return this.count.get();
         }
-
     }
 }

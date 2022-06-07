@@ -19,11 +19,11 @@ public class SegmentLock<T> implements Lock<T> {
     private final int segments;
 
     public SegmentLock() {
-        this(Runtime.getRuntime().availableProcessors(), false);
+        this(Runtime.getRuntime().availableProcessors(), true);
     }
 
     public SegmentLock(int segments) {
-        this(segments, false);
+        this(segments, true);
     }
 
     public SegmentLock(int segments, boolean fair) {
