@@ -41,7 +41,7 @@
         <fastjson2.version>2.0.6</fastjson2.version>
         <disruptor.version>3.4.4</disruptor.version>
         <okhttp.version>4.9.3</okhttp.version>
-        <kotlin.version>1.4.10</kotlin.version>
+        <kotlin.version>1.6.0</kotlin.version>
         <failsafe.version>2.4.4</failsafe.version>
         <slf4j.version>1.7.36</slf4j.version>
         <rxjava.version>3.1.5</rxjava.version>
