@@ -40,7 +40,7 @@
         <streamex.version>0.8.1</streamex.version>
         <fastjson2.version>2.0.7</fastjson2.version>
         <disruptor.version>3.4.4</disruptor.version>
-        <okhttp.version>4.9.3</okhttp.version>
+        <okhttp.version>4.10.0</okhttp.version>
         <kotlin.version>1.7.0</kotlin.version>
         <failsafe.version>2.4.4</failsafe.version>
         <slf4j.version>1.7.36</slf4j.version>
