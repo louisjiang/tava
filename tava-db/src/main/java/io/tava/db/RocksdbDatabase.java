@@ -222,7 +222,7 @@ public class RocksdbDatabase extends AbstractDatabase {
         ReadOptions readOptions = tuple2.getValue1();
         Snapshot snapshot = tuple2.getValue2();
         if (snapshot == null) {
-            this.readLock(tableName).lock();
+            this.readWriteLock.readLock(tableName);
         }
         RocksIterator iterator = this.db.newIterator(columnFamilyHandle(tableName), readOptions);
         iterator.seekToFirst();
@@ -249,7 +249,7 @@ public class RocksdbDatabase extends AbstractDatabase {
                     db.releaseSnapshot(snapshot);
                     return;
                 }
-                readLock(tableName).unlock();
+                readWriteLock.unReadLock(tableName);
             }
         };
     }

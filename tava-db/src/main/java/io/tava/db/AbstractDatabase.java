@@ -4,11 +4,9 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.tava.configuration.Configuration;
 import io.tava.db.segment.*;
-import io.tava.function.Consumer0;
-import io.tava.function.Consumer2;
-import io.tava.function.Consumer3;
-import io.tava.function.Function0;
+import io.tava.function.*;
 import io.tava.lang.Option;
+import io.tava.lock.HashReadWriteLock;
 import io.tava.serialization.Serialization;
 import io.tava.util.Util;
 import org.slf4j.Logger;
@@ -18,22 +16,21 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * @author louisjiang <493509534@qq.com>
  * @version 2021-07-14 13:31
  */
+@SuppressWarnings("unchecked")
 public abstract class AbstractDatabase implements Database, Util {
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
+    protected final HashReadWriteLock<String> readWriteLock = new HashReadWriteLock<>();
     private final Map<String, Consumer3<String, byte[], byte[]>> putCallbacks = new ConcurrentHashMap<>();
     private final Map<String, Consumer2<String, byte[]>> deleteCallbacks = new ConcurrentHashMap<>();
-    private final List<ReadWriteLock> locks = new ArrayList<>();
     private final Map<String, Map<String, Operation>> tableNameToOperationMap = new ConcurrentHashMap<>();
     private final Map<String, Long> tableNameToTimestamps = new ConcurrentHashMap<>();
+    private final byte[] EMPTY = new byte[0];
     private final Serialization serialization;
     private final int batchSize;
     private final int interval;
@@ -45,10 +42,6 @@ public abstract class AbstractDatabase implements Database, Util {
         this.batchSize = configuration.getInt("batch_size", 2048);
         this.interval = configuration.getInt("interval", 10000);
         this.initialCapacity = this.batchSize / 2;
-        int lockSize = configuration.getInt("lock_size", 128);
-        for (int i = 0; i < lockSize; i++) {
-            this.locks.add(new ReentrantReadWriteLock());
-        }
         Caffeine<Object, Object> caffeine = Caffeine.newBuilder();
         caffeine.initialCapacity(512);
         caffeine.maximumSize(2048);
@@ -59,37 +52,31 @@ public abstract class AbstractDatabase implements Database, Util {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public <V> SegmentList<V> newSegmentList(String tableName, String key, int capacity) {
         return (SegmentList<V>) this.cache.get(toString("list@", tableName, "@", key), s -> new SegmentArrayList<V>(AbstractDatabase.this, tableName, key, capacity));
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public <V> Option<SegmentList<V>> getSegmentList(String tableName, String key) {
         return Option.option((SegmentList<V>) this.cache.get(toString("list@", tableName, "@", key), s -> SegmentList.get(AbstractDatabase.this, tableName, key)));
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public <V> SegmentSet<V> newSegmentSet(String tableName, String key, int segment) {
         return (SegmentSet<V>) this.cache.get(toString("set@", tableName, "@", key), s -> new SegmentHashSet<>(AbstractDatabase.this, tableName, key, segment));
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public <V> Option<SegmentSet<V>> getSegmentSet(String tableName, String key) {
         return Option.option((SegmentSet<V>) this.cache.get(toString("set@", tableName, "@", key), s -> SegmentSet.get(AbstractDatabase.this, tableName, key)));
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public <K, V> SegmentMap<K, V> newSegmentMap(String tableName, String key, int segment) {
         return (SegmentMap<K, V>) this.cache.get(toString("map@", tableName, "@", key), s -> new SegmentHashMap<>(AbstractDatabase.this, tableName, key, segment));
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public <K, V> Option<SegmentMap<K, V>> getSegmentMap(String tableName, String key) {
         return Option.option((SegmentMap<K, V>) this.cache.get(toString("map@", tableName, "@", key), s -> SegmentMap.get(AbstractDatabase.this, tableName, key)));
     }
@@ -105,7 +92,6 @@ public abstract class AbstractDatabase implements Database, Util {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public <T> T get(String tableName, String key) {
         return readLock(key, () -> {
             Map<String, Operation> operationMap = this.tableNameToOperationMap.get(tableName);
@@ -119,6 +105,27 @@ public abstract class AbstractDatabase implements Database, Util {
             }
             return (T) this.toObject(bytes);
         });
+    }
+
+    @Override
+    public <T> void get(String tableName, String key, Consumer1<T> consumer1) {
+        this.readLock(key, () -> {
+            Map<String, Operation> operationMap = this.tableNameToOperationMap.get(tableName);
+            Operation operation;
+            if (operationMap != null && (operation = operationMap.get(key)) != null) {
+                T value = (T) operation.getValue();
+                consumer1.accept(value);
+                return value;
+            }
+            byte[] bytes = this.get(tableName, key.getBytes(StandardCharsets.UTF_8));
+            if (bytes == null || bytes.length == 0) {
+                return null;
+            }
+            T value = (T) this.toObject(bytes);
+            consumer1.accept(value);
+            return value;
+        });
+
     }
 
     @Override
@@ -151,7 +158,7 @@ public abstract class AbstractDatabase implements Database, Util {
         Map<String, Operation> commits = new HashMap<>(operationMap.size());
         for (Map.Entry<String, Operation> entry : operationMap.entrySet()) {
             String key = entry.getKey();
-            this.writeLock(key).lock();
+            this.readWriteLock.writeLock(key);
             byte[] bytesKey = key.getBytes(StandardCharsets.UTF_8);
             totalBytes += bytesKey.length;
             Operation operation = entry.getValue();
@@ -161,7 +168,7 @@ public abstract class AbstractDatabase implements Database, Util {
                 if (deleteCallback != null) {
                     deleteCallback.accept(key, bytesKey);
                 }
-                this.writeLock(key).unlock();
+                this.readWriteLock.unWriteLock(key);
                 continue;
             }
             byte[] bytesValue = this.toBytes(operation.getValue());
@@ -170,7 +177,7 @@ public abstract class AbstractDatabase implements Database, Util {
             if (putCallback != null) {
                 putCallback.accept(key, bytesKey, bytesValue);
             }
-            this.writeLock(key).unlock();
+            this.readWriteLock.unWriteLock(key);
         }
         long elapsedTime = System.currentTimeMillis() - now;
         this.commit(tableName, puts, deletes);
@@ -195,16 +202,6 @@ public abstract class AbstractDatabase implements Database, Util {
     protected abstract void commit(String tableName, Map<byte[], byte[]> puts, Set<byte[]> deletes);
 
     @Override
-    public Lock writeLock(String key) {
-        return this.locks.get(indexFor(hash(key))).writeLock();
-    }
-
-    @Override
-    public Lock readLock(String key) {
-        return this.locks.get(indexFor(hash(key))).readLock();
-    }
-
-    @Override
     public boolean dropTable(String tableName) {
         this.tableNameToOperationMap.remove(tableName);
         this.tableNameToTimestamps.remove(tableName);
@@ -225,7 +222,7 @@ public abstract class AbstractDatabase implements Database, Util {
             return this.serialization.toBytes(value);
         } catch (Exception cause) {
             this.logger.error("toBytes", cause);
-            return null;
+            return EMPTY;
         }
     }
 
@@ -239,32 +236,22 @@ public abstract class AbstractDatabase implements Database, Util {
         }
     }
 
+    @Override
+    public void readLock(String key, Consumer0 consumer) {
+        this.readWriteLock.doWithReadLock(key, consumer);
+    }
+
     public <T> T readLock(String key, Function0<T> function) {
-        try {
-            this.readLock(key).lock();
-            return function.apply();
-        } finally {
-            this.readLock(key).unlock();
-        }
+        return this.readWriteLock.doWithReadLock(key, function);
     }
 
     public void writeLock(String key, Consumer0 consumer) {
-        try {
-            this.writeLock(key).lock();
-            consumer.accept();
-        } finally {
-            this.writeLock(key).unlock();
-        }
+        this.readWriteLock.doWithWriteLock(key, consumer);
     }
 
     @Override
     public <T> T writeLock(String key, Function0<T> function) {
-        try {
-            this.writeLock(key).lock();
-            return function.apply();
-        } finally {
-            this.writeLock(key).unlock();
-        }
+        return this.readWriteLock.doWithWriteLock(key, function);
     }
 
     private String byteToString(long byteLength) {
@@ -281,15 +268,6 @@ public abstract class AbstractDatabase implements Database, Util {
         }
         byteLength = byteLength / 1024;
         return byteLength + "GB";
-    }
-
-    private int hash(Object key) {
-        int h;
-        return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
-    }
-
-    private int indexFor(int h) {
-        return h & (this.locks.size() - 1);
     }
 
     @Override

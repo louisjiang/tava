@@ -4,17 +4,12 @@ import io.tava.db.segment.Segment;
 import io.tava.db.segment.SegmentList;
 import io.tava.db.segment.SegmentMap;
 import io.tava.db.segment.SegmentSet;
-import io.tava.function.Consumer0;
-import io.tava.function.Consumer2;
-import io.tava.function.Consumer3;
-import io.tava.function.Function0;
+import io.tava.function.*;
 import io.tava.lang.Option;
 import io.tava.lang.Tuple2;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.locks.Lock;
 
 /**
  * @author louisjiang <493509534@qq.com>
@@ -96,17 +91,11 @@ public interface Database {
 
     <T> T get(String tableName, String key);
 
-    default Map<String, Object> get(Set<String> keys) {
-        return this.get("default", keys);
+    default <T> void get(String key, Consumer1<T> consumer1) {
+        get("default", key, consumer1);
     }
 
-    default Map<String, Object> get(String tableName, Set<String> keys) {
-        Map<String, Object> keyValues = new HashMap<>();
-        for (String key : keys) {
-            keyValues.put(key, this.get(tableName, key));
-        }
-        return keyValues;
-    }
+    <T> void get(String tableName, String key, Consumer1<T> consumer1);
 
     default Iterator iterator() {
         return this.iterator("default");
@@ -126,13 +115,11 @@ public interface Database {
 
     String path();
 
-    Lock writeLock(String key);
-
     void writeLock(String key, Consumer0 consumer);
 
     <T> T writeLock(String key, Function0<T> function);
 
-    Lock readLock(String key);
+    void readLock(String key, Consumer0 consumer);
 
     <T> T readLock(String key, Function0<T> function);
 

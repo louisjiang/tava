@@ -12,7 +12,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class HashLock<T> implements Lock<T> {
 
     private final SegmentLock<T> segmentLock = new SegmentLock<>();
-    private final Map<T, LockInfo> locks = new ConcurrentHashMap<>();
+    private final Map<T, LockInfo> lockInfos = new ConcurrentHashMap<>();
     private final boolean fair;
 
     public HashLock() {
@@ -25,7 +25,7 @@ public class HashLock<T> implements Lock<T> {
 
     public void lock(T key) {
         this.segmentLock.doWithLock(key, () -> {
-            LockInfo lockInfo = this.locks.computeIfAbsent(key, k -> new LockInfo(fair));
+            LockInfo lockInfo = this.lockInfos.computeIfAbsent(key, k -> new LockInfo(fair));
             lockInfo.incrementAndGet();
             return lockInfo;
         }).lock();
@@ -33,14 +33,14 @@ public class HashLock<T> implements Lock<T> {
 
 
     public void unlock(T key) {
-        LockInfo lockInfo = this.locks.get(key);
+        LockInfo lockInfo = this.lockInfos.get(key);
         if (lockInfo == null) {
             return;
         }
         if (lockInfo.count() == 1) {
             this.segmentLock.doWithLock(key, () -> {
                 if (lockInfo.count() == 1) {
-                    this.locks.remove(key);
+                    this.lockInfos.remove(key);
                 }
             });
         }
@@ -49,7 +49,7 @@ public class HashLock<T> implements Lock<T> {
     }
 
 
-    static class LockInfo {
+    private static class LockInfo {
 
         private final AtomicInteger count = new AtomicInteger(0);
         private final ReentrantLock reentrantLock;
