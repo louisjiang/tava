@@ -11,12 +11,12 @@ public class VirtualNode<T extends Node> implements Node {
     }
 
     @Override
-    public String geValue() {
-        return physicalNode.geValue() + "@" + replicaIndex;
+    public String getValue() {
+        return physicalNode.getValue() + "@" + replicaIndex;
     }
 
     public boolean isVirtualNodeOf(T pNode) {
-        return physicalNode.geValue().equals(pNode.geValue());
+        return physicalNode.getValue().equals(pNode.getValue());
     }
 
     public T getPhysicalNode() {

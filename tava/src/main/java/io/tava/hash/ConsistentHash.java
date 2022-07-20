@@ -33,7 +33,7 @@ public class ConsistentHash<T extends Node> {
         int existingReplicas = getExistingReplicas(pNode);
         for (int i = 0; i < vNodeCount; i++) {
             VirtualNode<T> vNode = new VirtualNode<>(pNode, i + existingReplicas);
-            virtualNodes.put(hashFunction.hash(vNode.geValue()), vNode);
+            virtualNodes.put(hashFunction.hash(vNode.getValue()), vNode);
         }
     }
 

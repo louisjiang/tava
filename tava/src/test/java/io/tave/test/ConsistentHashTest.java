@@ -21,7 +21,7 @@ public class ConsistentHashTest {
         }
 
         @Override
-        public String geValue() {
+        public String getValue() {
             return key;
         }
     }
@@ -38,7 +38,7 @@ public class ConsistentHashTest {
         long l = System.currentTimeMillis();
         for (int i = 0; i < 5000000; i++) {
             TestNode testNode = consistentHash.hashNode("key" + i);
-            String key = testNode.geValue();
+            String key = testNode.getValue();
             if (key.equals("value1")) {
                 v1 += 1;
             } else {
