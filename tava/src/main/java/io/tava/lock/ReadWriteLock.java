@@ -18,6 +18,9 @@ public interface ReadWriteLock<T> {
     void unReadLock(T key);
 
     default void doWithWriteLock(T key, Consumer0 consumer) {
+        if (key == null) {
+            throw new NullPointerException("key is null");
+        }
         try {
             this.writeLock(key);
             consumer.accept();
@@ -27,6 +30,9 @@ public interface ReadWriteLock<T> {
     }
 
     default <R> R doWithWriteLock(T key, Function0<R> function) {
+        if (key == null) {
+            throw new NullPointerException("key is null");
+        }
         try {
             this.writeLock(key);
             return function.apply();
@@ -37,6 +43,9 @@ public interface ReadWriteLock<T> {
 
 
     default void doWithReadLock(T key, Consumer0 consumer) {
+        if (key == null) {
+            throw new NullPointerException("key is null");
+        }
         try {
             this.readLock(key);
             consumer.accept();
@@ -46,6 +55,9 @@ public interface ReadWriteLock<T> {
     }
 
     default <R> R doWithReadLock(T key, Function0<R> function) {
+        if (key == null) {
+            throw new NullPointerException("key is null");
+        }
         try {
             this.readLock(key);
             return function.apply();

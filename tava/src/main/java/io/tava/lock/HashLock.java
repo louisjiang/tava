@@ -24,6 +24,9 @@ public class HashLock<T> implements Lock<T> {
     }
 
     public void lock(T key) {
+        if (key == null) {
+            throw new NullPointerException("key is null");
+        }
         this.segmentLock.doWithLock(key, () -> {
             LockInfo lockInfo = this.lockInfos.computeIfAbsent(key, k -> new LockInfo(fair));
             lockInfo.incrementAndGet();
@@ -33,6 +36,9 @@ public class HashLock<T> implements Lock<T> {
 
 
     public void unlock(T key) {
+        if (key == null) {
+            throw new NullPointerException("key is null");
+        }
         LockInfo lockInfo = this.lockInfos.get(key);
         if (lockInfo == null) {
             return;
