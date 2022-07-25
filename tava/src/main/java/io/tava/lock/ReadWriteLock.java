@@ -2,12 +2,13 @@ package io.tava.lock;
 
 import io.tava.function.Consumer0;
 import io.tava.function.Function0;
+import io.tava.util.Util;
 
 /**
  * @author louisjiang <493509534@qq.com>
  * @version 2022-06-23 15:18
  */
-public interface ReadWriteLock<T> {
+public interface ReadWriteLock<T> extends Util {
 
     void writeLock(T key);
 
@@ -18,7 +19,7 @@ public interface ReadWriteLock<T> {
     void unReadLock(T key);
 
     default void doWithWriteLock(T key, Consumer0 consumer) {
-        if (key == null) {
+        if (isEmpty(key)) {
             throw new NullPointerException("key is null");
         }
         try {
@@ -30,7 +31,7 @@ public interface ReadWriteLock<T> {
     }
 
     default <R> R doWithWriteLock(T key, Function0<R> function) {
-        if (key == null) {
+        if (isEmpty(key)) {
             throw new NullPointerException("key is null");
         }
         try {
@@ -43,7 +44,7 @@ public interface ReadWriteLock<T> {
 
 
     default void doWithReadLock(T key, Consumer0 consumer) {
-        if (key == null) {
+        if (isEmpty(key)) {
             throw new NullPointerException("key is null");
         }
         try {
@@ -55,7 +56,7 @@ public interface ReadWriteLock<T> {
     }
 
     default <R> R doWithReadLock(T key, Function0<R> function) {
-        if (key == null) {
+        if (isEmpty(key)) {
             throw new NullPointerException("key is null");
         }
         try {

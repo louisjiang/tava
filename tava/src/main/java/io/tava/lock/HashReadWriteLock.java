@@ -26,7 +26,7 @@ public class HashReadWriteLock<T> implements ReadWriteLock<T> {
     }
 
     public void writeLock(T key) {
-        if (key == null) {
+        if (isEmpty(key)) {
             throw new NullPointerException("key is null");
         }
         this.segmentLock.doWithLock(key, () -> {
@@ -37,7 +37,7 @@ public class HashReadWriteLock<T> implements ReadWriteLock<T> {
     }
 
     public void readLock(T key) {
-        if (key == null) {
+        if (isEmpty(key)) {
             throw new NullPointerException("key is null");
         }
         this.segmentLock.doWithLock(key, () -> {
@@ -48,7 +48,7 @@ public class HashReadWriteLock<T> implements ReadWriteLock<T> {
     }
 
     public void unWriteLock(T key) {
-        if (key == null) {
+        if (isEmpty(key)) {
             throw new NullPointerException("key is null");
         }
         this.getLockInfo(key).forEach(lockInfo -> {
@@ -58,7 +58,7 @@ public class HashReadWriteLock<T> implements ReadWriteLock<T> {
     }
 
     public void unReadLock(T key) {
-        if (key == null) {
+        if (isEmpty(key)) {
             throw new NullPointerException("key is null");
         }
         this.getLockInfo(key).forEach(lockInfo -> {

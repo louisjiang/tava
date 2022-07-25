@@ -35,7 +35,7 @@ public class SegmentLock<T> implements Lock<T> {
 
 
     public void lock(T key) {
-        if (key == null) {
+        if (isEmpty(key)) {
             throw new NullPointerException("key is null");
         }
         this.locks.get(indexFor(hash(key))).lock();
@@ -43,7 +43,7 @@ public class SegmentLock<T> implements Lock<T> {
 
 
     public void unlock(T key) {
-        if (key == null) {
+        if (isEmpty(key)) {
             throw new NullPointerException("key is null");
         }
         this.locks.get(indexFor(hash(key))).unlock();
