@@ -6,7 +6,6 @@ import io.tava.db.segment.SegmentMap;
 import io.tava.db.segment.SegmentSet;
 import io.tava.function.*;
 import io.tava.lang.Option;
-import io.tava.lang.Tuple2;
 
 import java.util.Map;
 import java.util.Set;
@@ -111,7 +110,7 @@ public interface Database {
 
     void commit(String tableName);
 
-    Tuple2<Boolean, byte[]> keyMayExist(String tableName, String key);
+    boolean keyMayExist(String tableName, String key);
 
     String path();
 

@@ -26,9 +26,9 @@ public abstract class AbstractDatabase implements Database, Util {
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
     protected final HashReadWriteLock<String> readWriteLock = new HashReadWriteLock<>();
+    protected final Map<String, Map<String, Operation>> tableNameToOperationMap = new ConcurrentHashMap<>();
     private final Map<String, Consumer3<String, byte[], byte[]>> putCallbacks = new ConcurrentHashMap<>();
     private final Map<String, Consumer2<String, byte[]>> deleteCallbacks = new ConcurrentHashMap<>();
-    private final Map<String, Map<String, Operation>> tableNameToOperationMap = new ConcurrentHashMap<>();
     private final Map<String, Long> tableNameToTimestamps = new ConcurrentHashMap<>();
     private final byte[] EMPTY = new byte[0];
     private final Serialization serialization;

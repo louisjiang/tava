@@ -39,8 +39,8 @@ public class LMDBDatabase extends AbstractDatabase {
     }
 
     @Override
-    public Tuple2<Boolean, byte[]> keyMayExist(String tableName, String key) {
-        return null;
+    public boolean keyMayExist(String tableName, String key) {
+        return false;
     }
 
     @Override

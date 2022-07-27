@@ -255,10 +255,15 @@ public class RocksdbDatabase extends AbstractDatabase {
     }
 
     @Override
-    public Tuple2<Boolean, byte[]> keyMayExist(String tableName, String key) {
-        Holder<byte[]> holder = new Holder<>();
-        boolean keyMayExist = this.db.keyMayExist(columnFamilyHandle(tableName), key.getBytes(StandardCharsets.UTF_8), holder);
-        return Tava.of(keyMayExist, holder.getValue());
+    public boolean keyMayExist(String tableName, String key) {
+        Map<String, Operation> operationMap = this.tableNameToOperationMap.get(tableName);
+        if (nonEmpty(operationMap)) {
+            Operation operation = operationMap.get(key);
+            if (nonEmpty(operation)) {
+                return !operation.isDelete();
+            }
+        }
+        return this.db.keyMayExist(columnFamilyHandle(tableName), key.getBytes(StandardCharsets.UTF_8), null);
     }
 
     @Override
