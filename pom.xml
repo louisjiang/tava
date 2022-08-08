@@ -34,11 +34,11 @@
 
     <properties>
         <typesafe.config.version>1.4.2</typesafe.config.version>
-        <rocksdbjni.version>7.4.3</rocksdbjni.version>
+        <rocksdbjni.version>7.4.4</rocksdbjni.version>
         <netty.version>4.1.79.Final</netty.version>
         <agrona.version>1.16.0</agrona.version>
         <streamex.version>0.8.1</streamex.version>
-        <fastjson2.version>2.0.10</fastjson2.version>
+        <fastjson2.version>2.0.11</fastjson2.version>
         <disruptor.version>3.4.4</disruptor.version>
         <okhttp.version>4.10.0</okhttp.version>
         <kotlin.version>1.7.10</kotlin.version>
