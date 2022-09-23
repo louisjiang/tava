@@ -57,8 +57,8 @@ public abstract class AbstractDatabase implements Database, Util {
     }
 
     @Override
-    public <V> Option<SegmentList<V>> getSegmentList(String tableName, String key) {
-        return Option.option((SegmentList<V>) this.cache.get(toString("list@", tableName, "@", key), s -> SegmentList.get(AbstractDatabase.this, tableName, key)));
+    public <V> Option<SegmentList<V>> getSegmentList(String tableName, String key, int capacity) {
+        return Option.option((SegmentList<V>) this.cache.get(toString("list@", tableName, "@", key), s -> SegmentList.get(AbstractDatabase.this, tableName, key, capacity)));
     }
 
     @Override
@@ -67,8 +67,8 @@ public abstract class AbstractDatabase implements Database, Util {
     }
 
     @Override
-    public <V> Option<SegmentSet<V>> getSegmentSet(String tableName, String key) {
-        return Option.option((SegmentSet<V>) this.cache.get(toString("set@", tableName, "@", key), s -> SegmentSet.get(AbstractDatabase.this, tableName, key)));
+    public <V> Option<SegmentSet<V>> getSegmentSet(String tableName, String key, int segment) {
+        return Option.option((SegmentSet<V>) this.cache.get(toString("set@", tableName, "@", key), s -> SegmentSet.get(AbstractDatabase.this, tableName, key, segment)));
     }
 
     @Override
@@ -77,8 +77,8 @@ public abstract class AbstractDatabase implements Database, Util {
     }
 
     @Override
-    public <K, V> Option<SegmentMap<K, V>> getSegmentMap(String tableName, String key) {
-        return Option.option((SegmentMap<K, V>) this.cache.get(toString("map@", tableName, "@", key), s -> SegmentMap.get(AbstractDatabase.this, tableName, key)));
+    public <K, V> Option<SegmentMap<K, V>> getSegmentMap(String tableName, String key,int segment) {
+        return Option.option((SegmentMap<K, V>) this.cache.get(toString("map@", tableName, "@", key), s -> SegmentMap.get(AbstractDatabase.this, tableName, key,segment)));
     }
 
     @Override

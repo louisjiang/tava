@@ -34,10 +34,10 @@ public interface SegmentSet<V> extends Segment {
 
     SegmentSet<V> reset(int segmentSize);
 
-    static <V> SegmentSet<V> get(Database database, String tableName, String key) {
+    static <V> SegmentSet<V> get(Database database, String tableName, String key, int segment) {
         Map<String, Object> status = database.get(tableName, key);
         if (status == null) {
-            return null;
+            return new SegmentHashSet<>(database, tableName, key, segment, true);
         }
         return new SegmentHashSet<>(database, tableName, key, status);
     }

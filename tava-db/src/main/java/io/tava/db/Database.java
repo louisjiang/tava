@@ -22,11 +22,11 @@ public interface Database {
 
     <V> SegmentList<V> newSegmentList(String tableName, String key, int capacity);
 
-    default <V> Option<SegmentList<V>> getSegmentList(String key) {
-        return getSegmentList("default", key);
+    default <V> Option<SegmentList<V>> getSegmentList(String key, int capacity) {
+        return getSegmentList("default", key, capacity);
     }
 
-    <V> Option<SegmentList<V>> getSegmentList(String tableName, String key);
+    <V> Option<SegmentList<V>> getSegmentList(String tableName, String key, int capacity);
 
     default <V> SegmentSet<V> newSegmentSet(String key, int segment) {
         return newSegmentSet("default", key, segment);
@@ -34,11 +34,11 @@ public interface Database {
 
     <V> SegmentSet<V> newSegmentSet(String tableName, String key, int segment);
 
-    default <V> Option<SegmentSet<V>> getSegmentSet(String key) {
-        return getSegmentSet("default", key);
+    default <V> Option<SegmentSet<V>> getSegmentSet(String key, int segment) {
+        return getSegmentSet("default", key, segment);
     }
 
-    <V> Option<SegmentSet<V>> getSegmentSet(String tableName, String key);
+    <V> Option<SegmentSet<V>> getSegmentSet(String tableName, String key, int segment);
 
     default <K, V> SegmentMap<K, V> newSegmentMap(String key, int segment) {
         return newSegmentMap("default", key, segment);
@@ -46,11 +46,11 @@ public interface Database {
 
     <K, V> SegmentMap<K, V> newSegmentMap(String tableName, String key, int segment);
 
-    default <K, V> Option<SegmentMap<K, V>> getSegmentMap(String key) {
-        return getSegmentMap("default", key);
+    default <K, V> Option<SegmentMap<K, V>> getSegmentMap(String key, int segment) {
+        return getSegmentMap("default", key, segment);
     }
 
-    <K, V> Option<SegmentMap<K, V>> getSegmentMap(String tableName, String key);
+    <K, V> Option<SegmentMap<K, V>> getSegmentMap(String tableName, String key, int segment);
 
     default void put(Map<String, Object> keyValues) {
         this.put("default", keyValues);
