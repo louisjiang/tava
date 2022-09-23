@@ -41,10 +41,10 @@ public interface SegmentMap<K, V> extends Segment {
 
     SegmentMap<K, V> remap(int segmentSize);
 
-    static <K, V> SegmentMap<K, V> get(Database database, String tableName, String key, int segment) {
+    static <K, V> SegmentMap<K, V> get(Database database, String tableName, String key) {
         Map<String, Object> status = database.get(tableName, key);
         if (status == null) {
-            return new SegmentHashMap<>(database, tableName, key, segment, true);
+            return null;
         }
         return new SegmentHashMap<>(database, tableName, key, status);
     }

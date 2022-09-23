@@ -1,7 +1,6 @@
 package io.tava.db;
 
 import io.tava.configuration.Configuration;
-import io.tava.lang.Tuple2;
 import io.tava.serialization.Serialization;
 
 import java.util.List;
