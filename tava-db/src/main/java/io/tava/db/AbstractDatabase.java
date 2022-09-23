@@ -5,7 +5,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import io.tava.configuration.Configuration;
 import io.tava.db.segment.*;
 import io.tava.function.*;
-import io.tava.lang.Option;
 import io.tava.lock.HashReadWriteLock;
 import io.tava.serialization.Serialization;
 import io.tava.util.Util;
@@ -57,8 +56,8 @@ public abstract class AbstractDatabase implements Database, Util {
     }
 
     @Override
-    public <V> Option<SegmentList<V>> getSegmentList(String tableName, String key, int capacity) {
-        return Option.option((SegmentList<V>) this.cache.get(toString("list@", tableName, "@", key), s -> SegmentList.get(AbstractDatabase.this, tableName, key, capacity)));
+    public <V> SegmentList<V> getSegmentList(String tableName, String key, int capacity) {
+        return (SegmentList<V>) this.cache.get(toString("list@", tableName, "@", key), s -> SegmentList.get(AbstractDatabase.this, tableName, key, capacity));
     }
 
     @Override
@@ -67,8 +66,8 @@ public abstract class AbstractDatabase implements Database, Util {
     }
 
     @Override
-    public <V> Option<SegmentSet<V>> getSegmentSet(String tableName, String key, int segment) {
-        return Option.option((SegmentSet<V>) this.cache.get(toString("set@", tableName, "@", key), s -> SegmentSet.get(AbstractDatabase.this, tableName, key, segment)));
+    public <V> SegmentSet<V> getSegmentSet(String tableName, String key, int segment) {
+        return (SegmentSet<V>) this.cache.get(toString("set@", tableName, "@", key), s -> SegmentSet.get(AbstractDatabase.this, tableName, key, segment));
     }
 
     @Override
@@ -77,8 +76,8 @@ public abstract class AbstractDatabase implements Database, Util {
     }
 
     @Override
-    public <K, V> Option<SegmentMap<K, V>> getSegmentMap(String tableName, String key,int segment) {
-        return Option.option((SegmentMap<K, V>) this.cache.get(toString("map@", tableName, "@", key), s -> SegmentMap.get(AbstractDatabase.this, tableName, key,segment)));
+    public <K, V> SegmentMap<K, V> getSegmentMap(String tableName, String key, int segment) {
+        return (SegmentMap<K, V>) this.cache.get(toString("map@", tableName, "@", key), s -> SegmentMap.get(AbstractDatabase.this, tableName, key, segment));
     }
 
     @Override
