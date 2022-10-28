@@ -206,6 +206,14 @@ public class Configuration implements Config {
         return new Configuration(this.config.getConfig(path));
     }
 
+    public Configuration getConfig(String path, Configuration defaultConfiguration) {
+        return get(path, this::getConfig, null, defaultConfiguration);
+    }
+
+    public Configuration getConfig(String path, Function1<String, Configuration> defaultValueFunction) {
+        return get(path, this::getConfig, defaultValueFunction, null);
+    }
+
     @Override
     public Object getAnyRef(String path) {
         return this.config.getAnyRef(path);
