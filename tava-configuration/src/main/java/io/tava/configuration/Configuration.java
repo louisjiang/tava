@@ -40,18 +40,18 @@ public class Configuration implements Config {
     }
 
     @Override
-    public Config withFallback(ConfigMergeable other) {
-        return this.config.withFallback(other);
+    public Configuration withFallback(ConfigMergeable other) {
+        return new Configuration(this.config.withFallback(other));
     }
 
     @Override
-    public Config resolve() {
-        return this.config.resolve();
+    public Configuration resolve() {
+        return new Configuration(this.config.resolve());
     }
 
     @Override
-    public Config resolve(ConfigResolveOptions options) {
-        return this.config.resolve(options);
+    public Configuration resolve(ConfigResolveOptions options) {
+        return new Configuration(this.config.resolve(options));
     }
 
     @Override
@@ -60,13 +60,13 @@ public class Configuration implements Config {
     }
 
     @Override
-    public Config resolveWith(Config source) {
-        return this.config.resolveWith(source);
+    public Configuration resolveWith(Config source) {
+        return new Configuration(this.config.resolveWith(source));
     }
 
     @Override
-    public Config resolveWith(Config source, ConfigResolveOptions options) {
-        return this.config.resolveWith(source, options);
+    public Configuration resolveWith(Config source, ConfigResolveOptions options) {
+        return new Configuration(this.config.resolveWith(source, options));
     }
 
     @Override
@@ -414,7 +414,7 @@ public class Configuration implements Config {
 
     @Override
     public List<? extends ConfigObject> getObjectList(String path) {
-        return this.getObjectList(path);
+        return this.config.getObjectList(path);
     }
 
     @Override
@@ -489,28 +489,28 @@ public class Configuration implements Config {
     }
 
     @Override
-    public Config withOnlyPath(String path) {
-        return this.config.withOnlyPath(path);
+    public Configuration withOnlyPath(String path) {
+        return new Configuration(this.config.withOnlyPath(path));
     }
 
     @Override
-    public Config withoutPath(String path) {
-        return this.config.withoutPath(path);
+    public Configuration withoutPath(String path) {
+        return new Configuration(this.config.withoutPath(path));
     }
 
     @Override
-    public Config atPath(String path) {
-        return this.config.atPath(path);
+    public Configuration atPath(String path) {
+        return new Configuration(this.config.atPath(path));
     }
 
     @Override
-    public Config atKey(String key) {
-        return this.config.atKey(key);
+    public Configuration atKey(String key) {
+        return new Configuration(this.config.atKey(key));
     }
 
     @Override
-    public Config withValue(String path, ConfigValue value) {
-        return this.config.withValue(path, value);
+    public Configuration withValue(String path, ConfigValue value) {
+        return new Configuration(this.config.withValue(path, value));
     }
 
     private <R> R get(String path, Function1<String, R> get, Function1<String, R> defaultValueFunction, Object value) {
