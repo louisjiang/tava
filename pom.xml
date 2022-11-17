@@ -38,7 +38,7 @@
         <netty.version>4.1.85.Final</netty.version>
         <agrona.version>1.17.1</agrona.version>
         <streamex.version>0.8.1</streamex.version>
-        <fastjson2.version>2.0.18</fastjson2.version>
+        <fastjson2.version>2.0.19</fastjson2.version>
         <disruptor.version>3.4.4</disruptor.version>
         <okhttp.version>4.10.0</okhttp.version>
         <kotlin.version>1.7.21</kotlin.version>
