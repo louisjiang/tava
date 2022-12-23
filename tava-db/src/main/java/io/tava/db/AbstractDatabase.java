@@ -301,10 +301,8 @@ public abstract class AbstractDatabase implements Database, Util {
         }
 
         public synchronized void put(Object value) {
-            if (this.value == null && value == null) {
-                return;
-            }
-            if (this.value != null && this.value.equals(value)) {
+            if (value == null) {
+                this.delete();
                 return;
             }
             this.delete = false;
@@ -324,6 +322,18 @@ public abstract class AbstractDatabase implements Database, Util {
             return value;
         }
 
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Operation operation = (Operation) o;
+            return version == operation.version && delete == operation.delete && Objects.equals(value, operation.value);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(version, delete, value);
+        }
     }
 
 }
