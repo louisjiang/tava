@@ -23,7 +23,6 @@ public class KryoSerialization extends Kryo {
 
     public KryoSerialization(ClassResolver classResolver, ReferenceResolver referenceResolver) {
         super(classResolver, referenceResolver);
-        setInstantiatorStrategy(new StdInstantiatorStrategy());
         setAutoReset(true);
         setCopyReferences(true);
         setReferences(true);
