@@ -12,7 +12,7 @@ public final class Lazy<T> implements Asynchronous<T> {
     }
 
     @Override
-    public T get() throws Throwable {
+    public T get() throws Exception {
         return action.apply();
     }
 
