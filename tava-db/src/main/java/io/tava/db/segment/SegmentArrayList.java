@@ -5,9 +5,9 @@ import io.tava.db.Database;
 import java.io.IOException;
 import java.util.*;
 
+@SuppressWarnings("unchecked")
 public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<V> {
 
-    private final String key;
     private final long sequence;
     private final int capacity;
     private int segment;
@@ -18,8 +18,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
     }
 
     public SegmentArrayList(Database database, String tableName, String key, int capacity, boolean initialize) {
-        super(database, tableName);
-        this.key = key;
+        super(database, tableName, key);
 
         Map<String, Object> status;
         if (initialize || (status = this.database.get(this.tableName, this.key)) == null) {
@@ -27,18 +26,18 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
             this.capacity = capacity;
             this.size = 0;
             this.segment = 0;
-            updateStatus();
+            this.updateStatus();
             return;
         }
         this.sequence = (Long) status.get("sequence");
         this.capacity = (Integer) status.get("capacity");
         this.size = (Integer) status.get("size");
         this.segment = this.size / this.capacity;
+        this.status = (Map<String, Object>) status.get("status");
     }
 
     public SegmentArrayList(Database database, String tableName, String key, Map<String, Object> status) {
-        super(database, tableName);
-        this.key = key;
+        super(database, tableName, key);
         this.sequence = (Long) status.get("sequence");
         this.capacity = (Integer) status.get("capacity");
         this.size = (Integer) status.get("size");
@@ -73,7 +72,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
     @Override
     public Iterator<V> iterator() {
         this.readWriteLock.readLock().lock();
-        return new Iterator<V>() {
+        return new Iterator<>() {
 
             private int index = 0;
             private java.util.Iterator<V> iterator;
@@ -221,7 +220,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
             }
             this.size = 0;
             if (list.isEmpty()) {
-                updateStatus();
+                this.updateStatus();
                 return false;
             }
             addAll(list);
@@ -390,21 +389,20 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
     }
 
     private void updateStatus() {
-        Map<String, Object> status = new HashMap<>();
-        status.put("sequence", this.sequence);
-        status.put("size", this.size);
-        status.put("capacity", this.capacity);
-        this.database.put(this.tableName, this.key, status);
+        Map<String, Object> map = new HashMap<>();
+        map.put("sequence", this.sequence);
+        map.put("capacity", this.capacity);
+        map.put("size", this.size);
+        map.put("status", super.status);
+        this.database.put(this.tableName, this.key, map);
     }
 
     private void rangeCheck(int index) {
-        if (index >= size)
-            throw new IndexOutOfBoundsException(outOfBoundsMsg(index));
+        if (index >= size) throw new IndexOutOfBoundsException(outOfBoundsMsg(index));
     }
 
     private void rangeCheckForAdd(int index) {
-        if (index > size || index < 0)
-            throw new IndexOutOfBoundsException(outOfBoundsMsg(index));
+        if (index > size || index < 0) throw new IndexOutOfBoundsException(outOfBoundsMsg(index));
     }
 
     private String outOfBoundsMsg(int index) {

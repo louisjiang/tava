@@ -5,9 +5,9 @@ import io.tava.db.Database;
 import java.io.IOException;
 import java.util.*;
 
+@SuppressWarnings("unchecked")
 public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> {
 
-    private final String key;
     private final long sequence;
     private final int segment;
     private int size;
@@ -17,11 +17,10 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
     }
 
     protected SegmentHashSet(Database database, String tableName, String key, int segment, boolean initialize) {
-        super(database, tableName);
+        super(database, tableName, key);
         if (Integer.bitCount(segment) != 1) {
             throw new IllegalArgumentException("segment must be a power of 2");
         }
-        this.key = key;
         Map<String, Object> status;
         if (initialize || (status = this.database.get(this.tableName, this.key)) == null) {
             this.sequence = SnowFlakeUtil.nextId();
@@ -33,11 +32,11 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
         this.sequence = (Long) status.get("sequence");
         this.segment = (Integer) status.get("segment");
         this.size = (Integer) status.get("size");
+        this.status = (Map<String, Object>) status.get("status");
     }
 
     public SegmentHashSet(Database database, String tableName, String key, Map<String, Object> status) {
-        super(database, tableName);
-        this.key = key;
+        super(database, tableName, key);
         this.sequence = (Long) status.get("sequence");
         this.segment = (Integer) status.get("segment");
         this.size = (Integer) status.get("size");
@@ -65,7 +64,7 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
     @Override
     public Iterator<V> iterator() {
         this.readWriteLock.readLock().lock();
-        return new Iterator<V>() {
+        return new Iterator<>() {
 
             private int index = 0;
             private java.util.Iterator<V> iterator;
@@ -270,6 +269,7 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
         status.put("sequence", this.sequence);
         status.put("segment", this.segment);
         status.put("size", this.size);
+        status.put("status", super.status);
         this.database.put(this.tableName, this.key, status);
     }
 

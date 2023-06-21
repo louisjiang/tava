@@ -9,9 +9,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+@SuppressWarnings("unchecked")
 public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<K, V> {
 
-    private final String key;
     private final long sequence;
     private final int segment;
     private int size;
@@ -21,11 +21,10 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
     }
 
     protected SegmentHashMap(Database database, String tableName, String key, int segment, boolean initialize) {
-        super(database, tableName);
+        super(database, tableName, key);
         if (Integer.bitCount(segment) != 1) {
             throw new IllegalArgumentException("segment must be a power of 2");
         }
-        this.key = key;
         Map<String, Object> status;
         if (initialize || (status = this.database.get(this.tableName, this.key)) == null) {
             this.sequence = SnowFlakeUtil.nextId();
@@ -37,11 +36,11 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         this.sequence = (Long) status.get("sequence");
         this.segment = (Integer) status.get("segment");
         this.size = (Integer) status.get("size");
+        this.status = (Map<String, Object>) status.get("status");
     }
 
     public SegmentHashMap(Database database, String tableName, String key, Map<String, Object> status) {
-        super(database, tableName);
-        this.key = key;
+        super(database, tableName, key);
         this.sequence = (Long) status.get("sequence");
         this.segment = (Integer) status.get("segment");
         this.size = (Integer) status.get("size");
@@ -163,7 +162,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
     @Override
     public Iterator<Map.Entry<K, V>> iterator() {
         this.readWriteLock.readLock().lock();
-        return new Iterator<Map.Entry<K, V>>() {
+        return new Iterator<>() {
 
             private int index = 0;
             private java.util.Iterator<Map.Entry<K, V>> iterator;
@@ -286,6 +285,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         status.put("sequence", this.sequence);
         status.put("segment", this.segment);
         status.put("size", this.size);
+        status.put("status", super.status);
         this.database.put(this.tableName, this.key, status);
     }
 
