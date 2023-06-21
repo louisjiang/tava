@@ -12,31 +12,31 @@ public interface SegmentList<V> extends Segment {
 
     boolean isEmpty();
 
-    boolean contains(V o);
+    boolean contains(V value);
 
     Iterator<V> iterator();
 
-    boolean add(V v);
+    boolean add(V value);
 
-    boolean remove(V o);
+    boolean remove(V value);
 
-    boolean containsAll(Collection<? extends V> c);
+    boolean containsAll(Collection<? extends V> collection);
 
-    boolean addAll(Collection<? extends V> c);
+    boolean addAll(Collection<? extends V> collection);
 
-    boolean addAll(int index, Collection<? extends V> c);
+    boolean addAll(int index, Collection<? extends V> collection);
 
-    boolean removeAll(Collection<? extends V> c);
+    boolean removeAll(Collection<? extends V> collection);
 
-    boolean retainAll(Collection<? extends V> c);
+    boolean retainAll(Collection<? extends V> collection);
 
     void clear();
 
     V get(int index);
 
-    V set(int index, V element);
+    V set(int index, V value);
 
-    void add(int index, V element);
+    void add(int index, V value);
 
     V remove(int index);
 

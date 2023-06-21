@@ -38,7 +38,7 @@
         <netty.version>4.1.90.Final</netty.version>
         <agrona.version>1.18.1</agrona.version>
         <streamex.version>0.8.1</streamex.version>
-        <fastjson2.version>2.0.31</fastjson2.version>
+        <fastjson2.version>2.0.33</fastjson2.version>
         <disruptor.version>3.4.4</disruptor.version>
         <okhttp.version>4.10.0</okhttp.version>
         <kotlin.version>1.8.21</kotlin.version>
@@ -46,8 +46,8 @@
         <slf4j.version>2.0.7</slf4j.version>
         <rxjava.version>3.1.6</rxjava.version>
         <joda.time.version>2.12.5</joda.time.version>
-        <spring.boot.version>3.0.6</spring.boot.version>
-        <spring.context.version>6.0.8</spring.context.version>
+        <spring.boot.version>3.1.0</spring.boot.version>
+        <spring.context.version>6.0.9</spring.context.version>
         <aopalliance.version>1.0</aopalliance.version>
         <mustache.version>0.9.10</mustache.version>
         <javassist.version>3.29.2-GA</javassist.version>
@@ -56,7 +56,7 @@
         <commons.pool2.version>2.11.1</commons.pool2.version>
         <caffeine.version>3.1.6</caffeine.version>
         <kryo.version>5.5.0</kryo.version>
-        <guava.version>31.1-jre</guava.version>
+        <guava.version>32.0.1-jre</guava.version>
         <junit.version>5.9.3</junit.version>
     </properties>
 

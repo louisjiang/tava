@@ -56,14 +56,14 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
     }
 
     @Override
-    public boolean contains(V o) {
+    public boolean contains(V value) {
         for (int i = 0; i < this.segment; i++) {
             int index = i;
             List<V> list = this.readLock(() -> this.database.get(this.tableName, this.segmentKey(index)));
             if (list == null) {
                 break;
             }
-            if (list.contains(o)) {
+            if (list.contains(value)) {
                 return true;
             }
         }
@@ -110,14 +110,14 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
     }
 
     @Override
-    public boolean add(V v) {
+    public boolean add(V value) {
         return this.writeLock(() -> {
             String segmentKey = this.segmentKey();
             List<V> list = this.database.get(this.tableName, segmentKey);
             if (list == null) {
                 list = new ArrayList<>();
             }
-            list.add(v);
+            list.add(value);
             this.incrementSize();
             this.database.put(this.tableName, segmentKey, list);
             return true;
@@ -125,12 +125,12 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
     }
 
     @Override
-    public boolean remove(V o) {
+    public boolean remove(V value) {
         return this.writeLock(() -> {
             for (int i = 0; i <= this.segment; i++) {
                 String segmentKey = this.segmentKey(i);
                 List<V> list = this.database.get(this.tableName, segmentKey);
-                boolean remove = list.remove(o);
+                boolean remove = list.remove(value);
                 if (!remove) {
                     continue;
                 }
@@ -153,8 +153,8 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
     }
 
     @Override
-    public boolean containsAll(Collection<? extends V> c) {
-        for (V o : c) {
+    public boolean containsAll(Collection<? extends V> collection) {
+        for (V o : collection) {
             if (!contains(o)) {
                 return false;
             }
@@ -163,15 +163,15 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
     }
 
     @Override
-    public boolean addAll(Collection<? extends V> c) {
-        for (V v : c) {
+    public boolean addAll(Collection<? extends V> collection) {
+        for (V v : collection) {
             this.add(v);
         }
         return true;
     }
 
     @Override
-    public boolean addAll(int index, Collection<? extends V> c) {
+    public boolean addAll(int index, Collection<? extends V> collection) {
         rangeCheckForAdd(index);
         return this.writeLock(() -> {
             int segment = index / this.capacity;
@@ -179,7 +179,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
             if (list == null) {
                 list = new ArrayList<>();
             }
-            list.addAll(index % this.capacity, c);
+            list.addAll(index % this.capacity, collection);
             List<V> values = null;
             if (segment < this.segment) {
                 values = this.toList(segment + 1, this.segment);
@@ -197,21 +197,21 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
     }
 
     @Override
-    public boolean removeAll(Collection<? extends V> c) {
+    public boolean removeAll(Collection<? extends V> collection) {
         boolean remove = false;
-        for (V o : c) {
+        for (V o : collection) {
             remove = remove(o) || remove;
         }
         return remove;
     }
 
     @Override
-    public boolean retainAll(Collection<? extends V> c) {
+    public boolean retainAll(Collection<? extends V> collection) {
         return this.writeLock(() -> {
             List<V> list = new ArrayList<>();
             for (int i = 0; i <= this.segment; i++) {
                 List<V> l = this.database.get(this.tableName, this.segmentKey(i));
-                if (!l.retainAll(c) || l.isEmpty()) {
+                if (!l.retainAll(collection) || l.isEmpty()) {
                     continue;
                 }
                 list.addAll(l);
@@ -251,20 +251,20 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
     }
 
     @Override
-    public V set(int index, V element) {
+    public V set(int index, V value) {
         rangeCheck(index);
         return this.writeLock(() -> {
             String segmentKey = this.segmentKey(index / this.capacity);
             List<V> list = this.database.get(this.tableName, segmentKey);
-            V v = list.set(index % this.capacity, element);
+            V v = list.set(index % this.capacity, value);
             this.database.put(this.tableName, segmentKey, list);
             return v;
         });
     }
 
     @Override
-    public void add(int index, V element) {
-        this.addAll(index, Collections.singletonList(element));
+    public void add(int index, V value) {
+        this.addAll(index, Collections.singletonList(value));
     }
 
     @Override
@@ -334,12 +334,12 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
             SegmentList<V> segmentList = new SegmentArrayList<>(this.database, this.tableName, this.key, capacity, true);
             for (int i = 0; i <= this.segment; i++) {
                 String segmentKey = this.segmentKey(i);
-                List<V> l = this.database.get(this.tableName, segmentKey);
-                if (l == null) {
+                List<V> list = this.database.get(this.tableName, segmentKey);
+                if (list == null) {
                     continue;
                 }
+                segmentList.addAll(list);
                 this.database.delete(this.tableName, segmentKey);
-                segmentList.addAll(l);
             }
             segmentList.commit();
             this.database.updateSegmentCache(toString("list@", this.tableName, "@", this.key), segmentList);

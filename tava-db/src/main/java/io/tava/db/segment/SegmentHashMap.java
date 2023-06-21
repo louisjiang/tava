@@ -224,8 +224,8 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
     }
 
     @Override
-    public SegmentMap<K, V> remap(int segmentSize) {
-        int segment = this.size / segmentSize;
+    public SegmentMap<K, V> remap(int capacity) {
+        int segment = this.size / capacity;
         if (segment <= this.segment) {
             return this;
         }
@@ -233,10 +233,10 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         if (segment == this.segment) {
             return this;
         }
-        return remap_(segment);
+        return _remap_(segment);
     }
 
-    private SegmentMap<K, V> remap_(int segment) {
+    private SegmentMap<K, V> _remap_(int segment) {
         if (segment == this.segment) {
             return this;
         }
@@ -249,8 +249,8 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
                 if (map == null) {
                     continue;
                 }
-                this.database.delete(this.tableName, segmentKey);
                 segmentMap.putAll(map);
+                this.database.delete(this.tableName, segmentKey);
             }
             segmentMap.commit();
             this.database.updateSegmentCache(toString("map@", this.tableName, "@", this.key), segmentMap);
