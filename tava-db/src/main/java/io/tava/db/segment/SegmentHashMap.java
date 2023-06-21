@@ -9,7 +9,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-@SuppressWarnings("unchecked")
 public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<K, V> {
 
     private final long sequence;
@@ -36,7 +35,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         this.sequence = (Long) status.get("sequence");
         this.segment = (Integer) status.get("segment");
         this.size = (Integer) status.get("size");
-        this.status = (Map<String, Object>) status.get("status");
+        this.status = status.get("status");
     }
 
     public SegmentHashMap(Database database, String tableName, String key, Map<String, Object> status) {

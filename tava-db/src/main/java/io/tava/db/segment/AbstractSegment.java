@@ -18,7 +18,7 @@ public abstract class AbstractSegment implements Segment {
     protected final Database database;
     protected final String tableName;
     protected final String key;
-    protected Map<String, Object> status;
+    protected Object status;
 
     protected AbstractSegment(Database database, String tableName, String key) {
         this.database = database;
@@ -33,18 +33,18 @@ public abstract class AbstractSegment implements Segment {
 
 
     @Override
-    public void setStatus(Map<String, Object> status) {
+    public void setStatus(Object status) {
         this.status = status;
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public Map<String, Object> getStatus() {
+    public <V> V getStatus() {
         Map<String, Object> map = this.database.get(this.tableName, this.key);
         if (map == null) {
             return null;
         }
-        return (Map<String, Object>) map.get("status");
+        return (V) map.get("status");
     }
 
     protected <R> R readLock(Function0<R> function0) {

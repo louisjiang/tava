@@ -5,7 +5,6 @@ import io.tava.db.Database;
 import java.io.IOException;
 import java.util.*;
 
-@SuppressWarnings("unchecked")
 public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> {
 
     private final long sequence;
@@ -32,7 +31,7 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
         this.sequence = (Long) status.get("sequence");
         this.segment = (Integer) status.get("segment");
         this.size = (Integer) status.get("size");
-        this.status = (Map<String, Object>) status.get("status");
+        this.status = status.get("status");
     }
 
     public SegmentHashSet(Database database, String tableName, String key, Map<String, Object> status) {

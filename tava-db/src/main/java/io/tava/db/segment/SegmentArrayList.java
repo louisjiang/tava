@@ -5,7 +5,6 @@ import io.tava.db.Database;
 import java.io.IOException;
 import java.util.*;
 
-@SuppressWarnings("unchecked")
 public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<V> {
 
     private final long sequence;
@@ -33,7 +32,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
         this.capacity = (Integer) status.get("capacity");
         this.size = (Integer) status.get("size");
         this.segment = this.size / this.capacity;
-        this.status = (Map<String, Object>) status.get("status");
+        this.status = status.get("status");
     }
 
     public SegmentArrayList(Database database, String tableName, String key, Map<String, Object> status) {
