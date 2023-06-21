@@ -20,7 +20,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
         super(database, tableName, key);
 
         Map<String, Object> status;
-        if (initialize || (status = this.database.get(this.tableName, this.key)) == null) {
+        if (initialize || (status = this.database.get(this.tableName, this.key + "@status")) == null) {
             this.sequence = SnowFlakeUtil.nextId();
             this.capacity = capacity;
             this.size = 0;
@@ -393,7 +393,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
         map.put("capacity", this.capacity);
         map.put("size", this.size);
         map.put("status", super.status);
-        this.database.put(this.tableName, this.key, map);
+        this.database.put(this.tableName, this.key + "@status", map);
     }
 
     private void rangeCheck(int index) {

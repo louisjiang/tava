@@ -40,7 +40,7 @@ public abstract class AbstractSegment implements Segment {
     @Override
     @SuppressWarnings("unchecked")
     public <V> V getStatus() {
-        Map<String, Object> map = this.database.get(this.tableName, this.key);
+        Map<String, Object> map = this.database.get(this.tableName, this.key + "@status");
         if (map == null) {
             return null;
         }

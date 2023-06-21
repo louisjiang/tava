@@ -25,7 +25,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
             throw new IllegalArgumentException("segment must be a power of 2");
         }
         Map<String, Object> status;
-        if (initialize || (status = this.database.get(this.tableName, this.key)) == null) {
+        if (initialize || (status = this.database.get(this.tableName, this.key + "@status")) == null) {
             this.sequence = SnowFlakeUtil.nextId();
             this.segment = segment;
             this.size = 0;
@@ -285,7 +285,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         status.put("segment", this.segment);
         status.put("size", this.size);
         status.put("status", super.status);
-        this.database.put(this.tableName, this.key, status);
+        this.database.put(this.tableName, this.key + "@status", status);
     }
 
     private int hash(Object key) {
