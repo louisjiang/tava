@@ -338,7 +338,6 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
                     continue;
                 }
                 segmentList.addAll(list);
-                this.database.delete(this.tableName, segmentKey);
             }
             segmentList.commit();
             this.database.updateSegmentCache(toString("list@", this.tableName, "@", this.key), segmentList);
