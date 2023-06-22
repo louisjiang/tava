@@ -49,7 +49,7 @@ public interface SegmentList<V> extends Segment {
     SegmentList<V> relist(int capacity);
 
     static <V> SegmentList<V> get(Database database, String tableName, String key) {
-        Map<String, Object> status = database.get(tableName, key);
+        Map<String, Object> status = database.get(tableName, key + "@status");
         if (status == null) {
             return null;
         }

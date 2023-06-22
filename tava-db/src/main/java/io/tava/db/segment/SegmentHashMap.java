@@ -199,7 +199,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
     @Override
     public void destroy() {
         this.writeLock(() -> {
-            this.database.delete(this.tableName, this.key);
+            this.database.delete(this.tableName, this.key + "@status");
             for (int i = 0; i < this.segment; i++) {
                 this.database.delete(this.tableName, this.segmentKey(i));
             }
@@ -238,9 +238,10 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         if (segment == this.segment) {
             return this;
         }
-        return this.writeLock(() -> {
+        SegmentMap<K, V> segmentHashMap = this.writeLock(() -> {
             this.commit();
             SegmentMap<K, V> segmentMap = new SegmentHashMap<>(this.database, this.tableName, this.key, segment, true);
+            segmentMap.setStatus(this.getStatus());
             for (int i = 0; i < this.segment; i++) {
                 String segmentKey = this.segmentKey(i);
                 Map<K, V> map = this.database.get(this.tableName, segmentKey);
@@ -248,12 +249,13 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
                     continue;
                 }
                 segmentMap.putAll(map);
-                this.database.delete(this.tableName, segmentKey);
             }
             segmentMap.commit();
             this.database.updateSegmentCache(toString("map@", this.tableName, "@", this.key), segmentMap);
             return segmentMap;
         });
+        this.destroy();
+        return segmentHashMap;
     }
 
     public void forEach(Consumer2<? super K, ? super V> action) {

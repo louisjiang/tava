@@ -224,9 +224,10 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
         if (this.segment == segment) {
             return this;
         }
-        return this.writeLock(() -> {
+        SegmentSet<V> segmentHashSet = this.writeLock(() -> {
             this.commit();
             SegmentSet<V> segmentSet = new SegmentHashSet<>(this.database, this.tableName, this.key, segment, true);
+            segmentSet.setStatus(getStatus());
             for (int i = 0; i < this.segment; i++) {
                 String segmentKey = this.segmentKey(i);
                 Set<V> set = this.database.get(this.tableName, segmentKey);
@@ -234,18 +235,19 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
                     continue;
                 }
                 segmentSet.addAll(set);
-                this.database.delete(this.tableName, segmentKey);
             }
             segmentSet.commit();
             this.database.updateSegmentCache(toString("set@", this.tableName, "@", this.key), segmentSet);
             return segmentSet;
         });
+        this.destroy();
+        return segmentHashSet;
     }
 
     @Override
     public void destroy() {
         this.writeLock(() -> {
-            this.database.delete(this.tableName, this.key);
+            this.database.delete(this.tableName, this.key + "@status");
             for (int i = 0; i < this.segment; i++) {
                 this.database.delete(this.tableName, segmentKey(i));
             }

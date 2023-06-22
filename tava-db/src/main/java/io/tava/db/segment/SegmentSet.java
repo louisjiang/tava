@@ -35,7 +35,7 @@ public interface SegmentSet<V> extends Segment {
     SegmentSet<V> reset(int capacity);
 
     static <V> SegmentSet<V> get(Database database, String tableName, String key) {
-        Map<String, Object> status = database.get(tableName, key);
+        Map<String, Object> status = database.get(tableName, key + "@status");
         if (status == null) {
             return null;
         }
