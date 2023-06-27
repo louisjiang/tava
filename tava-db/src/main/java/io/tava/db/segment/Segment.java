@@ -4,11 +4,13 @@ import io.tava.util.Util;
 
 public interface Segment extends Util {
 
+    int segment();
+
     void commit();
 
     void destroy();
 
-    void setStatus(Object status);
+    void updateStatus(Object status);
 
     <V> V getStatus();
 

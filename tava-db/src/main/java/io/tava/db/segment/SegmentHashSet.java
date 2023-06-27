@@ -21,7 +21,7 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
             throw new IllegalArgumentException("segment must be a power of 2");
         }
         Map<String, Object> status;
-        if (initialize || (status = this.database.get(this.tableName, this.key + "@status")) == null) {
+        if (initialize || (status = this.database.get(this.tableName + "@status", this.key)) == null) {
             this.sequence = SnowFlakeUtil.nextId();
             this.segment = segment;
             this.size = 0;
@@ -39,6 +39,13 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
         this.sequence = (Long) status.get("sequence");
         this.segment = (Integer) status.get("segment");
         this.size = (Integer) status.get("size");
+        this.status = status.get("status");
+    }
+
+
+    @Override
+    public int segment() {
+        return this.segment;
     }
 
     @Override
@@ -227,7 +234,7 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
         SegmentSet<V> segmentHashSet = this.writeLock(() -> {
             this.commit();
             SegmentSet<V> segmentSet = new SegmentHashSet<>(this.database, this.tableName, this.key, segment, true);
-            segmentSet.setStatus(getStatus());
+            segmentSet.updateStatus(getStatus());
             for (int i = 0; i < this.segment; i++) {
                 String segmentKey = this.segmentKey(i);
                 Set<V> set = this.database.get(this.tableName, segmentKey);
@@ -247,7 +254,7 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
     @Override
     public void destroy() {
         this.writeLock(() -> {
-            this.database.delete(this.tableName, this.key + "@status");
+            this.database.delete(this.tableName + "@status", this.key);
             for (int i = 0; i < this.segment; i++) {
                 this.database.delete(this.tableName, segmentKey(i));
             }
@@ -265,13 +272,13 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
         this.updateStatus();
     }
 
-    private void updateStatus() {
-        Map<String, Object> status = new HashMap<>();
-        status.put("sequence", this.sequence);
-        status.put("segment", this.segment);
-        status.put("size", this.size);
-        status.put("status", super.status);
-        this.database.put(this.tableName, this.key + "@status", status);
+    void updateStatus() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("sequence", this.sequence);
+        map.put("segment", this.segment);
+        map.put("size", this.size);
+        map.put("status", super.status);
+        this.database.put(this.tableName + "@status", key, map);
     }
 
     private int hash(Object key) {

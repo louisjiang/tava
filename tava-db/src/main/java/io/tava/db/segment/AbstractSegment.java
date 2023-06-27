@@ -33,14 +33,15 @@ public abstract class AbstractSegment implements Segment {
 
 
     @Override
-    public void setStatus(Object status) {
+    public void updateStatus(Object status) {
         this.status = status;
+        this.updateStatus();
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public <V> V getStatus() {
-        Map<String, Object> map = this.database.get(this.tableName, this.key + "@status");
+        Map<String, Object> map = this.database.get(this.tableName + "@status", this.key);
         if (map == null) {
             return null;
         }
@@ -73,4 +74,6 @@ public abstract class AbstractSegment implements Segment {
             this.readWriteLock.writeLock().unlock();
         }
     }
+
+    abstract void updateStatus();
 }

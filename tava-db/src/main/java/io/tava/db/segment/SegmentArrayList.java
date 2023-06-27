@@ -20,7 +20,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
         super(database, tableName, key);
 
         Map<String, Object> status;
-        if (initialize || (status = this.database.get(this.tableName, this.key + "@status")) == null) {
+        if (initialize || (status = this.database.get(this.tableName + "@status", this.key)) == null) {
             this.sequence = SnowFlakeUtil.nextId();
             this.capacity = capacity;
             this.size = 0;
@@ -41,6 +41,13 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
         this.capacity = (Integer) status.get("capacity");
         this.size = (Integer) status.get("size");
         this.segment = this.size / this.capacity;
+        this.status = status.get("status");
+    }
+
+
+    @Override
+    public int segment() {
+        return this.segment;
     }
 
     @Override
@@ -330,7 +337,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
         return this.writeLock(() -> {
             this.commit();
             SegmentList<V> segmentList = new SegmentArrayList<>(this.database, this.tableName, this.key, capacity, true);
-            segmentList.setStatus(this.getStatus());
+            segmentList.updateStatus(this.getStatus());
             for (int i = 0; i <= this.segment; i++) {
                 String segmentKey = this.segmentKey(i);
                 List<V> list = this.database.get(this.tableName, segmentKey);
@@ -365,7 +372,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
     @Override
     public void destroy() {
         this.writeLock(() -> {
-            this.database.delete(this.tableName, this.key + "@status");
+            this.database.delete(this.tableName + "@status", this.key);
             for (int i = 0; i <= this.segment; i++) {
                 this.database.delete(this.tableName, this.segmentKey(i));
             }
@@ -388,13 +395,13 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
         this.updateStatus();
     }
 
-    private void updateStatus() {
+    void updateStatus() {
         Map<String, Object> map = new HashMap<>();
         map.put("sequence", this.sequence);
         map.put("capacity", this.capacity);
         map.put("size", this.size);
         map.put("status", super.status);
-        this.database.put(this.tableName, this.key + "@status", map);
+        this.database.put(this.tableName + "@status", this.key, map);
     }
 
     private void rangeCheck(int index) {

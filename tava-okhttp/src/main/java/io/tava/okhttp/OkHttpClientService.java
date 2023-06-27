@@ -53,18 +53,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
         if (sslSocketFactory == null) {
             throw new NullPointerException("sslSocketFactory is null");
         }
-        this.okHttpClient = new OkHttpClient.Builder().
-                connectTimeout(connectTimeout, TimeUnit.SECONDS).
-                readTimeout(readTimeout, TimeUnit.SECONDS).
-                writeTimeout(writeTimeout, TimeUnit.SECONDS).
-                callTimeout(callTimeout, TimeUnit.SECONDS).
-                pingInterval(pingInterval, TimeUnit.SECONDS).
-                sslSocketFactory(sslSocketFactory, this).
-                connectionPool(new ConnectionPool(maxIdleConnections, 5, TimeUnit.MINUTES)).
-                connectionSpecs(Util.immutableListOf(ConnectionSpec.COMPATIBLE_TLS, ConnectionSpec.CLEARTEXT)).
-                proxySelector(this).
-                cookieJar(this).
-                build();
+        this.okHttpClient = new OkHttpClient.Builder().connectTimeout(connectTimeout, TimeUnit.SECONDS).readTimeout(readTimeout, TimeUnit.SECONDS).writeTimeout(writeTimeout, TimeUnit.SECONDS).callTimeout(callTimeout, TimeUnit.SECONDS).pingInterval(pingInterval, TimeUnit.SECONDS).sslSocketFactory(sslSocketFactory, this).connectionPool(new ConnectionPool(maxIdleConnections, 5, TimeUnit.MINUTES)).connectionSpecs(Util.immutableListOf(ConnectionSpec.COMPATIBLE_TLS, ConnectionSpec.CLEARTEXT)).proxySelector(this).cookieJar(this).build();
     }
 
     private SSLSocketFactory buildSSLSocketFactory() {
@@ -87,7 +76,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     }
 
     public Response get(String url) {
-        return get(url, 1);
+        return get(url, 0);
     }
 
     public Response get(String url, int retry) {
@@ -95,7 +84,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     }
 
     public Response get(String url, Map<String, String> headers) {
-        return get(url, headers, 1);
+        return get(url, headers, 0);
     }
 
     public Response get(String url, Map<String, String> headers, int retry) {
@@ -165,7 +154,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     }
 
     public Response post(String url, Map<String, String> forms) {
-        return post(url, forms, 1);
+        return post(url, forms, 0);
     }
 
     public Response post(String url, Map<String, String> forms, int retry) {
@@ -173,7 +162,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     }
 
     public Response post(String url, Map<String, String> forms, Map<String, String> headers) {
-        return post(url, forms, headers, 1);
+        return post(url, forms, headers, 0);
     }
 
     public Response post(String url, Map<String, String> forms, Map<String, String> headers, int retry) {
@@ -185,7 +174,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     }
 
     public Response post(String url, JSONObject json) {
-        return post(url, json, 1);
+        return post(url, json, 0);
     }
 
     public Response post(String url, JSONObject json, int retry) {
@@ -193,7 +182,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     }
 
     public Response post(String url, JSONObject json, Map<String, String> headers) {
-        return post(url, json, headers, 1);
+        return post(url, json, headers, 0);
     }
 
     public Response post(String url, JSONObject json, Map<String, String> headers, int retry) {
@@ -201,7 +190,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     }
 
     public Response post(String url, JSONObject json, MediaType mediaType) {
-        return post(url, json, mediaType, 1);
+        return post(url, json, mediaType, 0);
     }
 
     public Response post(String url, JSONObject json, MediaType mediaType, int retry) {
@@ -209,7 +198,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     }
 
     public Response post(String url, JSONObject json, MediaType mediaType, Map<String, String> headers) {
-        return post(url, json, mediaType, headers, 1);
+        return post(url, json, mediaType, headers, 0);
     }
 
     public Response post(String url, JSONObject json, MediaType mediaType, Map<String, String> headers, int retry) {
@@ -219,7 +208,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
 
 
     public Response post(String url, JSONArray json) {
-        return post(url, json, 1);
+        return post(url, json, 0);
     }
 
     public Response post(String url, JSONArray json, int retry) {
@@ -227,7 +216,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     }
 
     public Response post(String url, JSONArray json, Map<String, String> headers) {
-        return post(url, json, headers, 1);
+        return post(url, json, headers, 0);
     }
 
     public Response post(String url, JSONArray json, Map<String, String> headers, int retry) {
@@ -235,7 +224,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     }
 
     public Response post(String url, JSONArray json, MediaType mediaType) {
-        return post(url, json, mediaType, 1);
+        return post(url, json, mediaType, 0);
     }
 
     public Response post(String url, JSONArray json, MediaType mediaType, int retry) {
@@ -243,7 +232,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     }
 
     public Response post(String url, JSONArray json, MediaType mediaType, Map<String, String> headers) {
-        return post(url, json, mediaType, headers, 1);
+        return post(url, json, mediaType, headers, 0);
     }
 
     public Response post(String url, JSONArray json, MediaType mediaType, Map<String, String> headers, int retry) {
@@ -252,7 +241,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     }
 
     public Response post(String url, RequestBody requestBody) {
-        return post(url, requestBody, 1);
+        return post(url, requestBody, 0);
     }
 
     public Response post(String url, RequestBody requestBody, int retry) {
@@ -260,7 +249,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     }
 
     public Response post(String url, RequestBody requestBody, Map<String, String> headers) {
-        return post(url, requestBody, headers, 1);
+        return post(url, requestBody, headers, 0);
     }
 
     public Response post(String url, RequestBody requestBody, Map<String, String> headers, int retry) {

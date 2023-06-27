@@ -25,7 +25,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
             throw new IllegalArgumentException("segment must be a power of 2");
         }
         Map<String, Object> status;
-        if (initialize || (status = this.database.get(this.tableName, this.key + "@status")) == null) {
+        if (initialize || (status = this.database.get(this.tableName + "@status", this.key)) == null) {
             this.sequence = SnowFlakeUtil.nextId();
             this.segment = segment;
             this.size = 0;
@@ -43,6 +43,12 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         this.sequence = (Long) status.get("sequence");
         this.segment = (Integer) status.get("segment");
         this.size = (Integer) status.get("size");
+        this.status = status.get("status");
+    }
+
+    @Override
+    public int segment() {
+        return this.segment;
     }
 
     @Override
@@ -199,7 +205,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
     @Override
     public void destroy() {
         this.writeLock(() -> {
-            this.database.delete(this.tableName, this.key + "@status");
+            this.database.delete(this.tableName + "@status", this.key);
             for (int i = 0; i < this.segment; i++) {
                 this.database.delete(this.tableName, this.segmentKey(i));
             }
@@ -241,7 +247,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         SegmentMap<K, V> segmentHashMap = this.writeLock(() -> {
             this.commit();
             SegmentMap<K, V> segmentMap = new SegmentHashMap<>(this.database, this.tableName, this.key, segment, true);
-            segmentMap.setStatus(this.getStatus());
+            segmentMap.updateStatus(this.getStatus());
             for (int i = 0; i < this.segment; i++) {
                 String segmentKey = this.segmentKey(i);
                 Map<K, V> map = this.database.get(this.tableName, segmentKey);
@@ -281,13 +287,13 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
     }
 
 
-    private void updateStatus() {
-        Map<String, Object> status = new HashMap<>();
-        status.put("sequence", this.sequence);
-        status.put("segment", this.segment);
-        status.put("size", this.size);
-        status.put("status", super.status);
-        this.database.put(this.tableName, this.key + "@status", status);
+    void updateStatus() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("sequence", this.sequence);
+        map.put("segment", this.segment);
+        map.put("size", this.size);
+        map.put("status", super.status);
+        this.database.put(this.tableName + "@status", this.key, map);
     }
 
     private int hash(Object key) {

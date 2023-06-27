@@ -42,7 +42,7 @@ public interface SegmentMap<K, V> extends Segment {
     SegmentMap<K, V> remap(int capacity);
 
     static <K, V> SegmentMap<K, V> get(Database database, String tableName, String key) {
-        Map<String, Object> status = database.get(tableName, key + "@status");
+        Map<String, Object> status = database.get(tableName + "@status", key);
         if (status == null) {
             return null;
         }
