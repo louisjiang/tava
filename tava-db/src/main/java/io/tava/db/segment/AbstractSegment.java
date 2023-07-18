@@ -57,6 +57,16 @@ public abstract class AbstractSegment implements Segment {
         }
     }
 
+
+    protected void readLock(Consumer0 consumer0) {
+        try {
+            this.readWriteLock.readLock().lock();
+            consumer0.accept();
+        } finally {
+            this.readWriteLock.readLock().unlock();
+        }
+    }
+
     protected <R> R writeLock(Function0<R> function0) {
         try {
             this.readWriteLock.writeLock().lock();

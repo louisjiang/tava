@@ -1,7 +1,9 @@
 package io.tava.db.segment;
 
 import io.tava.db.Database;
+import io.tava.function.Consumer1;
 import io.tava.function.Consumer2;
+import io.tava.function.Function1;
 
 import java.util.Collection;
 import java.util.Map;
@@ -16,6 +18,10 @@ public interface SegmentMap<K, V> extends Segment {
     boolean containsKey(K key);
 
     boolean containsValue(V value);
+
+    void foreach(K key, Consumer1<V> foreach);
+
+    <T> T map(K key, Function1<V, T> function1);
 
     V get(K key);
 

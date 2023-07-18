@@ -1,7 +1,7 @@
 package io.tava.db.segment;
 
 import io.tava.db.Database;
-import io.tava.function.Consumer2;
+import io.tava.function.*;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -84,6 +84,36 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
             }
         }
         return false;
+    }
+
+    @Override
+    public void foreach(K key, Consumer1<V> foreach) {
+        this.readLock(() -> {
+            Map<K, V> map = this.database.get(this.tableName, this.segmentKey(key));
+            if (map == null) {
+                return;
+            }
+            V value = map.get(key);
+            if (value == null) {
+                return;
+            }
+            foreach.accept(value);
+        });
+    }
+
+    @Override
+    public <T> T map(K key, Function1<V, T> function1) {
+        return this.readLock(() -> {
+            Map<K, V> map = this.database.get(this.tableName, this.segmentKey(key));
+            if (map == null) {
+                return null;
+            }
+            V value = map.get(key);
+            if (value == null) {
+                return null;
+            }
+            return function1.apply(value);
+        });
     }
 
     @Override

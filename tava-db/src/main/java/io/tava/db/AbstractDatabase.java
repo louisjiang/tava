@@ -92,6 +92,15 @@ public abstract class AbstractDatabase implements Database, Util {
     }
 
     @Override
+    public <T> void update(String tableName, String key, Function1<T, T> update) {
+        this.writeLock(key, () -> {
+            T value = get(tableName, key);
+            value = update.apply(value);
+            put(tableName, key, value);
+        });
+    }
+
+    @Override
     public <T> T get(String tableName, String key) {
         return readLock(key, () -> {
             Map<String, Operation> operationMap = this.tableNameToOperationMap.get(tableName);

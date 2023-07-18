@@ -32,7 +32,6 @@ import java.util.concurrent.TimeUnit;
  * @author louisjiang <493509534@qq.com>
  * @version 2020-03-18 16:29:16
  */
-@Service
 public class OkHttpClientService extends ProxySelector implements CookieJar, X509TrustManager, io.tava.util.Util {
 
     private static final MediaType JSON_MEDIA_TYPE = MediaType.get("application/json; charset=utf-8");
