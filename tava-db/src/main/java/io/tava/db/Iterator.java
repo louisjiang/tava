@@ -33,8 +33,9 @@ public interface Iterator extends java.util.Iterator<Iterator.Entry>, Closeable 
             return new String(key, StandardCharsets.UTF_8);
         }
 
-        public Object getObjectValue() {
-            return this.database.toObject(value);
+        @SuppressWarnings("unchecked")
+        public <T> T getObjectValue() {
+            return (T) this.database.toObject(value);
         }
 
     }

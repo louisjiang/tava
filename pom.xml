@@ -36,9 +36,9 @@
         <typesafe.config.version>1.4.2</typesafe.config.version>
         <rocksdbjni.version>8.3.2</rocksdbjni.version>
         <netty.version>4.1.90.Final</netty.version>
-        <agrona.version>1.18.2</agrona.version>
+        <agrona.version>1.19.0</agrona.version>
         <streamex.version>0.8.1</streamex.version>
-        <fastjson2.version>2.0.35</fastjson2.version>
+        <fastjson2.version>2.0.37</fastjson2.version>
         <disruptor.version>3.4.4</disruptor.version>
         <okhttp.version>4.10.0</okhttp.version>
         <kotlin.version>1.9.0</kotlin.version>
@@ -54,10 +54,10 @@
         <asm.version>9.5</asm.version>
         <lmdbjava.version>0.8.3</lmdbjava.version>
         <commons.pool2.version>2.11.1</commons.pool2.version>
-        <caffeine.version>3.1.6</caffeine.version>
+        <caffeine.version>3.1.7</caffeine.version>
         <kryo.version>5.5.0</kryo.version>
         <guava.version>32.1.1-jre</guava.version>
-        <junit.version>5.9.3</junit.version>
+        <junit.version>5.10.0</junit.version>
     </properties>
 
     <dependencyManagement>
@@ -218,7 +218,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>buildnumber-maven-plugin</artifactId>
-                <version>1.4</version>
+                <version>3.0.0</version>
                 <configuration>
                     <timestampFormat>yyyy-MM-dd HH:mm:ss</timestampFormat>
                 </configuration>
@@ -234,7 +234,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.2.0</version>
+                <version>3.3.0</version>
                 <configuration>
                     <archive>
                         <manifestEntries>
@@ -250,12 +250,12 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.0.0-M4</version>
+                <version>3.1.2</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
+                <version>3.11.0</version>
                 <configuration>
                     <encoding>UTF-8</encoding>
                     <source>17</source>
@@ -264,21 +264,8 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>3.2.1</version>
-                <executions>
-                    <execution>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
-                <version>3.1.0</version>
+                <version>3.3.1</version>
                 <configuration>
                     <encoding>UTF-8</encoding>
                 </configuration>
@@ -286,7 +273,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
-                <version>3.2.0</version>
+                <version>3.6.0</version>
                 <executions>
                     <execution>
                         <id>copy-dependencies</id>

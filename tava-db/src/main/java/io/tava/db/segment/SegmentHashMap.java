@@ -1,13 +1,13 @@
 package io.tava.db.segment;
 
 import io.tava.db.Database;
-import io.tava.function.*;
+import io.tava.function.Consumer1;
+import io.tava.function.Consumer2;
+import io.tava.function.Function1;
+import one.util.streamex.StreamEx;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<K, V> {
 
@@ -123,6 +123,29 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
             return null;
         }
         return map.get(key);
+    }
+
+    @Override
+    public Map<K, V> get(List<K> keys) {
+        Map<String, List<K>> groupedKeys = StreamEx.of(keys).groupingBy(this::segmentKey);
+        Map<K, V> values = new HashMap<>();
+        for (Map.Entry<String, List<K>> entry : groupedKeys.entrySet()) {
+            String key = entry.getKey();
+            this.readLock(() -> {
+                Map<K, V> map = this.database.get(this.tableName, key);
+                if (map == null) {
+                    return;
+                }
+                for (K k : entry.getValue()) {
+                    V v = map.get(k);
+                    if (v == null) {
+                        continue;
+                    }
+                    values.put(k, v);
+                }
+            });
+        }
+        return values;
     }
 
     @Override

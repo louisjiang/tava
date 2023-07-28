@@ -6,6 +6,7 @@ import io.tava.function.Consumer2;
 import io.tava.function.Function1;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -24,6 +25,8 @@ public interface SegmentMap<K, V> extends Segment {
     <T> T map(K key, Function1<V, T> function1);
 
     V get(K key);
+
+    Map<K, V> get(List<K> keys);
 
     V put(K key, V value);
 
