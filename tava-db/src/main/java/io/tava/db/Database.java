@@ -120,9 +120,17 @@ public interface Database {
 
     String path();
 
+    void writeLock(String key);
+
+    void unWriteLock(String key);
+
     void writeLock(String key, Consumer0 consumer);
 
     <T> T writeLock(String key, Function0<T> function);
+
+    void readLock(String key);
+
+    void unReadLock(String key);
 
     void readLock(String key, Consumer0 consumer);
 

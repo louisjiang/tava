@@ -38,7 +38,7 @@
         <netty.version>4.1.90.Final</netty.version>
         <agrona.version>1.19.0</agrona.version>
         <streamex.version>0.8.1</streamex.version>
-        <fastjson2.version>2.0.37</fastjson2.version>
+        <fastjson2.version>2.0.38</fastjson2.version>
         <disruptor.version>3.4.4</disruptor.version>
         <okhttp.version>4.10.0</okhttp.version>
         <kotlin.version>1.9.0</kotlin.version>
@@ -56,7 +56,7 @@
         <commons.pool2.version>2.11.1</commons.pool2.version>
         <caffeine.version>3.1.7</caffeine.version>
         <kryo.version>5.5.0</kryo.version>
-        <guava.version>32.1.1-jre</guava.version>
+        <guava.version>32.1.2-jre</guava.version>
         <junit.version>5.10.0</junit.version>
     </properties>
 

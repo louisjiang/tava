@@ -35,6 +35,9 @@ public interface Iterator extends java.util.Iterator<Iterator.Entry>, Closeable 
 
         @SuppressWarnings("unchecked")
         public <T> T getObjectValue() {
+            if (value == null || value.length == 0) {
+                return null;
+            }
             return (T) this.database.toObject(value);
         }
 

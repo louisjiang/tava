@@ -25,6 +25,18 @@ public class HashReadWriteLock<T> implements ReadWriteLock<T> {
         this.fair = fair;
     }
 
+    @Override
+    public boolean isWriteLocked(T key) {
+        if (isEmpty(key)) {
+            throw new NullPointerException("key is null");
+        }
+        LockInfo lockInfo = lockInfos.get(key);
+        if (lockInfo == null) {
+            return false;
+        }
+        return lockInfo.isWriteLocked();
+    }
+
     public void writeLock(T key) {
         if (isEmpty(key)) {
             throw new NullPointerException("key is null");
@@ -93,6 +105,11 @@ public class HashReadWriteLock<T> implements ReadWriteLock<T> {
             this.readWriteLock = new ReentrantReadWriteLock(fair);
         }
 
+
+        public boolean isWriteLocked() {
+            return this.readWriteLock.isWriteLocked();
+        }
+
         public void writeLock() {
             this.readWriteLock.writeLock().lock();
         }
@@ -136,7 +153,6 @@ public class HashReadWriteLock<T> implements ReadWriteLock<T> {
         public int count() {
             return readCount() + writeCount();
         }
-
 
     }
 }

@@ -167,13 +167,16 @@ public abstract class AbstractDatabase implements Database, Util {
         Map<String, Operation> commits = new HashMap<>(operationMap.size());
         for (Map.Entry<String, Operation> entry : operationMap.entrySet()) {
             String key = entry.getKey();
+            if (this.readWriteLock.isWriteLocked(key)) {
+                continue;
+            }
             this.readWriteLock.writeLock(key);
             byte[] bytesKey = key.getBytes(StandardCharsets.UTF_8);
             totalBytes += bytesKey.length;
             Operation operation = entry.getValue();
-            commits.put(key, operation);
             if (operation.isDelete()) {
                 deletes.add(bytesKey);
+                commits.put(key, operation);
                 if (deleteCallback != null) {
                     deleteCallback.accept(key, bytesKey);
                 }
@@ -181,8 +184,13 @@ public abstract class AbstractDatabase implements Database, Util {
                 continue;
             }
             byte[] bytesValue = this.toBytes(operation.getValue());
+            if (bytesValue == EMPTY) {
+                this.readWriteLock.unWriteLock(key);
+                continue;
+            }
             totalBytes += bytesValue.length;
             puts.put(bytesKey, bytesValue);
+            commits.put(key, operation);
             if (putCallback != null) {
                 putCallback.accept(key, bytesKey, bytesValue);
             }
@@ -252,6 +260,26 @@ public abstract class AbstractDatabase implements Database, Util {
 
     public <T> T readLock(String key, Function0<T> function) {
         return this.readWriteLock.doWithReadLock(key, function);
+    }
+
+    @Override
+    public void writeLock(String key) {
+        this.readWriteLock.writeLock(key);
+    }
+
+    @Override
+    public void unWriteLock(String key) {
+        this.readWriteLock.unWriteLock(key);
+    }
+
+    @Override
+    public void readLock(String key) {
+        this.readWriteLock.readLock(key);
+    }
+
+    @Override
+    public void unReadLock(String key) {
+        this.readWriteLock.unReadLock(key);
     }
 
     public void writeLock(String key, Consumer0 consumer) {

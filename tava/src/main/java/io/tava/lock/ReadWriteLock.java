@@ -10,6 +10,8 @@ import io.tava.util.Util;
  */
 public interface ReadWriteLock<T> extends Util {
 
+    boolean isWriteLocked(T key);
+
     void writeLock(T key);
 
     void readLock(T key);
