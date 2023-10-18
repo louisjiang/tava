@@ -232,9 +232,9 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
             return this;
         }
         SegmentSet<V> segmentHashSet = this.writeLock(() -> {
+            Object status = this.getStatus();
             this.commit();
             SegmentSet<V> segmentSet = new SegmentHashSet<>(this.database, this.tableName, this.key, segment, true);
-            segmentSet.updateStatus(getStatus());
             for (int i = 0; i < this.segment; i++) {
                 String segmentKey = this.segmentKey(i);
                 Set<V> set = this.database.get(this.tableName, segmentKey);
@@ -243,6 +243,7 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
                 }
                 segmentSet.addAll(set);
             }
+            segmentSet.updateStatus(status);
             segmentSet.commit();
             this.database.updateSegmentCache(toString("set@", this.tableName, "@", this.key), segmentSet);
             return segmentSet;
@@ -254,7 +255,7 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
     @Override
     public void destroy() {
         this.writeLock(() -> {
-            this.database.delete(this.tableName + "@status", this.key);
+//            this.database.delete(this.tableName + "@status", this.key);
             for (int i = 0; i < this.segment; i++) {
                 this.database.delete(this.tableName, segmentKey(i));
             }
@@ -277,7 +278,7 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
         map.put("sequence", this.sequence);
         map.put("segment", this.segment);
         map.put("size", this.size);
-        map.put("status", super.status);
+        map.put("status", this.status);
         this.database.put(this.tableName + "@status", key, map);
     }
 

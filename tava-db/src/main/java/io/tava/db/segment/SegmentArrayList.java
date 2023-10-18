@@ -335,9 +335,9 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
             return this;
         }
         return this.writeLock(() -> {
+            Object status = this.getStatus();
             this.commit();
             SegmentList<V> segmentList = new SegmentArrayList<>(this.database, this.tableName, this.key, capacity, true);
-            segmentList.updateStatus(this.getStatus());
             for (int i = 0; i <= this.segment; i++) {
                 String segmentKey = this.segmentKey(i);
                 List<V> list = this.database.get(this.tableName, segmentKey);
@@ -346,6 +346,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
                 }
                 segmentList.addAll(list);
             }
+            segmentList.updateStatus(status);
             segmentList.commit();
             this.database.updateSegmentCache(toString("list@", this.tableName, "@", this.key), segmentList);
             this.destroy();
@@ -372,7 +373,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
     @Override
     public void destroy() {
         this.writeLock(() -> {
-            this.database.delete(this.tableName + "@status", this.key);
+//            this.database.delete(this.tableName + "@status", this.key);
             for (int i = 0; i <= this.segment; i++) {
                 this.database.delete(this.tableName, this.segmentKey(i));
             }
@@ -400,7 +401,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
         map.put("sequence", this.sequence);
         map.put("capacity", this.capacity);
         map.put("size", this.size);
-        map.put("status", super.status);
+        map.put("status", this.status);
         this.database.put(this.tableName + "@status", this.key, map);
     }
 

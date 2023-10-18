@@ -102,6 +102,13 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
     }
 
     @Override
+    public void update(K key, Function1<V, V> update) {
+        this.writeLock(() -> {
+            this.put(key, update.apply(this.get(key)));
+        });
+    }
+
+    @Override
     public <T> T map(K key, Function1<V, T> function1) {
         return this.readLock(() -> {
             Map<K, V> map = this.database.get(this.tableName, this.segmentKey(key));
@@ -258,7 +265,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
     @Override
     public void destroy() {
         this.writeLock(() -> {
-            this.database.delete(this.tableName + "@status", this.key);
+//            this.database.delete(this.tableName + "@status", this.key);
             for (int i = 0; i < this.segment; i++) {
                 this.database.delete(this.tableName, this.segmentKey(i));
             }
@@ -298,9 +305,9 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
             return this;
         }
         SegmentMap<K, V> segmentHashMap = this.writeLock(() -> {
+            Object status = this.getStatus();
             this.commit();
             SegmentMap<K, V> segmentMap = new SegmentHashMap<>(this.database, this.tableName, this.key, segment, true);
-            segmentMap.updateStatus(this.getStatus());
             for (int i = 0; i < this.segment; i++) {
                 String segmentKey = this.segmentKey(i);
                 Map<K, V> map = this.database.get(this.tableName, segmentKey);
@@ -309,6 +316,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
                 }
                 segmentMap.putAll(map);
             }
+            segmentMap.updateStatus(status);
             segmentMap.commit();
             this.database.updateSegmentCache(toString("map@", this.tableName, "@", this.key), segmentMap);
             return segmentMap;
@@ -345,7 +353,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         map.put("sequence", this.sequence);
         map.put("segment", this.segment);
         map.put("size", this.size);
-        map.put("status", super.status);
+        map.put("status", this.status);
         this.database.put(this.tableName + "@status", this.key, map);
     }
 

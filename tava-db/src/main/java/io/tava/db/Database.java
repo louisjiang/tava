@@ -90,11 +90,11 @@ public interface Database {
 
     <T> T get(String tableName, String key);
 
-    default <T> void update(String key, Function1<T, T> update) {
-        this.update("default", key, update);
+    default <T> T update(String key, Function1<T, T> update) {
+        return this.update("default", key, update);
     }
 
-    <T> void update(String tableName, String key, Function1<T, T> update);
+    <T> T update(String tableName, String key, Function1<T, T> update);
 
     default <T> void get(String key, Consumer1<T> consumer1) {
         get("default", key, consumer1);

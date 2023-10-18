@@ -92,11 +92,12 @@ public abstract class AbstractDatabase implements Database, Util {
     }
 
     @Override
-    public <T> void update(String tableName, String key, Function1<T, T> update) {
-        this.writeLock(key, () -> {
+    public <T> T update(String tableName, String key, Function1<T, T> update) {
+        return this.writeLock(key, () -> {
             T value = get(tableName, key);
             value = update.apply(value);
             put(tableName, key, value);
+            return value;
         });
     }
 
@@ -322,7 +323,7 @@ public abstract class AbstractDatabase implements Database, Util {
         this.cache.put(key, segment);
     }
 
-    static class Operation {
+    public static class Operation {
 
         private int version = 0;
         private boolean delete;

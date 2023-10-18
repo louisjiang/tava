@@ -22,6 +22,8 @@ public interface SegmentMap<K, V> extends Segment {
 
     void foreach(K key, Consumer1<V> foreach);
 
+    void update(K key, Function1<V, V> update);
+
     <T> T map(K key, Function1<V, T> function1);
 
     V get(K key);

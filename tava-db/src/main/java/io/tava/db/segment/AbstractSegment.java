@@ -4,7 +4,6 @@ import io.tava.db.Database;
 import io.tava.function.Consumer0;
 import io.tava.function.Function0;
 
-import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -28,6 +27,7 @@ public abstract class AbstractSegment implements Segment {
 
     @Override
     public void commit() {
+        this.database.commit(this.tableName + "@status");
         this.database.commit(this.tableName);
     }
 
@@ -41,11 +41,12 @@ public abstract class AbstractSegment implements Segment {
     @Override
     @SuppressWarnings("unchecked")
     public <V> V getStatus() {
-        Map<String, Object> map = this.database.get(this.tableName + "@status", this.key);
-        if (map == null) {
-            return null;
-        }
-        return (V) map.get("status");
+//        Map<String, Object> map = this.database.get(this.tableName + "@status", this.key);
+//        if (map == null) {
+//            return null;
+//        }
+//        return (V) map.get("status");
+        return (V) status;
     }
 
     protected <R> R readLock(Function0<R> function0) {
