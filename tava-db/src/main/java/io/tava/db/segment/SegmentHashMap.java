@@ -133,7 +133,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
     }
 
     @Override
-    public Map<K, V> get(List<K> keys) {
+    public Map<K, V> get(Collection<K> keys) {
         Map<String, List<K>> groupedKeys = StreamEx.of(keys).groupingBy(this::segmentKey);
         Map<K, V> values = new HashMap<>();
         for (Map.Entry<String, List<K>> entry : groupedKeys.entrySet()) {

@@ -28,7 +28,7 @@ public interface SegmentMap<K, V> extends Segment {
 
     V get(K key);
 
-    Map<K, V> get(List<K> keys);
+    Map<K, V> get(Collection<K> keys);
 
     V put(K key, V value);
 

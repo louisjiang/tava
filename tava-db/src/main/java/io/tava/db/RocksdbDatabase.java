@@ -41,9 +41,7 @@ public class RocksdbDatabase extends AbstractDatabase {
         this(configuration, serialization, createOptions(configuration));
     }
 
-    public RocksdbDatabase(Configuration configuration,
-                           Serialization serialization,
-                           Tuple3<DBOptions, ColumnFamilyOptions, List<ColumnFamilyDescriptor>> tuple3) {
+    public RocksdbDatabase(Configuration configuration, Serialization serialization, Tuple3<DBOptions, ColumnFamilyOptions, List<ColumnFamilyDescriptor>> tuple3) {
         super(configuration, serialization);
         String path = configuration.getString("path");
         this.directory = new File(path);
@@ -81,10 +79,7 @@ public class RocksdbDatabase extends AbstractDatabase {
         }, createPoolConfig(configuration.getInt("maxTotal", 16), configuration.getInt("maxIdle", 16), configuration.getInt("minIdle", 1), configuration.getLong("maxWaitMilliseconds", -1)));
     }
 
-    private GenericObjectPoolConfig<WriteBatch> createPoolConfig(int maxTotal,
-                                                                 int maxIdle,
-                                                                 int minIdle,
-                                                                 long maxWaitMilliseconds) {
+    private GenericObjectPoolConfig<WriteBatch> createPoolConfig(int maxTotal, int maxIdle, int minIdle, long maxWaitMilliseconds) {
         GenericObjectPoolConfig<WriteBatch> poolConfig = new GenericObjectPoolConfig<>();
         poolConfig.setMaxTotal(maxTotal);
         poolConfig.setMaxIdle(maxIdle);
@@ -113,8 +108,10 @@ public class RocksdbDatabase extends AbstractDatabase {
 
         ColumnFamilyOptions columnFamilyOptions = new ColumnFamilyOptions();
         columnFamilyOptions.setWriteBufferSize(writeBufferSize);
-        columnFamilyOptions.setMaxWriteBufferNumber(configuration.getInt("max_write_buffer_number", 8));
+        columnFamilyOptions.setMaxWriteBufferNumber(configuration.getInt("max_write_buffer_number", 2));
         columnFamilyOptions.setCompressionType(CompressionType.LZ4_COMPRESSION);
+        columnFamilyOptions.setMinWriteBufferNumberToMerge(3);  // 设置最小合并缓冲区数量
+
         columnFamilyOptions.setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION);
 //        columnFamilyOptions.setLevelCompactionDynamicLevelBytes(true);
         columnFamilyOptions.setCompactionPriority(CompactionPriority.MinOverlappingRatio);
@@ -142,7 +139,7 @@ public class RocksdbDatabase extends AbstractDatabase {
         List<ColumnFamilyDescriptor> columnFamilyDescriptors = new ArrayList<>();
         try {
             List<byte[]> listColumnFamilies = RocksDB.listColumnFamilies(new Options(), configuration.getString("path"));
-            if (listColumnFamilies.size() == 0) {
+            if (listColumnFamilies.isEmpty()) {
                 columnFamilyDescriptors.add(new ColumnFamilyDescriptor("default".getBytes(StandardCharsets.UTF_8), columnFamilyOptions));
             }
             for (byte[] columnFamily : listColumnFamilies) {

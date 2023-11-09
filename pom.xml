@@ -36,17 +36,17 @@
         <typesafe.config.version>1.4.3</typesafe.config.version>
         <rocksdbjni.version>8.5.4</rocksdbjni.version>
         <netty.version>4.1.90.Final</netty.version>
-        <agrona.version>1.19.2</agrona.version>
+        <agrona.version>1.20.0</agrona.version>
         <streamex.version>0.8.2</streamex.version>
         <fastjson2.version>2.0.41</fastjson2.version>
         <disruptor.version>3.4.4</disruptor.version>
         <okhttp.version>4.10.0</okhttp.version>
-        <kotlin.version>1.9.10</kotlin.version>
+        <kotlin.version>1.9.20</kotlin.version>
         <failsafe.version>2.4.4</failsafe.version>
         <slf4j.version>2.0.8</slf4j.version>
         <rxjava.version>3.1.8</rxjava.version>
         <joda.time.version>2.12.5</joda.time.version>
-        <spring.boot.version>3.1.4</spring.boot.version>
+        <spring.boot.version>3.1.5</spring.boot.version>
         <spring.context.version>6.0.13</spring.context.version>
         <aopalliance.version>1.0</aopalliance.version>
         <mustache.version>0.9.11</mustache.version>
