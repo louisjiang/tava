@@ -64,7 +64,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
     public boolean contains(V value) {
         for (int i = 0; i < this.segment; i++) {
             int index = i;
-            List<V> list = this.readLock(() -> this.database.get(this.tableName, this.segmentKey(index)));
+            List<V> list = this.readLock(tableName, () -> this.database.get(this.tableName, this.segmentKey(index)));
             if (list == null) {
                 break;
             }
@@ -77,7 +77,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
 
     @Override
     public Iterator<V> iterator() {
-        this.readWriteLock.readLock().lock();
+        this.readWriteLock.readLock(tableName);
         return new Iterator<>() {
 
             private int index = 0;
@@ -108,7 +108,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
 
             @Override
             public void close() throws IOException {
-                readWriteLock.readLock().unlock();
+                readWriteLock.unReadLock(tableName);
             }
 
         };
@@ -116,7 +116,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
 
     @Override
     public boolean add(V value) {
-        return this.writeLock(() -> {
+        return this.writeLock(tableName, () -> {
             String segmentKey = this.segmentKey();
             List<V> list = this.database.get(this.tableName, segmentKey);
             if (list == null) {
@@ -131,7 +131,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
 
     @Override
     public boolean remove(V value) {
-        return this.writeLock(() -> {
+        return this.writeLock(tableName, () -> {
             for (int i = 0; i <= this.segment; i++) {
                 String segmentKey = this.segmentKey(i);
                 List<V> list = this.database.get(this.tableName, segmentKey);
@@ -178,7 +178,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
     @Override
     public boolean addAll(int index, Collection<? extends V> collection) {
         rangeCheckForAdd(index);
-        return this.writeLock(() -> {
+        return this.writeLock(tableName, () -> {
             int segment = index / this.capacity;
             List<V> list = this.database.get(this.tableName, this.segmentKey(segment));
             if (list == null) {
@@ -212,7 +212,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
 
     @Override
     public boolean retainAll(Collection<? extends V> collection) {
-        return this.writeLock(() -> {
+        return this.writeLock(tableName, () -> {
             List<V> list = new ArrayList<>();
             for (int i = 0; i <= this.segment; i++) {
                 List<V> l = this.database.get(this.tableName, this.segmentKey(i));
@@ -236,7 +236,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
 
     @Override
     public void clear() {
-        this.writeLock(() -> {
+        this.writeLock(tableName, () -> {
             this.size = 0;
             this.updateStatus();
             for (int i = 0; i <= this.segment; i++) {
@@ -251,14 +251,14 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
     public V get(int index) {
         rangeCheck(index);
         int segment = index / this.capacity;
-        List<V> list = this.readLock(() -> this.database.get(this.tableName, this.segmentKey(segment)));
+        List<V> list = this.readLock(tableName, () -> this.database.get(this.tableName, this.segmentKey(segment)));
         return list.get(index % this.capacity);
     }
 
     @Override
     public V set(int index, V value) {
         rangeCheck(index);
-        return this.writeLock(() -> {
+        return this.writeLock(tableName, () -> {
             String segmentKey = this.segmentKey(index / this.capacity);
             List<V> list = this.database.get(this.tableName, segmentKey);
             V v = list.set(index % this.capacity, value);
@@ -274,7 +274,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
 
     @Override
     public V remove(int index) {
-        return this.writeLock(() -> {
+        return this.writeLock(tableName, () -> {
             rangeCheck(index);
             int segment = index / this.capacity;
             String segmentKey = this.segmentKey(segment);
@@ -300,7 +300,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
     public int indexOf(V o) {
         for (int i = 0; i <= this.segment; i++) {
             int index = i;
-            List<V> list = this.readLock(() -> this.database.get(this.tableName, this.segmentKey(index)));
+            List<V> list = this.readLock(tableName, () -> this.database.get(this.tableName, this.segmentKey(index)));
             int indexOf = list.indexOf(o);
             if (indexOf == -1) {
                 continue;
@@ -314,7 +314,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
     public int lastIndexOf(V o) {
         for (int i = this.segment; i >= 0; i--) {
             int index = i;
-            List<V> list = this.readLock(() -> this.database.get(this.tableName, this.segmentKey(index)));
+            List<V> list = this.readLock(tableName, () -> this.database.get(this.tableName, this.segmentKey(index)));
             int lastIndexOf = list.lastIndexOf(o);
             if (lastIndexOf == -1) {
                 continue;
@@ -334,7 +334,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
         if (this.capacity == capacity) {
             return this;
         }
-        return this.writeLock(() -> {
+        return this.writeLock(tableName, () -> {
             Object status = this.getStatus();
             this.commit();
             SegmentList<V> segmentList = new SegmentArrayList<>(this.database, this.tableName, this.key, capacity, true);
@@ -348,7 +348,6 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
             }
             segmentList.updateStatus(status);
             segmentList.commit();
-            this.database.updateSegmentCache(toString("list@", this.tableName, "@", this.key), segmentList);
             this.destroy();
             return segmentList;
         });
@@ -361,7 +360,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
         List<V> list = new ArrayList<>((end - start + 1) * this.capacity);
         for (int i = start; i <= end; i++) {
             int index = i;
-            List<V> l = this.readLock(() -> this.database.get(this.tableName, this.segmentKey(index)));
+            List<V> l = this.readLock(tableName, () -> this.database.get(this.tableName, this.segmentKey(index)));
             if (l == null) {
                 continue;
             }
@@ -372,7 +371,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
 
     @Override
     public void destroy() {
-        this.writeLock(() -> {
+        this.writeLock(tableName, () -> {
 //            this.database.delete(this.tableName + "@status", this.key);
             for (int i = 0; i <= this.segment; i++) {
                 this.database.delete(this.tableName, this.segmentKey(i));

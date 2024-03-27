@@ -1,13 +1,16 @@
 package io.tava.db;
 
-import io.tava.db.segment.Segment;
+import com.github.benmanes.caffeine.cache.Cache;
 import io.tava.db.segment.SegmentList;
 import io.tava.db.segment.SegmentMap;
 import io.tava.db.segment.SegmentSet;
-import io.tava.function.*;
+import io.tava.function.Consumer0;
+import io.tava.function.Function0;
+import io.tava.function.Function1;
 import io.tava.lang.Option;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -15,6 +18,8 @@ import java.util.Set;
  * @version 2021-05-07 14:37
  */
 public interface Database {
+
+    Cache<DBKey, Object> cache();
 
     default <V> SegmentList<V> newSegmentList(String key, int capacity) {
         return newSegmentList("default", key, capacity);
@@ -96,12 +101,6 @@ public interface Database {
 
     <T> T update(String tableName, String key, Function1<T, T> update);
 
-    default <T> void get(String key, Consumer1<T> consumer1) {
-        get("default", key, consumer1);
-    }
-
-    <T> void get(String tableName, String key, Consumer1<T> consumer1);
-
     default Iterator iterator() {
         return this.iterator("default");
     }
@@ -120,21 +119,21 @@ public interface Database {
 
     String path();
 
-    void writeLock(String key);
+    void writeLock(String tableName, String key);
 
-    void unWriteLock(String key);
+    void unWriteLock(String tableName, String key);
 
-    void writeLock(String key, Consumer0 consumer);
+    void writeLock(String tableName, String key, Consumer0 consumer);
 
-    <T> T writeLock(String key, Function0<T> function);
+    <T> T writeLock(String tableName, String key, Function0<T> function);
 
-    void readLock(String key);
+    void readLock(String tableName, String key);
 
-    void unReadLock(String key);
+    void unReadLock(String tableName, String key);
 
-    void readLock(String key, Consumer0 consumer);
+    void readLock(String tableName, String key, Consumer0 consumer);
 
-    <T> T readLock(String key, Function0<T> function);
+    <T> T readLock(String tableName, String key, Function0<T> function);
 
     boolean createTable(String tableName);
 
@@ -152,7 +151,18 @@ public interface Database {
 
     void compact();
 
-    void addCommitCallback(String tableName, Consumer3<String, byte[], byte[]> putCallback, Consumer2<String, byte[]> deleteCallback);
+    record DBKey(String tableName, String key) {
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof DBKey dbKey)) return false;
+            return Objects.equals(tableName(), dbKey.tableName()) && Objects.equals(key(), dbKey.key());
+        }
 
-    void updateSegmentCache(String key, Segment segment);
+        @Override
+        public int hashCode() {
+            return Objects.hash(tableName(), key());
+        }
+    }
+
 }

@@ -8,10 +8,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @version 2020-03-31 10:32:22
  */
 public class NamedThreadFactory implements ThreadFactory {
-
-    private final ThreadGroup group;
     private final AtomicInteger threadNumber = new AtomicInteger(1);
-
+    private final ThreadGroup group;
     private final String namePrefix;
     private final boolean daemon;
 

@@ -9,7 +9,6 @@ import okhttp3.internal.Util;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -44,15 +43,20 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     private final List<String> proxyHosts = new ArrayList<>();
 
     public OkHttpClientService() {
-        this(5, 5, 5, 5, 5, 512);
+        this(5, 5, 5, 5, 5, 256, 128, 256, 5);
     }
 
-    public OkHttpClientService(long connectTimeout, long readTimeout, long writeTimeout, long callTimeout, long pingInterval, int maxIdleConnections) {
+    public OkHttpClientService(long connectTimeout, long readTimeout, long writeTimeout, long callTimeout, long pingInterval, int maxRequests, int maxRequestsPerHost, int maxIdleConnections, int keepAliveDuration) {
         SSLSocketFactory sslSocketFactory = buildSSLSocketFactory();
         if (sslSocketFactory == null) {
             throw new NullPointerException("sslSocketFactory is null");
         }
-        this.okHttpClient = new OkHttpClient.Builder().connectTimeout(connectTimeout, TimeUnit.SECONDS).readTimeout(readTimeout, TimeUnit.SECONDS).writeTimeout(writeTimeout, TimeUnit.SECONDS).callTimeout(callTimeout, TimeUnit.SECONDS).pingInterval(pingInterval, TimeUnit.SECONDS).sslSocketFactory(sslSocketFactory, this).connectionPool(new ConnectionPool(maxIdleConnections, 5, TimeUnit.MINUTES)).connectionSpecs(Util.immutableListOf(ConnectionSpec.COMPATIBLE_TLS, ConnectionSpec.CLEARTEXT)).proxySelector(this).cookieJar(this).build();
+        Dispatcher dispatcher = new Dispatcher();
+        dispatcher.setMaxRequests(maxRequests);
+        dispatcher.setMaxRequestsPerHost(maxRequestsPerHost);
+
+        ConnectionPool connectionPool = new ConnectionPool(maxIdleConnections, keepAliveDuration, TimeUnit.MINUTES);
+        this.okHttpClient = new OkHttpClient.Builder().connectTimeout(connectTimeout, TimeUnit.SECONDS).readTimeout(readTimeout, TimeUnit.SECONDS).writeTimeout(writeTimeout, TimeUnit.SECONDS).callTimeout(callTimeout, TimeUnit.SECONDS).pingInterval(pingInterval, TimeUnit.SECONDS).sslSocketFactory(sslSocketFactory, this).connectionPool(connectionPool).dispatcher(dispatcher).connectionSpecs(Util.immutableListOf(ConnectionSpec.COMPATIBLE_TLS, ConnectionSpec.CLEARTEXT)).proxySelector(this).cookieJar(this).build();
     }
 
     private SSLSocketFactory buildSSLSocketFactory() {
@@ -100,7 +104,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
 
     public Response put(String url, Map<String, String> forms, Map<String, String> headers) {
         FormBody.Builder formBodyBuilder = new FormBody.Builder();
-        if (forms != null && forms.size() > 0) {
+        if (forms != null && !forms.isEmpty()) {
             forms.forEach(formBodyBuilder::add);
         }
         return put(url, formBodyBuilder.build(), headers);

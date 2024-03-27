@@ -2,14 +2,18 @@ package io.tava.serialization.kryo;
 
 import com.esotericsoftware.kryo.*;
 import com.esotericsoftware.kryo.serializers.ClosureSerializer;
+import com.esotericsoftware.kryo.serializers.DefaultSerializers;
+import io.tava.serialization.kryo.serializer.LongAdderSerializer;
 import io.tava.serialization.kryo.serializer.joda.*;
-import org.objenesis.strategy.StdInstantiatorStrategy;
 
 import java.lang.invoke.SerializedLambda;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 
 /**
  * @author louisjiang <493509534@qq.com>
@@ -100,6 +104,11 @@ public class KryoSerialization extends Kryo {
 
         register(ClosureSerializer.Closure.class, new ClosureSerializer(), 77);
         register(SerializedLambda.class, 78);
+
+        register(TimeUnit.class, 79);
+        register(AtomicLong.class, new DefaultSerializers.AtomicLongSerializer(), 80);
+        register(LongAdder.class, new LongAdderSerializer(), 81);
+
     }
 
     @Override

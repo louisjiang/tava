@@ -1,99 +1,116 @@
 package io.tava.db;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.*;
+import io.tava.Tava;
 import io.tava.configuration.Configuration;
 import io.tava.db.segment.*;
-import io.tava.function.*;
+import io.tava.function.Consumer0;
+import io.tava.function.Function0;
+import io.tava.function.Function1;
 import io.tava.lang.Option;
+import io.tava.lang.Tuple4;
 import io.tava.lock.HashReadWriteLock;
 import io.tava.serialization.Serialization;
 import io.tava.util.Util;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * @author louisjiang <493509534@qq.com>
  * @version 2021-07-14 13:31
  */
 @SuppressWarnings("unchecked")
-public abstract class AbstractDatabase implements Database, Util {
-
+public abstract class AbstractDatabase implements Database, Util, CacheLoader<Database.DBKey, Object>, RemovalListener<Database.DBKey, Object> {
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
     protected final HashReadWriteLock<String> readWriteLock = new HashReadWriteLock<>();
     protected final Map<String, Map<String, Operation>> tableNameToOperationMap = new ConcurrentHashMap<>();
-    private final Map<String, Consumer3<String, byte[], byte[]>> putCallbacks = new ConcurrentHashMap<>();
-    private final Map<String, Consumer2<String, byte[]>> deleteCallbacks = new ConcurrentHashMap<>();
     private final Map<String, Long> tableNameToTimestamps = new ConcurrentHashMap<>();
     private final byte[] EMPTY = new byte[0];
     private final Serialization serialization;
     private final int batchSize;
     private final int interval;
     private final int initialCapacity;
-    private final Cache<String, Segment> cache;
+    private final ForkJoinPool forkJoinPool;
+    private final LoadingCache<DBKey, Object> cache;
 
     protected AbstractDatabase(Configuration configuration, Serialization serialization) {
         this.serialization = serialization;
         this.batchSize = configuration.getInt("batch_size", 2048);
         this.interval = configuration.getInt("interval", 10000);
         this.initialCapacity = this.batchSize / 2;
+        this.forkJoinPool = new ForkJoinPool(configuration.getInt("fork-join-pool-parallelism", Runtime.getRuntime().availableProcessors() * 3));
         Caffeine<Object, Object> caffeine = Caffeine.newBuilder();
-        caffeine.initialCapacity(512);
-        caffeine.maximumSize(2048);
-        caffeine.expireAfterAccess(60, TimeUnit.SECONDS);
-        caffeine.softValues();
+        int initialCapacity = configuration.getInt("cache.initial-capacity");
+        int maximumSize = configuration.getInt("cache.maximum-size");
+        int expireAfterAccess = configuration.getInt("cache.expire-after-access");
+        caffeine.initialCapacity(initialCapacity);
+        caffeine.maximumSize(maximumSize);
+        caffeine.expireAfterAccess(expireAfterAccess, TimeUnit.SECONDS);
         caffeine.recordStats();
-        this.cache = caffeine.build();
+        caffeine.softValues();
+        caffeine.removalListener(this);
+        this.cache = caffeine.build(this);
+    }
+
+    @Override
+    public Cache<DBKey, Object> cache() {
+        return cache;
     }
 
     @Override
     public <V> SegmentList<V> newSegmentList(String tableName, String key, int capacity) {
-        return (SegmentList<V>) this.cache.get(toString("list@", tableName, "@", key), s -> new SegmentArrayList<V>(AbstractDatabase.this, tableName, key, capacity));
+        return new SegmentArrayList<>(AbstractDatabase.this, tableName, key, capacity);
     }
 
     @Override
     public <V> Option<SegmentList<V>> getSegmentList(String tableName, String key) {
-        return Option.option((SegmentList<V>) this.cache.get(toString("list@", tableName, "@", key), s -> SegmentList.get(AbstractDatabase.this, tableName, key)));
+        return Option.option(SegmentList.get(AbstractDatabase.this, tableName, key));
     }
 
     @Override
     public <V> SegmentSet<V> newSegmentSet(String tableName, String key, int segment) {
-        return (SegmentSet<V>) this.cache.get(toString("set@", tableName, "@", key), s -> new SegmentHashSet<>(AbstractDatabase.this, tableName, key, segment));
+        return new SegmentHashSet<>(AbstractDatabase.this, tableName, key, segment);
     }
 
     @Override
     public <V> Option<SegmentSet<V>> getSegmentSet(String tableName, String key) {
-        return Option.option((SegmentSet<V>) this.cache.get(toString("set@", tableName, "@", key), s -> SegmentSet.get(AbstractDatabase.this, tableName, key)));
+        return Option.option(SegmentSet.get(AbstractDatabase.this, tableName, key));
     }
 
     @Override
     public <K, V> SegmentMap<K, V> newSegmentMap(String tableName, String key, int segment) {
-        return (SegmentMap<K, V>) this.cache.get(toString("map@", tableName, "@", key), s -> new SegmentHashMap<>(AbstractDatabase.this, tableName, key, segment));
+        return new SegmentHashMap<>(AbstractDatabase.this, tableName, key, segment);
     }
 
     @Override
     public <K, V> Option<SegmentMap<K, V>> getSegmentMap(String tableName, String key) {
-        return Option.option((SegmentMap<K, V>) this.cache.get(toString("map@", tableName, "@", key), s -> SegmentMap.get(AbstractDatabase.this, tableName, key)));
+        return Option.option(SegmentMap.get(AbstractDatabase.this, tableName, key));
     }
 
     @Override
     public void put(String tableName, String key, Object value) {
-        this.writeLock(key, () -> this.tableNameToOperationMap.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).computeIfAbsent(key, s -> new Operation()).put(value));
+        this.writeLock(tableName, key, () -> {
+            this.tableNameToOperationMap.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).computeIfAbsent(key, s -> new Operation()).put(value);
+        });
+        this.cache.put(new DBKey(tableName, key), value);
     }
 
     @Override
     public void delete(String tableName, String key) {
-        this.writeLock(key, () -> this.tableNameToOperationMap.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).computeIfAbsent(key, s -> new Operation()).delete());
+        this.writeLock(tableName, key, () -> {
+            this.tableNameToOperationMap.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).computeIfAbsent(key, s -> new Operation()).delete();
+            this.cache.invalidate(new DBKey(tableName, key));
+        });
     }
 
     @Override
     public <T> T update(String tableName, String key, Function1<T, T> update) {
-        return this.writeLock(key, () -> {
+        return this.writeLock(tableName, key, () -> {
             T value = get(tableName, key);
             value = update.apply(value);
             put(tableName, key, value);
@@ -103,39 +120,7 @@ public abstract class AbstractDatabase implements Database, Util {
 
     @Override
     public <T> T get(String tableName, String key) {
-        return readLock(key, () -> {
-            Map<String, Operation> operationMap = this.tableNameToOperationMap.get(tableName);
-            Operation operation;
-            if (operationMap != null && (operation = operationMap.get(key)) != null) {
-                return (T) operation.getValue();
-            }
-            byte[] bytes = this.get(tableName, key.getBytes(StandardCharsets.UTF_8));
-            if (bytes == null || bytes.length == 0) {
-                return null;
-            }
-            return (T) this.toObject(bytes);
-        });
-    }
-
-    @Override
-    public <T> void get(String tableName, String key, Consumer1<T> consumer1) {
-        this.readLock(key, () -> {
-            Map<String, Operation> operationMap = this.tableNameToOperationMap.get(tableName);
-            Operation operation;
-            if (operationMap != null && (operation = operationMap.get(key)) != null) {
-                T value = (T) operation.getValue();
-                consumer1.accept(value);
-                return value;
-            }
-            byte[] bytes = this.get(tableName, key.getBytes(StandardCharsets.UTF_8));
-            if (bytes == null || bytes.length == 0) {
-                return null;
-            }
-            T value = (T) this.toObject(bytes);
-            consumer1.accept(value);
-            return value;
-        });
-
+        return (T) this.cache.get(new DBKey(tableName, key));
     }
 
     @Override
@@ -159,46 +144,51 @@ public abstract class AbstractDatabase implements Database, Util {
             return;
         }
 
-        long totalBytes = 0;
+        int totalBytes = 0;
         Map<byte[], byte[]> puts = new HashMap<>();
         Set<byte[]> deletes = new HashSet<>();
-        Consumer3<String, byte[], byte[]> putCallback = this.putCallbacks.get(tableName);
-        Consumer2<String, byte[]> deleteCallback = this.deleteCallbacks.get(tableName);
 
-        Map<String, Operation> commits = new HashMap<>(operationMap.size());
+        Map<String, Operation> commits = new ConcurrentHashMap<>(operationMap.size());
+        List<ForkJoinTask<Tuple4<byte[], byte[], String, Operation>>> tasks = new ArrayList<>();
         for (Map.Entry<String, Operation> entry : operationMap.entrySet()) {
             String key = entry.getKey();
-            if (this.readWriteLock.isWriteLocked(key)) {
+            String lockKey = toString(tableName, "@", key);
+            if (this.readWriteLock.isWriteLocked(lockKey) || this.readWriteLock.isReadLocked(lockKey)) {
                 continue;
             }
-            this.readWriteLock.writeLock(key);
+
             byte[] bytesKey = key.getBytes(StandardCharsets.UTF_8);
-            totalBytes += bytesKey.length;
             Operation operation = entry.getValue();
             if (operation.isDelete()) {
+                this.readWriteLock.writeLock(lockKey);
                 deletes.add(bytesKey);
                 commits.put(key, operation);
-                if (deleteCallback != null) {
-                    deleteCallback.accept(key, bytesKey);
-                }
-                this.readWriteLock.unWriteLock(key);
+                this.readWriteLock.unWriteLock(lockKey);
                 continue;
             }
-            byte[] bytesValue = this.toBytes(operation.getValue());
-            if (bytesValue == EMPTY) {
-                this.readWriteLock.unWriteLock(key);
-                continue;
-            }
-            totalBytes += bytesValue.length;
-            puts.put(bytesKey, bytesValue);
-            commits.put(key, operation);
-            if (putCallback != null) {
-                putCallback.accept(key, bytesKey, bytesValue);
-            }
-            this.readWriteLock.unWriteLock(key);
+
+            ForkJoinTask<Tuple4<byte[], byte[], String, Operation>> task = this.forkJoinPool.submit(() -> {
+                byte[] bytes = this.readWriteLock.doWithWriteLock(lockKey, () -> this.toBytes(operation.getValue()));
+                return Tava.of(bytesKey, bytes, key, operation);
+            });
+            tasks.add(task);
         }
+        for (ForkJoinTask<Tuple4<byte[], byte[], String, Operation>> task : tasks) {
+            try {
+                Tuple4<byte[], byte[], String, Operation> tuple3 = task.get();
+                byte[] bytes = tuple3.getValue2();
+                if (bytes == EMPTY) {
+                    continue;
+                }
+                totalBytes += bytes.length;
+                puts.put(tuple3.getValue1(), bytes);
+                commits.put(tuple3.getValue3(), tuple3.getValue4());
+            } catch (InterruptedException | ExecutionException ignored) {
+            }
+        }
+
         long elapsedTime = System.currentTimeMillis() - now;
-        this.commit(tableName, puts, deletes);
+        this.commit(tableName, puts, deletes, totalBytes);
         int changed = 0;
         for (Map.Entry<String, Operation> entry : commits.entrySet()) {
             String key = entry.getKey();
@@ -217,7 +207,7 @@ public abstract class AbstractDatabase implements Database, Util {
 
     protected abstract byte[] get(String tableName, byte[] key);
 
-    protected abstract void commit(String tableName, Map<byte[], byte[]> puts, Set<byte[]> deletes);
+    protected abstract void commit(String tableName, Map<byte[], byte[]> puts, Set<byte[]> deletes, int totalBytes);
 
     @Override
     public boolean dropTable(String tableName) {
@@ -255,44 +245,102 @@ public abstract class AbstractDatabase implements Database, Util {
     }
 
     @Override
-    public void readLock(String key, Consumer0 consumer) {
-        this.readWriteLock.doWithReadLock(key, consumer);
+    public void readLock(String tableName, String key, Consumer0 consumer) {
+        this.readWriteLock.doWithReadLock(toString(tableName, "@", key), consumer);
     }
 
-    public <T> T readLock(String key, Function0<T> function) {
-        return this.readWriteLock.doWithReadLock(key, function);
-    }
-
-    @Override
-    public void writeLock(String key) {
-        this.readWriteLock.writeLock(key);
+    public <T> T readLock(String tableName, String key, Function0<T> function) {
+        return this.readWriteLock.doWithReadLock(toString(tableName, "@", key), function);
     }
 
     @Override
-    public void unWriteLock(String key) {
-        this.readWriteLock.unWriteLock(key);
+    public void writeLock(String tableName, String key) {
+        this.readWriteLock.writeLock(toString(tableName, "@", key));
     }
 
     @Override
-    public void readLock(String key) {
-        this.readWriteLock.readLock(key);
+    public void unWriteLock(String tableName, String key) {
+        this.readWriteLock.unWriteLock(toString(tableName, "@", key));
     }
 
     @Override
-    public void unReadLock(String key) {
-        this.readWriteLock.unReadLock(key);
-    }
-
-    public void writeLock(String key, Consumer0 consumer) {
-        this.readWriteLock.doWithWriteLock(key, consumer);
+    public void readLock(String tableName, String key) {
+        this.readWriteLock.readLock(toString(tableName, "@", key));
     }
 
     @Override
-    public <T> T writeLock(String key, Function0<T> function) {
-        return this.readWriteLock.doWithWriteLock(key, function);
+    public void unReadLock(String tableName, String key) {
+        this.readWriteLock.unReadLock(toString(tableName, "@", key));
     }
 
-    private String byteToString(long byteLength) {
+    public void writeLock(String tableName, String key, Consumer0 consumer) {
+        this.readWriteLock.doWithWriteLock(toString(tableName, "@", key), consumer);
+    }
+
+    @Override
+    public <T> T writeLock(String tableName, String key, Function0<T> function) {
+        return this.readWriteLock.doWithWriteLock(toString(tableName, "@", key), function);
+    }
+
+
+    @Override
+    public Object load(DBKey dbKey) throws Exception {
+        String tableName = dbKey.tableName();
+        String key = dbKey.key();
+        return readLock(tableName, key, () -> {
+            Map<String, Operation> operationMap = this.tableNameToOperationMap.get(tableName);
+            Operation operation;
+            if (operationMap != null && (operation = operationMap.get(key)) != null) {
+                return operation.getValue();
+            }
+            byte[] bytes = this.get(tableName, key.getBytes(StandardCharsets.UTF_8));
+            if (bytes == null || bytes.length == 0) {
+                return null;
+            }
+            return this.toObject(bytes);
+        });
+    }
+
+    @Override
+    public void onRemoval(@Nullable DBKey key, @Nullable Object value, RemovalCause cause) {
+    }
+
+    @Override
+    public Iterator iterator(String tableName, boolean useSnapshot) {
+        return null;
+    }
+
+    @Override
+    public boolean keyMayExist(String tableName, String key) {
+        return false;
+    }
+
+    @Override
+    public String path() {
+        return null;
+    }
+
+    @Override
+    public boolean createTable(String tableName) {
+        return false;
+    }
+
+    @Override
+    public void close() {
+
+    }
+
+    @Override
+    public void compact(String tableName) {
+
+    }
+
+    @Override
+    public void compact() {
+
+    }
+
+    private String byteToString(int byteLength) {
         if (byteLength < 1024) {
             return byteLength + "B";
         }
@@ -306,21 +354,6 @@ public abstract class AbstractDatabase implements Database, Util {
         }
         byteLength = byteLength / 1024;
         return byteLength + "GB";
-    }
-
-    @Override
-    public void addCommitCallback(String tableName, Consumer3<String, byte[], byte[]> putCallback, Consumer2<String, byte[]> deleteCallback) {
-        if (putCallback != null) {
-            this.putCallbacks.put(tableName, putCallback);
-        }
-        if (deleteCallback != null) {
-            this.deleteCallbacks.put(tableName, deleteCallback);
-        }
-    }
-
-    @Override
-    public void updateSegmentCache(String key, Segment segment) {
-        this.cache.put(key, segment);
     }
 
     public static class Operation {

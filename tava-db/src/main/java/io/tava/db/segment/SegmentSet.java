@@ -24,8 +24,6 @@ public interface SegmentSet<V> extends Segment {
 
     boolean addAll(Collection<? extends V> collection);
 
-    boolean retainAll(Collection<? extends V> collection);
-
     boolean removeAll(Collection<? extends V> collection);
 
     void clear();

@@ -4,6 +4,7 @@ import io.tava.db.Database;
 import io.tava.function.Consumer1;
 import io.tava.function.Consumer2;
 import io.tava.function.Function1;
+import io.tava.function.Function2;
 
 import java.util.Collection;
 import java.util.List;
@@ -24,6 +25,8 @@ public interface SegmentMap<K, V> extends Segment {
 
     void update(K key, Function1<V, V> update);
 
+    void update(Collection<K> keys, Function2<K,V, V> update);
+
     <T> T map(K key, Function1<V, T> function1);
 
     V get(K key);
@@ -33,6 +36,8 @@ public interface SegmentMap<K, V> extends Segment {
     V put(K key, V value);
 
     V remove(K key);
+
+    void removeAll(Collection<K> keys);
 
     void putAll(Map<? extends K, ? extends V> map);
 

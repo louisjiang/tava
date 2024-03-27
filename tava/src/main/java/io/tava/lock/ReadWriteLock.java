@@ -12,6 +12,8 @@ public interface ReadWriteLock<T> extends Util {
 
     boolean isWriteLocked(T key);
 
+    boolean isReadLocked(T key);
+
     void writeLock(T key);
 
     void readLock(T key);

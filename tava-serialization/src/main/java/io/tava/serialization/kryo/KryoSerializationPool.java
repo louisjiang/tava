@@ -35,11 +35,7 @@ public class KryoSerializationPool extends BasePooledObjectFactory<Kryo> impleme
         this(configurator, 64, 64, 32, 100);
     }
 
-    public KryoSerializationPool(Consumer1<Kryo> configurator,
-                                 int maxTotal,
-                                 int maxIdle,
-                                 int minIdle,
-                                 long maxWaitMilliseconds) {
+    public KryoSerializationPool(Consumer1<Kryo> configurator, int maxTotal, int maxIdle, int minIdle, long maxWaitMilliseconds) {
         this.configurator = configurator;
         this.pool = new GenericObjectPool<>(this, createPoolConfig(maxTotal, maxIdle, minIdle, maxWaitMilliseconds));
     }
@@ -108,15 +104,14 @@ public class KryoSerializationPool extends BasePooledObjectFactory<Kryo> impleme
         return new DefaultPooledObject<>(kryo);
     }
 
-    private GenericObjectPoolConfig<Kryo> createPoolConfig(int maxTotal,
-                                                           int maxIdle,
-                                                           int minIdle,
-                                                           long maxWaitMilliseconds) {
+    private GenericObjectPoolConfig<Kryo> createPoolConfig(int maxTotal, int maxIdle, int minIdle, long maxWaitMilliseconds) {
         GenericObjectPoolConfig<Kryo> poolConfig = new GenericObjectPoolConfig<>();
         poolConfig.setMaxTotal(maxTotal);
         poolConfig.setMaxIdle(maxIdle);
         poolConfig.setMinIdle(minIdle);
-        poolConfig.setMaxWait(java.time.Duration.ofMillis(maxWaitMilliseconds));
+        if (maxWaitMilliseconds > 0) {
+            poolConfig.setMaxWait(java.time.Duration.ofMillis(maxWaitMilliseconds));
+        }
         return poolConfig;
     }
 }

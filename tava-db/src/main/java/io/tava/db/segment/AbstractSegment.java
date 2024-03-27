@@ -3,9 +3,7 @@ package io.tava.db.segment;
 import io.tava.db.Database;
 import io.tava.function.Consumer0;
 import io.tava.function.Function0;
-
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import io.tava.lock.HashReadWriteLock;
 
 /**
  * @author louisjiang <493509534@qq.com>
@@ -13,7 +11,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public abstract class AbstractSegment implements Segment {
 
-    protected final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+    protected final HashReadWriteLock<String> readWriteLock = new HashReadWriteLock<>();
     protected final Database database;
     protected final String tableName;
     protected final String key;
@@ -49,41 +47,21 @@ public abstract class AbstractSegment implements Segment {
         return (V) status;
     }
 
-    protected <R> R readLock(Function0<R> function0) {
-        try {
-            this.readWriteLock.readLock().lock();
-            return function0.apply();
-        } finally {
-            this.readWriteLock.readLock().unlock();
-        }
+    protected <R> R readLock(String segmentKey, Function0<R> function0) {
+        return this.readWriteLock.doWithReadLock(segmentKey, function0);
     }
 
 
-    protected void readLock(Consumer0 consumer0) {
-        try {
-            this.readWriteLock.readLock().lock();
-            consumer0.accept();
-        } finally {
-            this.readWriteLock.readLock().unlock();
-        }
+    protected void readLock(String segmentKey, Consumer0 consumer0) {
+        this.readWriteLock.doWithReadLock(segmentKey, consumer0);
     }
 
-    protected <R> R writeLock(Function0<R> function0) {
-        try {
-            this.readWriteLock.writeLock().lock();
-            return function0.apply();
-        } finally {
-            this.readWriteLock.writeLock().unlock();
-        }
+    protected <R> R writeLock(String segmentKey, Function0<R> function0) {
+        return this.readWriteLock.doWithWriteLock(segmentKey, function0);
     }
 
-    protected void writeLock(Consumer0 consumer0) {
-        try {
-            this.readWriteLock.writeLock().lock();
-            consumer0.accept();
-        } finally {
-            this.readWriteLock.writeLock().unlock();
-        }
+    protected void writeLock(String segmentKey, Consumer0 consumer0) {
+        this.readWriteLock.doWithWriteLock(segmentKey, consumer0);
     }
 
     abstract void updateStatus();

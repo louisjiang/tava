@@ -5,11 +5,6 @@ import io.tava.configuration.Configuration;
 import io.tava.lang.Tuple2;
 import io.tava.lang.Tuple3;
 import io.tava.serialization.Serialization;
-import org.apache.commons.pool2.BasePooledObjectFactory;
-import org.apache.commons.pool2.PooledObject;
-import org.apache.commons.pool2.impl.DefaultPooledObject;
-import org.apache.commons.pool2.impl.GenericObjectPool;
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.rocksdb.*;
 import org.rocksdb.util.SizeUnit;
 
@@ -32,7 +27,6 @@ public class RocksdbDatabase extends AbstractDatabase {
 
     private final Map<String, ColumnFamilyHandle> columnFamilyHandles = new ConcurrentHashMap<>();
     private final WriteOptions writeOptions = new WriteOptions();
-    private final GenericObjectPool<WriteBatch> pool;
     private final ColumnFamilyOptions columnFamilyOptions;
     private final File directory;
     private final RocksDB db;
@@ -56,38 +50,6 @@ public class RocksdbDatabase extends AbstractDatabase {
         } catch (RocksDBException cause) {
             throw new RuntimeException("open RocksDB:" + path, cause);
         }
-        this.pool = new GenericObjectPool<>(new BasePooledObjectFactory<WriteBatch>() {
-            @Override
-            public WriteBatch create() throws Exception {
-                return new WriteBatch();
-            }
-
-            @Override
-            public void passivateObject(PooledObject<WriteBatch> p) throws Exception {
-                p.getObject().clear();
-            }
-
-            @Override
-            public void destroyObject(PooledObject<WriteBatch> p) throws Exception {
-                p.getObject().close();
-            }
-
-            @Override
-            public PooledObject<WriteBatch> wrap(WriteBatch writeBatch) {
-                return new DefaultPooledObject<>(writeBatch);
-            }
-        }, createPoolConfig(configuration.getInt("maxTotal", 16), configuration.getInt("maxIdle", 16), configuration.getInt("minIdle", 1), configuration.getLong("maxWaitMilliseconds", -1)));
-    }
-
-    private GenericObjectPoolConfig<WriteBatch> createPoolConfig(int maxTotal, int maxIdle, int minIdle, long maxWaitMilliseconds) {
-        GenericObjectPoolConfig<WriteBatch> poolConfig = new GenericObjectPoolConfig<>();
-        poolConfig.setMaxTotal(maxTotal);
-        poolConfig.setMaxIdle(maxIdle);
-        poolConfig.setMinIdle(minIdle);
-        if (maxWaitMilliseconds != -1) {
-            poolConfig.setMaxWait(java.time.Duration.ofMillis(maxWaitMilliseconds));
-        }
-        return poolConfig;
     }
 
     private static Tuple3<DBOptions, ColumnFamilyOptions, List<ColumnFamilyDescriptor>> createOptions(Configuration configuration) {
@@ -99,7 +61,9 @@ public class RocksdbDatabase extends AbstractDatabase {
         options.setMaxOpenFiles(configuration.getInt("max_open_files", 1024));
         options.setMaxBackgroundJobs(availableProcessors * 2);
         options.setBytesPerSync(32 * SizeUnit.MB);
+
         long writeBufferSize = configuration.getInt("write_buffer_size", 64) * SizeUnit.MB;
+        int targetFileSize = configuration.getInt("target_file_size", 64);
         LRUCache blockCache = new LRUCache(configuration.getInt("block_cache_size", 64) * SizeUnit.MB);
         options.setWriteBufferManager(new WriteBufferManager(writeBufferSize * 2, blockCache, true));
         Env env = Env.getDefault();
@@ -108,15 +72,17 @@ public class RocksdbDatabase extends AbstractDatabase {
 
         ColumnFamilyOptions columnFamilyOptions = new ColumnFamilyOptions();
         columnFamilyOptions.setWriteBufferSize(writeBufferSize);
-        columnFamilyOptions.setMaxWriteBufferNumber(configuration.getInt("max_write_buffer_number", 2));
+        columnFamilyOptions.setMaxWriteBufferNumber(configuration.getInt("max_write_buffer_number", 5));
         columnFamilyOptions.setCompressionType(CompressionType.LZ4_COMPRESSION);
-        columnFamilyOptions.setMinWriteBufferNumberToMerge(3);  // 设置最小合并缓冲区数量
+        columnFamilyOptions.setMinWriteBufferNumberToMerge(configuration.getInt("min_write_buffer_number_to_merge", 3));
+        columnFamilyOptions.setTargetFileSizeBase(targetFileSize * SizeUnit.MB);
 
         columnFamilyOptions.setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION);
-//        columnFamilyOptions.setLevelCompactionDynamicLevelBytes(true);
         columnFamilyOptions.setCompactionPriority(CompactionPriority.MinOverlappingRatio);
+//        columnFamilyOptions.setLevelCompactionDynamicLevelBytes(true);
 
-        columnFamilyOptions.setMaxBytesForLevelBase(configuration.getInt("max_bytes_for_level_base", 64) * SizeUnit.MB);
+        columnFamilyOptions.setNumLevels(7);
+        columnFamilyOptions.setMaxBytesForLevelBase(configuration.getInt("max_bytes_for_level_base", targetFileSize * 10) * SizeUnit.MB);
         columnFamilyOptions.setMaxBytesForLevelMultiplier(configuration.getInt("max_bytes_for_level_multiplier", 10));
         columnFamilyOptions.setLevel0FileNumCompactionTrigger(4);
         columnFamilyOptions.setLevel0SlowdownWritesTrigger(16);
@@ -178,13 +144,11 @@ public class RocksdbDatabase extends AbstractDatabase {
     }
 
     @Override
-    protected void commit(String tableName, Map<byte[], byte[]> puts, Set<byte[]> deletes) {
+    protected void commit(String tableName, Map<byte[], byte[]> puts, Set<byte[]> deletes, int totalBytes) {
         if (puts.isEmpty() && deletes.isEmpty()) {
             return;
         }
-        WriteBatch writeBatch = null;
-        try {
-            writeBatch = this.pool.borrowObject();
+        try (WriteBatch writeBatch = new WriteBatch(totalBytes)) {
             ColumnFamilyHandle columnFamilyHandle = this.columnFamilyHandle(tableName);
             for (Map.Entry<byte[], byte[]> entry : puts.entrySet()) {
                 writeBatch.put(columnFamilyHandle, entry.getKey(), entry.getValue());
@@ -195,10 +159,6 @@ public class RocksdbDatabase extends AbstractDatabase {
             this.db.write(writeOptions, writeBatch);
         } catch (Exception cause) {
             logger.error("commit", cause);
-        } finally {
-            if (writeBatch != null) {
-                this.pool.returnObject(writeBatch);
-            }
         }
     }
 
@@ -295,6 +255,7 @@ public class RocksdbDatabase extends AbstractDatabase {
             this.logger.info("drop table:{}", tableName);
             this.db.dropColumnFamily(columnFamilyHandle);
             this.columnFamilyHandles.remove(tableName);
+            columnFamilyHandle.close();
             return super.dropTable(tableName);
         } catch (RocksDBException cause) {
             this.logger.error("drop table:[{}]", tableName, cause);

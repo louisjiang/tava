@@ -16,7 +16,6 @@ public class HashReadWriteLock<T> implements ReadWriteLock<T> {
     private final SegmentLock<T> segmentLock = new SegmentLock<>();
     private final Map<T, LockInfo> lockInfos = new ConcurrentHashMap<>();
     private final boolean fair;
-
     public HashReadWriteLock() {
         this(false);
     }
@@ -46,6 +45,18 @@ public class HashReadWriteLock<T> implements ReadWriteLock<T> {
             lockInfo.incrementWrite();
             return lockInfo;
         }).writeLock();
+    }
+
+    @Override
+    public boolean isReadLocked(T key) {
+        if (isEmpty(key)) {
+            throw new NullPointerException("key is null");
+        }
+        LockInfo lockInfo = lockInfos.get(key);
+        if (lockInfo == null) {
+            return false;
+        }
+        return lockInfo.isReadLocked();
     }
 
     public void readLock(T key) {
@@ -108,6 +119,10 @@ public class HashReadWriteLock<T> implements ReadWriteLock<T> {
 
         public boolean isWriteLocked() {
             return this.readWriteLock.isWriteLocked();
+        }
+
+        public boolean isReadLocked() {
+            return this.readWriteLock.getReadHoldCount() != 0;
         }
 
         public void writeLock() {

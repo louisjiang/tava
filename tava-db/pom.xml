@@ -46,17 +46,8 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.tava</groupId>
-            <artifactId>tava-okhttp</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.lmdbjava</groupId>
-            <artifactId>lmdbjava</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
