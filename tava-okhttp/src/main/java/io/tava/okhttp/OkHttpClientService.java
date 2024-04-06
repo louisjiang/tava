@@ -55,7 +55,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
         dispatcher.setMaxRequests(maxRequests);
         dispatcher.setMaxRequestsPerHost(maxRequestsPerHost);
 
-        ConnectionPool connectionPool = new ConnectionPool(maxIdleConnections, keepAliveDuration, TimeUnit.MINUTES);
+        ConnectionPool connectionPool = new ConnectionPool(maxIdleConnections, keepAliveDuration, TimeUnit.SECONDS);
         this.okHttpClient = new OkHttpClient.Builder().connectTimeout(connectTimeout, TimeUnit.SECONDS).readTimeout(readTimeout, TimeUnit.SECONDS).writeTimeout(writeTimeout, TimeUnit.SECONDS).callTimeout(callTimeout, TimeUnit.SECONDS).pingInterval(pingInterval, TimeUnit.SECONDS).sslSocketFactory(sslSocketFactory, this).connectionPool(connectionPool).dispatcher(dispatcher).connectionSpecs(Util.immutableListOf(ConnectionSpec.COMPATIBLE_TLS, ConnectionSpec.CLEARTEXT)).proxySelector(this).cookieJar(this).build();
     }
 
@@ -271,7 +271,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
                 return call.execute();
             });
         } catch (Exception cause) {
-            this.logger.error("{}:[{}]", cause.getMessage(), request.url());
+            this.logger.error("[{}]", request.url(), cause);
             return null;
         }
     }

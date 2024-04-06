@@ -1,6 +1,5 @@
 package io.tava.db;
 
-import com.github.benmanes.caffeine.cache.Cache;
 import io.tava.db.segment.SegmentList;
 import io.tava.db.segment.SegmentMap;
 import io.tava.db.segment.SegmentSet;
@@ -18,8 +17,6 @@ import java.util.Set;
  * @version 2021-05-07 14:37
  */
 public interface Database {
-
-    Cache<DBKey, Object> cache();
 
     default <V> SegmentList<V> newSegmentList(String key, int capacity) {
         return newSegmentList("default", key, capacity);

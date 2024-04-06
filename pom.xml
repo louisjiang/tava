@@ -34,13 +34,13 @@
     <properties>
         <typesafe.config.version>1.4.3</typesafe.config.version>
         <rocksdbjni.version>9.0.0</rocksdbjni.version>
-        <netty.version>4.1.107.Final</netty.version>
+        <netty.version>4.1.108.Final</netty.version>
         <agrona.version>1.21.0</agrona.version>
         <streamex.version>0.8.2</streamex.version>
         <fastjson2.version>2.0.48</fastjson2.version>
         <disruptor.version>3.4.4</disruptor.version>
         <okhttp.version>4.12.0</okhttp.version>
-        <kotlin.version>1.9.22</kotlin.version>
+        <kotlin.version>1.9.23</kotlin.version>
         <failsafe.version>2.4.4</failsafe.version>
         <slf4j.version>2.0.12</slf4j.version>
         <rxjava.version>3.1.8</rxjava.version>

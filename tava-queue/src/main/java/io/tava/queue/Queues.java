@@ -1,6 +1,6 @@
 package io.tava.queue;
 
-import com.lmax.disruptor.BlockingWaitStrategy;
+import com.lmax.disruptor.WaitStrategy;
 import com.lmax.disruptor.dsl.ProducerType;
 import io.tava.function.Function1;
 import net.openhft.hashing.LongHashFunction;
@@ -14,10 +14,10 @@ public class Queues<E> {
     public final List<Queue<E>> queues = new ArrayList<>();
     private final int queueSize;
 
-    public Queues(int ringBufferSize, int queueSize, HandlerFactory<E, ? extends Handler<E>> factory, String threadPrefix, int threadNumber) {
+    public Queues(int ringBufferSize, int queueSize, HandlerFactory<E, ? extends Handler<E>> factory, ProducerType producerType, WaitStrategy waitStrategy, String threadPrefix, int threadNumber) {
         this.queueSize = queueSize;
         for (int i = 0; i < queueSize; i++) {
-            Queue<E> queue = new Queue<>(ringBufferSize, factory, ProducerType.MULTI, new BlockingWaitStrategy(), threadPrefix + "-" + i, threadNumber);
+            Queue<E> queue = new Queue<>(ringBufferSize, factory, producerType, waitStrategy, threadPrefix + "-" + i, threadNumber);
             this.queues.add(queue);
         }
     }

@@ -15,6 +15,8 @@ import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 
@@ -24,6 +26,7 @@ import java.nio.ByteBuffer;
  */
 public class KryoSerializationPool extends BasePooledObjectFactory<Kryo> implements Serialization {
 
+    private final Logger logger = LoggerFactory.getLogger(KryoSerializationPool.class);
     private final GenericObjectPool<Kryo> pool;
     private final Consumer1<Kryo> configurator;
 

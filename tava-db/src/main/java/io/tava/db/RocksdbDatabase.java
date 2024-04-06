@@ -61,13 +61,16 @@ public class RocksdbDatabase extends AbstractDatabase {
         options.setMaxOpenFiles(configuration.getInt("max_open_files", 1024));
         options.setMaxBackgroundJobs(availableProcessors * 2);
         options.setBytesPerSync(32 * SizeUnit.MB);
+        options.setAllowMmapWrites(true);
+        options.setAllowMmapReads(true);
 
         long writeBufferSize = configuration.getInt("write_buffer_size", 64) * SizeUnit.MB;
         int targetFileSize = configuration.getInt("target_file_size", 64);
         LRUCache blockCache = new LRUCache(configuration.getInt("block_cache_size", 64) * SizeUnit.MB);
         options.setWriteBufferManager(new WriteBufferManager(writeBufferSize * 2, blockCache, true));
         Env env = Env.getDefault();
-        env.setBackgroundThreads(availableProcessors * 2);
+        env.setBackgroundThreads(availableProcessors, Priority.HIGH);
+        env.setBackgroundThreads(availableProcessors, Priority.LOW);
         options.setEnv(env);
 
         ColumnFamilyOptions columnFamilyOptions = new ColumnFamilyOptions();

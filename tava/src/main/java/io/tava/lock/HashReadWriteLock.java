@@ -12,7 +12,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * @version 2022-06-23 11:53
  */
 public class HashReadWriteLock<T> implements ReadWriteLock<T> {
-
     private final SegmentLock<T> segmentLock = new SegmentLock<>();
     private final Map<T, LockInfo> lockInfos = new ConcurrentHashMap<>();
     private final boolean fair;

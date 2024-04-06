@@ -1,6 +1,5 @@
 package io.tava.db;
 
-import com.github.benmanes.caffeine.cache.*;
 import io.tava.Tava;
 import io.tava.configuration.Configuration;
 import io.tava.db.segment.*;
@@ -12,20 +11,23 @@ import io.tava.lang.Tuple4;
 import io.tava.lock.HashReadWriteLock;
 import io.tava.serialization.Serialization;
 import io.tava.util.Util;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author louisjiang <493509534@qq.com>
  * @version 2021-07-14 13:31
  */
 @SuppressWarnings("unchecked")
-public abstract class AbstractDatabase implements Database, Util, CacheLoader<Database.DBKey, Object>, RemovalListener<Database.DBKey, Object> {
+public abstract class AbstractDatabase implements Database, Util {
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
     protected final HashReadWriteLock<String> readWriteLock = new HashReadWriteLock<>();
     protected final Map<String, Map<String, Operation>> tableNameToOperationMap = new ConcurrentHashMap<>();
@@ -36,7 +38,6 @@ public abstract class AbstractDatabase implements Database, Util, CacheLoader<Da
     private final int interval;
     private final int initialCapacity;
     private final ForkJoinPool forkJoinPool;
-    private final LoadingCache<DBKey, Object> cache;
 
     protected AbstractDatabase(Configuration configuration, Serialization serialization) {
         this.serialization = serialization;
@@ -44,22 +45,6 @@ public abstract class AbstractDatabase implements Database, Util, CacheLoader<Da
         this.interval = configuration.getInt("interval", 10000);
         this.initialCapacity = this.batchSize / 2;
         this.forkJoinPool = new ForkJoinPool(configuration.getInt("fork-join-pool-parallelism", Runtime.getRuntime().availableProcessors() * 3));
-        Caffeine<Object, Object> caffeine = Caffeine.newBuilder();
-        int initialCapacity = configuration.getInt("cache.initial-capacity");
-        int maximumSize = configuration.getInt("cache.maximum-size");
-        int expireAfterAccess = configuration.getInt("cache.expire-after-access");
-        caffeine.initialCapacity(initialCapacity);
-        caffeine.maximumSize(maximumSize);
-        caffeine.expireAfterAccess(expireAfterAccess, TimeUnit.SECONDS);
-        caffeine.recordStats();
-        caffeine.softValues();
-        caffeine.removalListener(this);
-        this.cache = caffeine.build(this);
-    }
-
-    @Override
-    public Cache<DBKey, Object> cache() {
-        return cache;
     }
 
     @Override
@@ -97,14 +82,12 @@ public abstract class AbstractDatabase implements Database, Util, CacheLoader<Da
         this.writeLock(tableName, key, () -> {
             this.tableNameToOperationMap.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).computeIfAbsent(key, s -> new Operation()).put(value);
         });
-        this.cache.put(new DBKey(tableName, key), value);
     }
 
     @Override
     public void delete(String tableName, String key) {
         this.writeLock(tableName, key, () -> {
             this.tableNameToOperationMap.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).computeIfAbsent(key, s -> new Operation()).delete();
-            this.cache.invalidate(new DBKey(tableName, key));
         });
     }
 
@@ -120,7 +103,18 @@ public abstract class AbstractDatabase implements Database, Util, CacheLoader<Da
 
     @Override
     public <T> T get(String tableName, String key) {
-        return (T) this.cache.get(new DBKey(tableName, key));
+        return (T) readLock(tableName, key, () -> {
+            Map<String, Operation> operationMap = this.tableNameToOperationMap.get(tableName);
+            Operation operation;
+            if (operationMap != null && (operation = operationMap.get(key)) != null) {
+                return operation.getValue();
+            }
+            byte[] bytes = this.get(tableName, key.getBytes(StandardCharsets.UTF_8));
+            if (bytes == null || bytes.length == 0) {
+                return null;
+            }
+            return this.toObject(bytes);
+        });
     }
 
     @Override
@@ -284,28 +278,6 @@ public abstract class AbstractDatabase implements Database, Util, CacheLoader<Da
 
 
     @Override
-    public Object load(DBKey dbKey) throws Exception {
-        String tableName = dbKey.tableName();
-        String key = dbKey.key();
-        return readLock(tableName, key, () -> {
-            Map<String, Operation> operationMap = this.tableNameToOperationMap.get(tableName);
-            Operation operation;
-            if (operationMap != null && (operation = operationMap.get(key)) != null) {
-                return operation.getValue();
-            }
-            byte[] bytes = this.get(tableName, key.getBytes(StandardCharsets.UTF_8));
-            if (bytes == null || bytes.length == 0) {
-                return null;
-            }
-            return this.toObject(bytes);
-        });
-    }
-
-    @Override
-    public void onRemoval(@Nullable DBKey key, @Nullable Object value, RemovalCause cause) {
-    }
-
-    @Override
     public Iterator iterator(String tableName, boolean useSnapshot) {
         return null;
     }
@@ -357,32 +329,33 @@ public abstract class AbstractDatabase implements Database, Util, CacheLoader<Da
     }
 
     public static class Operation {
-
-        private int version = 0;
+        private final AtomicInteger version = new AtomicInteger(0);
         private boolean delete;
         private Object value;
 
-        public synchronized void delete() {
+        public boolean delete() {
             if (delete) {
-                return;
+                return true;
             }
+            int currentVersion = version.get();
             this.delete = true;
             this.value = null;
-            this.version++;
+            return this.version.compareAndSet(currentVersion, currentVersion + 1);
         }
 
-        public synchronized void put(Object value) {
+        public boolean put(Object value) {
             if (value == null) {
                 this.delete();
-                return;
+                return true;
             }
+            int currentVersion = version.get();
             this.delete = false;
             this.value = value;
-            this.version++;
+            return this.version.compareAndSet(currentVersion, currentVersion + 1);
         }
 
         public int getVersion() {
-            return version;
+            return version.get();
         }
 
         public boolean isDelete() {
