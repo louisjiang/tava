@@ -1,9 +1,6 @@
 package io.tava.db.segment;
 
 import io.tava.db.Database;
-import io.tava.function.Consumer0;
-import io.tava.function.Function0;
-import io.tava.lock.HashReadWriteLock;
 
 /**
  * @author louisjiang <493509534@qq.com>
@@ -11,11 +8,10 @@ import io.tava.lock.HashReadWriteLock;
  */
 public abstract class AbstractSegment implements Segment {
 
-    protected final HashReadWriteLock<String> readWriteLock = new HashReadWriteLock<>();
     protected final Database database;
     protected final String tableName;
     protected final String key;
-    protected Object status;
+    protected Object statusData;
 
     protected AbstractSegment(Database database, String tableName, String key) {
         this.database = database;
@@ -31,37 +27,15 @@ public abstract class AbstractSegment implements Segment {
 
 
     @Override
-    public void updateStatus(Object status) {
-        this.status = status;
+    public void updateStatusData(Object statusData) {
+        this.statusData = statusData;
         this.updateStatus();
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <V> V getStatus() {
-//        Map<String, Object> map = this.database.get(this.tableName + "@status", this.key);
-//        if (map == null) {
-//            return null;
-//        }
-//        return (V) map.get("status");
-        return (V) status;
-    }
-
-    protected <R> R readLock(String segmentKey, Function0<R> function0) {
-        return this.readWriteLock.doWithReadLock(segmentKey, function0);
-    }
-
-
-    protected void readLock(String segmentKey, Consumer0 consumer0) {
-        this.readWriteLock.doWithReadLock(segmentKey, consumer0);
-    }
-
-    protected <R> R writeLock(String segmentKey, Function0<R> function0) {
-        return this.readWriteLock.doWithWriteLock(segmentKey, function0);
-    }
-
-    protected void writeLock(String segmentKey, Consumer0 consumer0) {
-        this.readWriteLock.doWithWriteLock(segmentKey, consumer0);
+    public <V> V getStatusData() {
+        return (V) statusData;
     }
 
     abstract void updateStatus();

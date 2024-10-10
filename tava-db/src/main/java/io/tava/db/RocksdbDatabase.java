@@ -4,7 +4,7 @@ import io.tava.Tava;
 import io.tava.configuration.Configuration;
 import io.tava.lang.Tuple2;
 import io.tava.lang.Tuple3;
-import io.tava.serialization.Serialization;
+import io.tava.serialization.kryo.KryoSerializationPool;
 import org.rocksdb.*;
 import org.rocksdb.util.SizeUnit;
 
@@ -31,11 +31,11 @@ public class RocksdbDatabase extends AbstractDatabase {
     private final File directory;
     private final RocksDB db;
 
-    public RocksdbDatabase(Configuration configuration, Serialization serialization) {
+    public RocksdbDatabase(Configuration configuration, KryoSerializationPool serialization) {
         this(configuration, serialization, createOptions(configuration));
     }
 
-    public RocksdbDatabase(Configuration configuration, Serialization serialization, Tuple3<DBOptions, ColumnFamilyOptions, List<ColumnFamilyDescriptor>> tuple3) {
+    public RocksdbDatabase(Configuration configuration, KryoSerializationPool serialization, Tuple3<DBOptions, ColumnFamilyOptions, List<ColumnFamilyDescriptor>> tuple3) {
         super(configuration, serialization);
         String path = configuration.getString("path");
         this.directory = new File(path);
@@ -181,9 +181,6 @@ public class RocksdbDatabase extends AbstractDatabase {
         Tuple2<ReadOptions, Snapshot> tuple2 = newReadOptions(useSnapshot);
         ReadOptions readOptions = tuple2.getValue1();
         Snapshot snapshot = tuple2.getValue2();
-        if (snapshot == null) {
-            this.readWriteLock.readLock(tableName);
-        }
         RocksIterator iterator = this.db.newIterator(columnFamilyHandle(tableName), readOptions);
         iterator.seekToFirst();
         return new Iterator() {
@@ -207,9 +204,7 @@ public class RocksdbDatabase extends AbstractDatabase {
                 RocksdbDatabase.this.close(readOptions);
                 if (snapshot != null) {
                     db.releaseSnapshot(snapshot);
-                    return;
                 }
-                readWriteLock.unReadLock(tableName);
             }
         };
     }

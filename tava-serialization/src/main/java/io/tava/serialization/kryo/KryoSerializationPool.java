@@ -3,30 +3,22 @@ package io.tava.serialization.kryo;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import com.esotericsoftware.kryo.unsafe.UnsafeByteBufferInput;
-import com.esotericsoftware.kryo.unsafe.UnsafeByteBufferOutput;
 import com.esotericsoftware.kryo.unsafe.UnsafeOutput;
 import com.esotericsoftware.kryo.util.MapReferenceResolver;
 import io.tava.function.Consumer1;
 import io.tava.function.Function1;
-import io.tava.serialization.Serialization;
 import org.apache.commons.pool2.BasePooledObjectFactory;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.nio.ByteBuffer;
 
 /**
  * @author louisjiang <493509534@qq.com>
  * @version 2021-06-03 13:41
  */
-public class KryoSerializationPool extends BasePooledObjectFactory<Kryo> implements Serialization {
+public class KryoSerializationPool extends BasePooledObjectFactory<Kryo> {
 
-    private final Logger logger = LoggerFactory.getLogger(KryoSerializationPool.class);
     private final GenericObjectPool<Kryo> pool;
     private final Consumer1<Kryo> configurator;
 
@@ -43,24 +35,33 @@ public class KryoSerializationPool extends BasePooledObjectFactory<Kryo> impleme
         this.pool = new GenericObjectPool<>(this, createPoolConfig(maxTotal, maxIdle, minIdle, maxWaitMilliseconds));
     }
 
-
-    public Kryo borrowKryo() throws Exception {
+    public Kryo borrowObject() throws Exception {
         return this.pool.borrowObject();
     }
 
-    public void returnKryo(Kryo kryo) {
-        if (kryo == null) {
+    public void returnObject(Kryo value) {
+        if (value == null) {
             return;
         }
-        this.pool.returnObject(kryo);
-    }
-
-    public ByteBuffer toByteBuffer(Object value) throws Exception {
-        return toOutput(new UnsafeByteBufferOutput(1024, Integer.MAX_VALUE), value).getByteBuffer();
+        this.pool.returnObject(value);
     }
 
     public byte[] toBytes(Object value) throws Exception {
         return toOutput(new UnsafeOutput(1024, Integer.MAX_VALUE), value).toBytes();
+    }
+
+    public Object toObject(byte[] bytes) throws Exception {
+        return fromInput(new Input(bytes));
+    }
+
+    public byte[] toBytes(Kryo kryo, Object value) throws Exception {
+        UnsafeOutput output = new UnsafeOutput(1024, Integer.MAX_VALUE);
+        kryo.writeClassAndObject(output, value);
+        return output.toBytes();
+    }
+
+    public Object toObject(Kryo kryo, byte[] bytes) throws Exception {
+        return kryo.readClassAndObject(new Input(bytes));
     }
 
     public <O extends Output> O toOutput(O output, Object value) throws Exception {
@@ -70,32 +71,23 @@ public class KryoSerializationPool extends BasePooledObjectFactory<Kryo> impleme
         });
     }
 
-    public Object fromByteBuffer(ByteBuffer byteBuffer) throws Exception {
-        return fromInput(new UnsafeByteBufferInput(byteBuffer));
-    }
-
-    public Object toObject(byte[] bytes) throws Exception {
-        return fromInput(new Input(bytes));
-    }
-
     public Object fromInput(Input input) throws Exception {
         return execute(kryo -> kryo.readClassAndObject(input));
     }
 
 
     public <R> R execute(Function1<Kryo, R> function) throws Exception {
-        Kryo kryo = borrowKryo();
+        Kryo kryo = borrowObject();
         try {
             return function.apply(kryo);
         } finally {
-            returnKryo(kryo);
+            returnObject(kryo);
         }
     }
 
     @Override
     public Kryo create() throws Exception {
         KryoSerialization kryo = new KryoSerialization(new SubclassResolver(), new MapReferenceResolver());
-
         if (this.configurator != null) {
             this.configurator.accept(kryo);
         }

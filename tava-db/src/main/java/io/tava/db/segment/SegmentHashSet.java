@@ -28,7 +28,7 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
         this.sequence = (Long) status.get("sequence");
         this.segment = (Integer) status.get("segment");
         this.size = (Integer) status.get("size");
-        this.status = status.get("status");
+        this.statusData = status.get("status");
     }
 
     public SegmentHashSet(Database database, String tableName, String key, Map<String, Object> status) {
@@ -36,7 +36,7 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
         this.sequence = (Long) status.get("sequence");
         this.segment = (Integer) status.get("segment");
         this.size = (Integer) status.get("size");
-        this.status = status.get("status");
+        this.statusData = status.get("status");
     }
 
 
@@ -58,7 +58,7 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
     @Override
     public boolean contains(V value) {
         String segmentKey = this.segmentKey(value);
-        Set<V> set = this.readLock(segmentKey, () -> this.database.get(this.tableName, segmentKey));
+        Set<V> set = this.database.get(this.tableName, segmentKey);
         if (set == null) {
             return false;
         }
@@ -67,7 +67,6 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
 
     @Override
     public Iterator<V> iterator() {
-        this.readWriteLock.readLock(tableName);
         return new Iterator<>() {
 
             private int index = 0;
@@ -97,7 +96,6 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
 
             @Override
             public void close() throws IOException {
-                readWriteLock.unReadLock(tableName);
             }
         };
 
@@ -106,35 +104,31 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
     @Override
     public boolean add(V value) {
         String segmentKey = this.segmentKey(value);
-        return this.writeLock(segmentKey, () -> {
-            Set<V> set = this.database.get(this.tableName, segmentKey);
-            if (set == null) {
-                set = new HashSet<>();
-            }
-            if (set.add(value)) {
-                this.incrementSize();
-                this.database.put(this.tableName, segmentKey, set);
-                return true;
-            }
-            return false;
-        });
+        Set<V> set = this.database.get(this.tableName, segmentKey);
+        if (set == null) {
+            set = new HashSet<>();
+        }
+        if (set.add(value)) {
+            this.incrementSize();
+            this.database.put(this.tableName, segmentKey, set);
+            return true;
+        }
+        return false;
     }
 
     @Override
     public boolean remove(V value) {
         String segmentKey = this.segmentKey(value);
-        return this.writeLock(segmentKey, () -> {
-            Set<V> set = this.database.get(this.tableName, segmentKey);
-            if (set == null) {
-                return false;
-            }
-            if (set.remove(value)) {
-                this.decrementSize();
-                this.database.put(this.tableName, segmentKey, set);
-                return true;
-            }
+        Set<V> set = this.database.get(this.tableName, segmentKey);
+        if (set == null) {
             return false;
-        });
+        }
+        if (set.remove(value)) {
+            this.decrementSize();
+            this.database.put(this.tableName, segmentKey, set);
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -166,13 +160,12 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
 
     @Override
     public void clear() {
-        this.writeLock(tableName, () -> {
-            this.size = 0;
-            this.updateStatus();
-            for (int i = 0; i < this.segment; i++) {
-                this.database.delete(this.tableName, this.segmentKey(i));
-            }
-        });
+        for (int i = 0; i < this.segment; i++) {
+            this.database.delete(this.tableName, this.segmentKey(i));
+        }
+        this.size = 0;
+        this.updateStatusData(null);
+        this.commit();
     }
 
     @Override
@@ -180,7 +173,7 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
         Set<V> set = new HashSet<>();
         for (int i = 0; i < this.segment; i++) {
             String segmentKey = this.segmentKey(i);
-            Set<V> s = this.readLock(segmentKey, () -> this.database.get(this.tableName, segmentKey));
+            Set<V> s = this.database.get(this.tableName, segmentKey);
             if (s != null) {
                 set.addAll(s);
             }
@@ -202,35 +195,29 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
         if (this.segment == newSegment) {
             return this;
         }
-        SegmentSet<V> segmentHashSet = this.writeLock(tableName, () -> {
-            Object status = this.getStatus();
-            this.commit();
-            SegmentSet<V> segmentSet = new SegmentHashSet<>(this.database, this.tableName, this.key, newSegment, true);
-            for (int i = 0; i < this.segment; i++) {
-                String segmentKey = this.segmentKey(i);
-                Set<V> set = this.database.get(this.tableName, segmentKey);
-                if (set == null) {
-                    continue;
-                }
-                segmentSet.addAll(set);
+        Object status = this.getStatusData();
+        this.commit();
+        SegmentSet<V> segmentSet = new SegmentHashSet<>(this.database, this.tableName, this.key, newSegment, true);
+        for (int i = 0; i < this.segment; i++) {
+            String segmentKey = this.segmentKey(i);
+            Set<V> set = this.database.get(this.tableName, segmentKey);
+            if (set == null) {
+                continue;
             }
-            segmentSet.updateStatus(status);
-            segmentSet.commit();
-            return segmentSet;
-        });
+            segmentSet.addAll(set);
+        }
+        segmentSet.updateStatusData(status);
+        segmentSet.commit();
         this.destroy();
-        return segmentHashSet;
+        return segmentSet;
     }
 
     @Override
     public void destroy() {
-        this.writeLock(tableName, () -> {
-//            this.database.delete(this.tableName + "@status", this.key);
-            for (int i = 0; i < this.segment; i++) {
-                this.database.delete(this.tableName, segmentKey(i));
-            }
-            this.commit();
-        });
+        for (int i = 0; i < this.segment; i++) {
+            this.database.delete(this.tableName, segmentKey(i));
+        }
+        this.commit();
     }
 
     private void incrementSize() {
@@ -248,7 +235,7 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
         map.put("sequence", this.sequence);
         map.put("segment", this.segment);
         map.put("size", this.size);
-        map.put("status", this.status);
+        map.put("status", this.statusData);
         this.database.put(this.tableName + "@status", key, map);
     }
 

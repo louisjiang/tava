@@ -92,7 +92,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
 
     public Response get(String url, Map<String, String> headers, int retry) {
         Request.Builder builder = new Request.Builder().get().url(url);
-        if (headers != null && headers.size() > 0) {
+        if (headers != null && !headers.isEmpty()) {
             headers.forEach(builder::addHeader);
         }
         return request(builder.build(), retry);
@@ -150,7 +150,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
 
     public Response put(String url, RequestBody requestBody, Map<String, String> headers) {
         Request.Builder builder = new Request.Builder().url(url).put(requestBody);
-        if (headers != null && headers.size() > 0) {
+        if (headers != null && !headers.isEmpty()) {
             headers.forEach(builder::addHeader);
         }
         return request(builder.build());
@@ -170,7 +170,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
 
     public Response post(String url, Map<String, String> forms, Map<String, String> headers, int retry) {
         FormBody.Builder formBodyBuilder = new FormBody.Builder();
-        if (forms != null && forms.size() > 0) {
+        if (forms != null && !forms.isEmpty()) {
             forms.forEach(formBodyBuilder::add);
         }
         return post(url, formBodyBuilder.build(), headers, retry);
@@ -257,7 +257,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
 
     public Response post(String url, RequestBody requestBody, Map<String, String> headers, int retry) {
         Request.Builder builder = new Request.Builder().url(url).post(requestBody);
-        if (headers != null && headers.size() > 0) {
+        if (headers != null && !headers.isEmpty()) {
             headers.forEach(builder::addHeader);
         }
         return request(builder.build(), retry);
@@ -271,7 +271,7 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
                 return call.execute();
             });
         } catch (Exception cause) {
-            this.logger.error("[{}]", request.url(), cause);
+            this.logger.error("[{}],[{}]", request.url(), cause.getLocalizedMessage());
             return null;
         }
     }

@@ -3,13 +3,10 @@ package io.tava.db;
 import io.tava.db.segment.SegmentList;
 import io.tava.db.segment.SegmentMap;
 import io.tava.db.segment.SegmentSet;
-import io.tava.function.Consumer0;
-import io.tava.function.Function0;
 import io.tava.function.Function1;
 import io.tava.lang.Option;
 
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -108,29 +105,11 @@ public interface Database {
 
     Iterator iterator(String tableName, boolean useSnapshot);
 
-    void tryCommit(String tableName);
-
     void commit(String tableName);
 
     boolean keyMayExist(String tableName, String key);
 
     String path();
-
-    void writeLock(String tableName, String key);
-
-    void unWriteLock(String tableName, String key);
-
-    void writeLock(String tableName, String key, Consumer0 consumer);
-
-    <T> T writeLock(String tableName, String key, Function0<T> function);
-
-    void readLock(String tableName, String key);
-
-    void unReadLock(String tableName, String key);
-
-    void readLock(String tableName, String key, Consumer0 consumer);
-
-    <T> T readLock(String tableName, String key, Function0<T> function);
 
     boolean createTable(String tableName);
 
@@ -147,19 +126,5 @@ public interface Database {
     void compact(String tableName);
 
     void compact();
-
-    record DBKey(String tableName, String key) {
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof DBKey dbKey)) return false;
-            return Objects.equals(tableName(), dbKey.tableName()) && Objects.equals(key(), dbKey.key());
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(tableName(), key());
-        }
-    }
 
 }

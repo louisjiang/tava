@@ -10,8 +10,8 @@ public interface Segment extends Util {
 
     void destroy();
 
-    void updateStatus(Object status);
+    void updateStatusData(Object statusData);
 
-    <V> V getStatus();
+    <V> V getStatusData();
 
 }

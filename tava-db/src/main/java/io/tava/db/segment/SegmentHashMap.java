@@ -33,7 +33,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         this.sequence = (Long) status.get("sequence");
         this.segment = (Integer) status.get("segment");
         this.size = (Integer) status.get("size");
-        this.status = status.get("status");
+        this.statusData = status.get("status");
     }
 
     public SegmentHashMap(Database database, String tableName, String key, Map<String, Object> status) {
@@ -41,7 +41,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         this.sequence = (Long) status.get("sequence");
         this.segment = (Integer) status.get("segment");
         this.size = (Integer) status.get("size");
-        this.status = status.get("status");
+        this.statusData = status.get("status");
     }
 
     @Override
@@ -62,7 +62,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
     @Override
     public boolean containsKey(K key) {
         String segmentKey = this.segmentKey(key);
-        Map<K, V> map = this.readLock(segmentKey, () -> this.database.get(this.tableName, segmentKey));
+        Map<K, V> map = this.database.get(this.tableName, segmentKey);
         if (map == null) {
             return false;
         }
@@ -74,7 +74,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
     public boolean containsValue(V value) {
         for (int i = 0; i < this.segment; i++) {
             String segmentKey = this.segmentKey(i);
-            Map<K, V> map = this.readLock(segmentKey, () -> this.database.get(this.tableName, segmentKey));
+            Map<K, V> map = this.database.get(this.tableName, segmentKey);
             if (map == null) {
                 continue;
             }
@@ -88,25 +88,20 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
     @Override
     public void foreach(K key, Consumer1<V> foreach) {
         String segmentKey = this.segmentKey(key);
-        this.readLock(segmentKey, () -> {
-            Map<K, V> map = this.database.get(this.tableName, segmentKey);
-            if (map == null) {
-                return;
-            }
-            V value = map.get(key);
-            if (value == null) {
-                return;
-            }
-            foreach.accept(value);
-        });
+        Map<K, V> map = this.database.get(this.tableName, segmentKey);
+        if (map == null) {
+            return;
+        }
+        V value = map.get(key);
+        if (value == null) {
+            return;
+        }
+        foreach.accept(value);
     }
 
     @Override
     public void update(K key, Function1<V, V> update) {
-        String segmentKey = this.segmentKey(key);
-        this.writeLock(segmentKey, () -> {
-            this.put(key, update.apply(this.get(key)));
-        });
+        this.put(key, update.apply(this.get(key)));
     }
 
     @Override
@@ -114,42 +109,38 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         Map<String, List<K>> groupedKeys = StreamEx.of(keys).groupingBy(this::segmentKey);
         for (Map.Entry<String, List<K>> entry : groupedKeys.entrySet()) {
             String segmentKey = entry.getKey();
-            this.writeLock(segmentKey, () -> {
-                Map<K, V> map = this.database.get(this.tableName, segmentKey);
-                if (map == null) {
-                    map = new HashMap<>();
-                }
-                int size = map.size();
-                for (K key : entry.getValue()) {
-                    V value = update.apply(key, map.get(key));
-                    map.put(key, value);
-                }
-                this.incrementSize(map.size() - size);
-                this.database.put(this.tableName, key, map);
-            });
+            Map<K, V> map = this.database.get(this.tableName, segmentKey);
+            if (map == null) {
+                map = new HashMap<>();
+            }
+            int size = map.size();
+            for (K key : entry.getValue()) {
+                V value = update.apply(key, map.get(key));
+                map.put(key, value);
+            }
+            this.incrementSize(map.size() - size);
+            this.database.put(this.tableName, segmentKey, map);
         }
     }
 
     @Override
     public <T> T map(K key, Function1<V, T> function1) {
         String segmentKey = this.segmentKey(key);
-        return this.readLock(segmentKey, () -> {
-            Map<K, V> map = this.database.get(this.tableName, segmentKey);
-            if (map == null) {
-                return null;
-            }
-            V value = map.get(key);
-            if (value == null) {
-                return null;
-            }
-            return function1.apply(value);
-        });
+        Map<K, V> map = this.database.get(this.tableName, segmentKey);
+        if (map == null) {
+            return null;
+        }
+        V value = map.get(key);
+        if (value == null) {
+            return null;
+        }
+        return function1.apply(value);
     }
 
     @Override
     public V get(K key) {
         String segmentKey = this.segmentKey(key);
-        Map<K, V> map = this.readLock(segmentKey, () -> this.database.get(this.tableName, segmentKey));
+        Map<K, V> map = this.database.get(this.tableName, segmentKey);
         if (map == null) {
             return null;
         }
@@ -162,19 +153,17 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         Map<K, V> values = new HashMap<>(keys.size());
         for (Map.Entry<String, List<K>> entry : groupedKeys.entrySet()) {
             String segmentKey = entry.getKey();
-            this.readLock(segmentKey, () -> {
-                Map<K, V> map = this.database.get(this.tableName, segmentKey);
-                if (map == null) {
-                    return;
+            Map<K, V> map = this.database.get(this.tableName, segmentKey);
+            if (map == null) {
+                continue;
+            }
+            for (K k : entry.getValue()) {
+                V v = map.get(k);
+                if (v == null) {
+                    continue;
                 }
-                for (K k : entry.getValue()) {
-                    V v = map.get(k);
-                    if (v == null) {
-                        continue;
-                    }
-                    values.put(k, v);
-                }
-            });
+                values.put(k, v);
+            }
         }
         return values;
     }
@@ -182,19 +171,17 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
     @Override
     public V put(K key, V value) {
         String segmentKey = this.segmentKey(key);
-        return this.writeLock(segmentKey, () -> {
-            Map<K, V> map = this.database.get(this.tableName, segmentKey);
-            if (map == null) {
-                map = new HashMap<>();
-            }
-            int size = map.size();
-            map.put(key, value);
-            if (map.size() - 1 == size) {
-                this.incrementSize();
-            }
-            this.database.put(this.tableName, segmentKey, map);
-            return value;
-        });
+        Map<K, V> map = this.database.get(this.tableName, segmentKey);
+        if (map == null) {
+            map = new HashMap<>();
+        }
+        int size = map.size();
+        map.put(key, value);
+        if (map.size() - 1 == size) {
+            this.incrementSize();
+        }
+        this.database.put(this.tableName, segmentKey, map);
+        return value;
     }
 
 
@@ -209,16 +196,14 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         }
         for (Map.Entry<String, Map<K, V>> entry : segmentMap.entrySet()) {
             String segmentKey = entry.getKey();
-            this.writeLock(segmentKey, () -> {
-                Map<K, V> values = this.database.get(this.tableName, segmentKey);
-                if (values == null) {
-                    values = new HashMap<>();
-                }
-                int size = values.size();
-                values.putAll(entry.getValue());
-                this.incrementSize(values.size() - size);
-                this.database.put(this.tableName, segmentKey, values);
-            });
+            Map<K, V> values = this.database.get(this.tableName, segmentKey);
+            if (values == null) {
+                values = new HashMap<>();
+            }
+            int size = values.size();
+            values.putAll(entry.getValue());
+            this.incrementSize(values.size() - size);
+            this.database.put(this.tableName, segmentKey, values);
         }
 
     }
@@ -226,19 +211,17 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
     @Override
     public V remove(K key) {
         String segmentKey = this.segmentKey(key);
-        return this.writeLock(segmentKey, () -> {
-            Map<K, V> map = this.database.get(this.tableName, segmentKey);
-            if (map == null) {
-                return null;
-            }
-            int size = map.size();
-            V v = map.remove(key);
-            if (map.size() + 1 == size) {
-                this.decrementSize();
-                this.database.put(this.tableName, segmentKey, map);
-            }
-            return v;
-        });
+        Map<K, V> map = this.database.get(this.tableName, segmentKey);
+        if (map == null) {
+            return null;
+        }
+        int size = map.size();
+        V v = map.remove(key);
+        if (map.size() + 1 == size) {
+            this.decrementSize();
+            this.database.put(this.tableName, segmentKey, map);
+        }
+        return v;
     }
 
     @Override
@@ -246,18 +229,16 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         Map<String, List<K>> groupedKeys = StreamEx.of(keys).groupingBy(this::segmentKey);
         for (Map.Entry<String, List<K>> entry : groupedKeys.entrySet()) {
             String segmentKey = entry.getKey();
-            this.writeLock(segmentKey, () -> {
-                Map<K, V> map = this.database.get(this.tableName, segmentKey);
-                if (map == null) {
-                    return;
-                }
-                int size = map.size();
-                for (K k : entry.getValue()) {
-                    map.remove(k);
-                }
-                decrementSize(size - map.size());
-                this.database.put(this.tableName, key, map);
-            });
+            Map<K, V> map = this.database.get(this.tableName, segmentKey);
+            if (map == null) {
+                return;
+            }
+            int size = map.size();
+            for (K k : entry.getValue()) {
+                map.remove(k);
+            }
+            decrementSize(size - map.size());
+            this.database.put(this.tableName, segmentKey, map);
         }
     }
 
@@ -266,10 +247,11 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
     public void clear() {
         for (int i = 0; i < this.segment; i++) {
             String segmentKey = this.segmentKey(i);
-            this.writeLock(segmentKey, () -> this.database.delete(this.tableName, segmentKey));
+            this.database.delete(this.tableName, segmentKey);
         }
         this.size = 0;
-        this.updateStatus();
+        this.updateStatusData(null);
+        this.commit();
     }
 
     @Override
@@ -289,7 +271,6 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
 
     @Override
     public Iterator<Map.Entry<K, V>> iterator() {
-        this.readWriteLock.readLock(tableName);
         return new Iterator<>() {
 
             private java.util.Iterator<Map.Entry<K, V>> iterator = null;
@@ -320,7 +301,6 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
 
             @Override
             public void close() throws IOException {
-                readWriteLock.unReadLock(tableName);
             }
         };
 
@@ -328,13 +308,10 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
 
     @Override
     public void destroy() {
-        this.writeLock(tableName, () -> {
-//            this.database.delete(this.tableName + "@status", this.key);
-            for (int i = 0; i < this.segment; i++) {
-                this.database.delete(this.tableName, this.segmentKey(i));
-            }
-            this.commit();
-        });
+        for (int i = 0; i < this.segment; i++) {
+            this.database.delete(this.tableName, this.segmentKey(i));
+        }
+        this.commit();
     }
 
     @Override
@@ -342,8 +319,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         Map<K, V> map = new HashMap<>();
         for (int i = 0; i < this.segment; i++) {
             String segmentKey = this.segmentKey(i);
-
-            Map<K, V> m = this.readLock(segmentKey, () -> this.database.get(this.tableName, segmentKey));
+            Map<K, V> m = this.database.get(this.tableName, segmentKey);
             if (m == null) {
                 continue;
             }
@@ -366,24 +342,21 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         if (newSegment == this.segment) {
             return this;
         }
-        SegmentMap<K, V> segmentHashMap = this.writeLock(tableName, () -> {
-            Object status = this.getStatus();
-            this.commit();
-            SegmentMap<K, V> segmentMap = new SegmentHashMap<>(this.database, this.tableName, this.key, newSegment, true);
-            for (int i = 0; i < this.segment; i++) {
-                String segmentKey = this.segmentKey(i);
-                Map<K, V> map = this.database.get(this.tableName, segmentKey);
-                if (map == null) {
-                    continue;
-                }
-                segmentMap.putAll(map);
+        Object status = this.getStatusData();
+        this.commit();
+        SegmentMap<K, V> segmentMap = new SegmentHashMap<>(this.database, this.tableName, this.key, newSegment, true);
+        for (int i = 0; i < this.segment; i++) {
+            String segmentKey = this.segmentKey(i);
+            Map<K, V> map = this.database.get(this.tableName, segmentKey);
+            if (map == null) {
+                continue;
             }
-            segmentMap.updateStatus(status);
-            segmentMap.commit();
-            return segmentMap;
-        });
+            segmentMap.putAll(map);
+        }
         this.destroy();
-        return segmentHashMap;
+        segmentMap.updateStatusData(status);
+        segmentMap.commit();
+        return segmentMap;
     }
 
     public void forEach(Consumer2<? super K, ? super V> action) {
@@ -424,7 +397,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         map.put("sequence", this.sequence);
         map.put("segment", this.segment);
         map.put("size", this.size);
-        map.put("status", this.status);
+        map.put("status", this.statusData);
         this.database.put(this.tableName + "@status", this.key, map);
     }
 
@@ -444,16 +417,6 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
 
     private String segmentKey(int value) {
         return this.key + "@" + this.sequence + "@" + Math.abs(value);
-    }
-
-
-    public static void main(String[] args) {
-        Map<String, String> map = new HashMap<>();
-        for (int i = 0; i < 100; i++) {
-            map.put("key" + i, "value" + i);
-        }
-
-
     }
 
 }

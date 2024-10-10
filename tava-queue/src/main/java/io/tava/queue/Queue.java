@@ -22,11 +22,11 @@ public class Queue<T> implements ExceptionHandler<Event<T>> {
     private final EventTranslatorEvent<T> eventTranslator = new EventTranslatorEvent<>();
     private final Disruptor<Event<T>> disruptor;
 
-    public Queue(int ringBufferSize, HandlerFactory<T, ? extends Handler<T>> factory, String threadPrefix) {
-        this(ringBufferSize, factory, ProducerType.MULTI, new BlockingWaitStrategy(), threadPrefix, Runtime.getRuntime().availableProcessors() * 3);
+    public Queue(int ringBufferSize, EventHandler<T> handler, String threadPrefix) {
+        this(ringBufferSize, handler, ProducerType.MULTI, new BlockingWaitStrategy(), threadPrefix, 1);
     }
 
-    public Queue(int ringBufferSize, HandlerFactory<T, ? extends Handler<T>> factory, ProducerType producerType, WaitStrategy waitStrategy, String threadPrefix, int threadNumber) {
+    public Queue(int ringBufferSize, EventHandler<T> handler, ProducerType producerType, WaitStrategy waitStrategy, String threadPrefix, int threadNumber) {
         if (ringBufferSize < 1) {
             throw new IllegalArgumentException("ringBufferSize must not be less than 1");
         }
@@ -35,17 +35,7 @@ public class Queue<T> implements ExceptionHandler<Event<T>> {
         }
         this.disruptor = new Disruptor<>(new EventFactory<>(), ringBufferSize, new NamedThreadFactory(threadPrefix), producerType, waitStrategy);
         this.disruptor.setDefaultExceptionHandler(this);
-        if (factory instanceof EventHandlerFactory<?>) {
-            EventHandlerFactory<T> eventHandlerFactory = (EventHandlerFactory<T>) factory;
-            List<EventHandler<T>> handlers = handlers(eventHandlerFactory, threadNumber);
-            this.disruptor.handleEventsWith(handlers.toArray(new EventHandler[0]));
-        } else if (factory instanceof WorkHandlerFactory<?>) {
-            WorkHandlerFactory<T> workHandlerFactory = (WorkHandlerFactory<T>) factory;
-            List<WorkHandler<T>> handlers = handlers(workHandlerFactory, threadNumber);
-            this.disruptor.handleEventsWithWorkerPool(handlers.toArray(new WorkHandler[0]));
-        } else {
-            throw new IllegalArgumentException("factory:" + factory.getClass() + " is error");
-        }
+        this.disruptor.handleEventsWith(handlers(handler, threadNumber).toArray(new EventHandler[0]));
         this.disruptor.start();
     }
 
@@ -58,16 +48,16 @@ public class Queue<T> implements ExceptionHandler<Event<T>> {
         this.disruptor.shutdown();
     }
 
-    private <H extends Handler<T>> List<H> handlers(HandlerFactory<T, H> factory, int threadNumber) {
-        List<H> handlers = new ArrayList<>();
-        for (int i = 0; i < threadNumber; i++) {
-            handlers.add(factory.newInstance());
-        }
-        return handlers;
-    }
-
     public void handleEventException(Throwable cause, long sequence, Event<T> event) {
         logger.error("handleEventException", cause);
+    }
+
+    private List<EventHandler<T>> handlers(EventHandler<T> handler, int threadNumber) {
+        List<EventHandler<T>> handlers = new ArrayList<>();
+        for (int i = 0; i < threadNumber; i++) {
+            handlers.add(handler);
+        }
+        return handlers;
     }
 
     @Override
