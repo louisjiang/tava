@@ -99,10 +99,6 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         foreach.accept(value);
     }
 
-    @Override
-    public void update(K key, Function1<V, V> update) {
-        this.put(key, update.apply(this.get(key)));
-    }
 
     @Override
     public void update(Collection<K> keys, Function2<K, V, V> update) {
@@ -166,6 +162,21 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
             }
         }
         return values;
+    }
+
+    @Override
+    public void update(K key, Function1<V, V> update) {
+        String segmentKey = this.segmentKey(key);
+        Map<K, V> map = this.database.get(this.tableName, segmentKey);
+        if (map == null) {
+            map = new HashMap<>();
+        }
+        int size = map.size();
+        map.put(key, update.apply(map.get(key)));
+        if (map.size() - 1 == size) {
+            this.incrementSize();
+        }
+        this.database.put(this.tableName, segmentKey, map);
     }
 
     @Override

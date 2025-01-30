@@ -22,7 +22,7 @@ public interface Util {
         }
         boolean appendSeparator = false;
         for (Object value : values) {
-            appendSeparator = append_(separator, builder, appendSeparator, value);
+            appendSeparator = _append(separator, builder, appendSeparator, value);
         }
         if (nonEmpty(end)) {
             builder.append(end);
@@ -41,7 +41,7 @@ public interface Util {
         }
         boolean appendSeparator = false;
         for (Object value : values) {
-            appendSeparator = append_(separator, builder, appendSeparator, value);
+            appendSeparator = _append(separator, builder, appendSeparator, value);
         }
         if (nonEmpty(end)) {
             builder.append(end);
@@ -49,7 +49,7 @@ public interface Util {
         return builder.toString();
     }
 
-    default boolean append_(String separator, StringBuilder builder, boolean appendSeparator, Object value) {
+    default boolean _append(String separator, StringBuilder builder, boolean appendSeparator, Object value) {
         if (isEmpty(value)) {
             return appendSeparator;
         }
