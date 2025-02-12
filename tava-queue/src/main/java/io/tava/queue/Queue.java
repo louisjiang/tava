@@ -44,6 +44,11 @@ public class Queue<T> implements ExceptionHandler<Event<T>> {
         this.disruptor.publishEvent(this.eventTranslator, value);
     }
 
+    public long remainingCapacity() {
+        return disruptor.getRingBuffer().remainingCapacity();
+    }
+
+
     public void shutdown() {
         this.disruptor.shutdown();
     }

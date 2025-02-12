@@ -172,7 +172,19 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
             map = new HashMap<>();
         }
         int size = map.size();
-        map.put(key, update.apply(map.get(key)));
+        V oldValue = map.get(key);
+        V newValue = update.apply(oldValue);
+        if (oldValue == null && newValue == null) {
+            return;
+        }
+        if (oldValue != null && newValue == null) {
+            map.remove(key);
+            this.decrementSize();
+            this.database.put(this.tableName, segmentKey, map);
+            return;
+        }
+
+        map.put(key, newValue);
         if (map.size() - 1 == size) {
             this.incrementSize();
         }
