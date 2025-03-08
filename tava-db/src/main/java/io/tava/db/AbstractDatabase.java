@@ -180,7 +180,7 @@ public abstract class AbstractDatabase implements Database, Util {
         try {
             return this.serialization.toBytes(value);
         } catch (Exception cause) {
-            this.logger.error("toBytes", cause);
+            this.logger.warn("toBytes", cause);
             return EMPTY;
         }
     }

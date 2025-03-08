@@ -1,30 +1,11 @@
 package io.tave.test;
 
-import io.tava.lang.Tuples;
-import io.tava.util.Map;
-import io.tava.util.Properties;
-import io.tava.util.Util;
-
 import java.io.FileWriter;
 import java.io.IOException;
 
 public class TupleMainApp {
 
     public static void main(String[] args) throws IOException {
-
-        Util util = new Util() {
-        };
-
-        String a = util.toString("1", 1, "a");
-
-        String s = util.mkString(new Object[]{"1", null, "2"}, "@");
-        System.out.println(s);
-
-        Properties properties = new Properties();
-        properties.put("a", "a");
-        Map<Object, Object> map = properties.map((key, value) -> Tuples.of(key + "@" + key, value + "@" + value));
-        System.out.println(map);
-
         for (int i = 1; i <= 22; i++) {
             StringBuilder code = new StringBuilder();
             code.append("package io.tava.lang;\n\n");
@@ -41,9 +22,7 @@ public class TupleMainApp {
 
             code.append("> implements Tuple {\n\n");
             for (int j = 1; j <= i; j++) {
-
                 code.append("\tprivate final T").append(j).append(" value").append(j).append(";\n\n");
-
             }
             code.append("\tpublic Tuple").append(i).append("(");
             for (int j = 1; j <= i; j++) {

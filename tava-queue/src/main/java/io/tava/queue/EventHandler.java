@@ -9,6 +9,7 @@ public interface EventHandler<T> extends com.lmax.disruptor.EventHandler<Event<T
     @Override
     default void onEvent(Event<T> event, long sequence, boolean endOfBatch) throws Exception {
         handle(event.getValue());
+        event.setValue(null);
     }
 
     void handle(T value) throws Exception;

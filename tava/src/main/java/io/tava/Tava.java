@@ -34,22 +34,6 @@ public class Tava {
         return Either.right(value);
     }
 
-    public static <E> List<E> list(E[] array) {
-        return Arrays.asList(array);
-    }
-
-    public static <E> List<E> list(java.util.List<E> list) {
-        return Adapter.list(list);
-    }
-
-    public static <E> Set<E> set(java.util.Set<E> set) {
-        return Adapter.set(set);
-    }
-
-    public static <K, V> Map<K, V> map(java.util.Map<K, V> map) {
-        return Adapter.map(map);
-    }
-
     public static <T1> Tuple1<T1> of(T1 value1) {
         return Tuples.of(value1);
     }

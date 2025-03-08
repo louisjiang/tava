@@ -86,6 +86,12 @@ public class HotThreads {
             if (className.equals("sun.misc.Unsafe") && methodName.equals("park")) {
                 return true;
             }
+            if(className.equals("com.lmax.disruptor.ProcessingSequenceBarrier") && methodName.equals("waitFor")) {
+                return true;
+            }
+            if(className.equals("jdk.internal.misc.Unsafe") && methodName.equals("park")) {
+                return true;
+            }
         }
 
         return false;
