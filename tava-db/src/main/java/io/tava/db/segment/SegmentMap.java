@@ -7,7 +7,6 @@ import io.tava.function.Function1;
 import io.tava.function.Function2;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -23,9 +22,9 @@ public interface SegmentMap<K, V> extends Segment {
 
     void foreach(K key, Consumer1<V> foreach);
 
-    void update(K key, Function1<V, V> update);
+    V update(K key, Function1<V, V> update);
 
-    void update(Collection<K> keys, Function2<K,V, V> update);
+    Map<K, V> update(Collection<K> keys, Function2<K, V, V> update);
 
     <T> T map(K key, Function1<V, T> function1);
 
@@ -55,7 +54,7 @@ public interface SegmentMap<K, V> extends Segment {
 
     Map<K, V> toMap();
 
-    SegmentMap<K, V> remap(int capacity);
+    boolean remap(int capacity);
 
     static <K, V> SegmentMap<K, V> get(Database database, String tableName, String key) {
         Map<String, Object> status = database.get(tableName + "@status", key);
