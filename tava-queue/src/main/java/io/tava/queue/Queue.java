@@ -22,6 +22,7 @@ public class Queue<T> implements ExceptionHandler<Event<T>> {
     private final EventTranslatorEvent<T> eventTranslator = new EventTranslatorEvent<>();
     private final Disruptor<Event<T>> disruptor;
 
+
     public Queue(int ringBufferSize, EventHandler<T> handler, String threadPrefix) {
         this(ringBufferSize, handler, ProducerType.MULTI, new BlockingWaitStrategy(), threadPrefix, 1);
     }

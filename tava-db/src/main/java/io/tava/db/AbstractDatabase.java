@@ -6,7 +6,7 @@ import io.tava.db.segment.*;
 import io.tava.function.Function1;
 import io.tava.lang.Option;
 import io.tava.lang.Tuple4;
-import io.tava.serialization.kryo.KryoSerializationPool;
+import io.tava.serialization.kryo.Serialization;
 import io.tava.util.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,12 +27,17 @@ public abstract class AbstractDatabase implements Database, Util {
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
     protected final Map<String, Map<String, Operation>> tableNameToOperationMap = new ConcurrentHashMap<>();
     private final byte[] EMPTY = new byte[0];
-    private final KryoSerializationPool serialization;
+    private final Serialization serialization;
     private final int initialCapacity = 1024;
     private final ForkJoinPool forkJoinPool;
+    private final int batchSize;
+    private final long interval;
+    private final Map<String, Long> commitTimestamps = new ConcurrentHashMap<>();
 
-    protected AbstractDatabase(Configuration configuration, KryoSerializationPool serialization) {
+    protected AbstractDatabase(Configuration configuration, Serialization serialization) {
         this.serialization = serialization;
+        this.batchSize = configuration.getInt("batch_size");
+        this.interval = configuration.getLong("interval");
         this.forkJoinPool = new ForkJoinPool(configuration.getInt("fork-join-pool-parallelism", Runtime.getRuntime().availableProcessors() * 3));
     }
 
@@ -69,11 +74,13 @@ public abstract class AbstractDatabase implements Database, Util {
     @Override
     public void put(String tableName, String key, Object value) {
         this.tableNameToOperationMap.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).computeIfAbsent(key, s -> new Operation()).put(value);
+//        tryCommit(tableName);
     }
 
     @Override
     public void delete(String tableName, String key) {
         this.tableNameToOperationMap.computeIfAbsent(tableName, s -> new ConcurrentHashMap<>(this.initialCapacity)).computeIfAbsent(key, s -> new Operation()).delete();
+//        tryCommit(tableName);
     }
 
     @Override
@@ -99,12 +106,36 @@ public abstract class AbstractDatabase implements Database, Util {
     }
 
     @Override
+    public void tryCommit(String tableName) {
+        Map<String, Operation> operationMap = this.tableNameToOperationMap.get(tableName);
+        if (operationMap == null) {
+            return;
+        }
+        if (operationMap.size() >= this.batchSize) {
+            commit(tableName);
+            return;
+        }
+
+        Long commitTimestamp = this.commitTimestamps.get(tableName);
+        if (commitTimestamp == null) {
+            commit(tableName);
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        if (now - commitTimestamp >= this.interval) {
+            commit(tableName);
+        }
+    }
+
+    @Override
     public void commit(String tableName) {
         Map<String, Operation> operationMap = this.tableNameToOperationMap.get(tableName);
         if (operationMap == null || operationMap.isEmpty()) {
             return;
         }
         long now = System.currentTimeMillis();
+        this.commitTimestamps.put(tableName, now);
         int totalBytes = 0;
         Map<byte[], byte[]> puts = new HashMap<>();
         Set<byte[]> deletes = new HashSet<>();

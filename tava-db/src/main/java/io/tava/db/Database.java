@@ -105,6 +105,8 @@ public interface Database {
 
     Iterator iterator(String tableName, boolean useSnapshot);
 
+    void tryCommit(String tableName);
+
     void commit(String tableName);
 
     boolean keyMayExist(String tableName, String key);

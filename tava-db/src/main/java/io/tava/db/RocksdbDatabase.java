@@ -4,7 +4,7 @@ import io.tava.Tava;
 import io.tava.configuration.Configuration;
 import io.tava.lang.Tuple2;
 import io.tava.lang.Tuple3;
-import io.tava.serialization.kryo.KryoSerializationPool;
+import io.tava.serialization.kryo.Serialization;
 import org.rocksdb.*;
 import org.rocksdb.util.SizeUnit;
 
@@ -31,11 +31,11 @@ public class RocksdbDatabase extends AbstractDatabase {
     private final File directory;
     private final RocksDB db;
 
-    public RocksdbDatabase(Configuration configuration, KryoSerializationPool serialization) {
+    public RocksdbDatabase(Configuration configuration, Serialization serialization) {
         this(configuration, serialization, createOptions(configuration));
     }
 
-    public RocksdbDatabase(Configuration configuration, KryoSerializationPool serialization, Tuple3<DBOptions, ColumnFamilyOptions, List<ColumnFamilyDescriptor>> tuple3) {
+    public RocksdbDatabase(Configuration configuration, Serialization serialization, Tuple3<DBOptions, ColumnFamilyOptions, List<ColumnFamilyDescriptor>> tuple3) {
         super(configuration, serialization);
         String path = configuration.getString("path");
         this.directory = new File(path);
@@ -67,22 +67,29 @@ public class RocksdbDatabase extends AbstractDatabase {
         long writeBufferSize = configuration.getInt("write_buffer_size", 64) * SizeUnit.MB;
         int targetFileSize = configuration.getInt("target_file_size", 64);
         LRUCache blockCache = new LRUCache(configuration.getInt("block_cache_size", 64) * SizeUnit.MB);
-        options.setWriteBufferManager(new WriteBufferManager(writeBufferSize * 2, blockCache, true));
+        options.setWriteBufferManager(new WriteBufferManager(writeBufferSize, blockCache, true));
         Env env = Env.getDefault();
         env.setBackgroundThreads(availableProcessors, Priority.HIGH);
-        env.setBackgroundThreads(availableProcessors, Priority.LOW);
+        env.setBackgroundThreads(availableProcessors / 2, Priority.LOW);
         options.setEnv(env);
 
         ColumnFamilyOptions columnFamilyOptions = new ColumnFamilyOptions();
         columnFamilyOptions.setWriteBufferSize(writeBufferSize);
         columnFamilyOptions.setMaxWriteBufferNumber(configuration.getInt("max_write_buffer_number", 5));
-        columnFamilyOptions.setCompressionType(CompressionType.LZ4_COMPRESSION);
         columnFamilyOptions.setMinWriteBufferNumberToMerge(configuration.getInt("min_write_buffer_number_to_merge", 3));
-        columnFamilyOptions.setTargetFileSizeBase(targetFileSize * SizeUnit.MB);
 
+        columnFamilyOptions.setCompressionType(CompressionType.LZ4_COMPRESSION);
+        columnFamilyOptions.setTargetFileSizeBase(targetFileSize * SizeUnit.MB);
+        CompressionOptions bottommostCompressionOptions = new CompressionOptions();
+        bottommostCompressionOptions.setEnabled(true);
+        bottommostCompressionOptions.setMaxDictBytes(112 * 1024);
+        bottommostCompressionOptions.setZStdMaxTrainBytes(20 * 1024 * 1024);
+        columnFamilyOptions.setBottommostCompressionOptions(bottommostCompressionOptions);
         columnFamilyOptions.setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION);
+
         columnFamilyOptions.setCompactionPriority(CompactionPriority.MinOverlappingRatio);
-//        columnFamilyOptions.setLevelCompactionDynamicLevelBytes(true);
+        columnFamilyOptions.setLevelCompactionDynamicLevelBytes(true);
+        columnFamilyOptions.setCompactionStyle(CompactionStyle.LEVEL);
 
         columnFamilyOptions.setNumLevels(7);
         columnFamilyOptions.setMaxBytesForLevelBase(configuration.getInt("max_bytes_for_level_base", targetFileSize * 10) * SizeUnit.MB);
@@ -119,7 +126,6 @@ public class RocksdbDatabase extends AbstractDatabase {
         }
         return Tava.of(options, columnFamilyOptions, columnFamilyDescriptors);
     }
-
 
     @Override
     protected byte[] get(String tableName, byte[] key) {
@@ -295,7 +301,7 @@ public class RocksdbDatabase extends AbstractDatabase {
 
     @Override
     public void close() {
-        this.db.close();
+        close(this.db);
     }
 
     private ColumnFamilyHandle columnFamilyHandle(String tableName) {

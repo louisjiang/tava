@@ -371,9 +371,10 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         }
         Object status = this.getStatusData();
         this.commit();
-        SegmentMap<K, V> segmentMap = new SegmentHashMap<>(this.database, this.tableName, this.key, newSegment, true);
-        segmentMap.putAll(segmentMap.toMap());
+        Map<K, V> map = toMap();
         this.destroy();
+        SegmentMap<K, V> segmentMap = new SegmentHashMap<>(this.database, this.tableName, this.key, newSegment, true);
+        segmentMap.putAll(map);
         segmentMap.updateStatusData(status);
         segmentMap.commit();
         return true;
