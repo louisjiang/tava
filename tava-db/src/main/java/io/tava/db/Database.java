@@ -125,8 +125,8 @@ public interface Database {
 
     Object toObject(byte[] bytes);
 
-    void compact(String tableName);
+    void compactRange(String tableName);
 
-    void compact();
+    void compactRange();
 
 }

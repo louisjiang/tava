@@ -275,7 +275,7 @@ public class RocksdbDatabase extends AbstractDatabase {
     }
 
     @Override
-    public void compact(String tableName) {
+    public void compactRange(String tableName) {
         ColumnFamilyHandle columnFamilyHandle = this.columnFamilyHandles.get(tableName);
         if (columnFamilyHandle == null) {
             this.logger.warn("compact table:[{}] does not exist", tableName);
@@ -289,14 +289,13 @@ public class RocksdbDatabase extends AbstractDatabase {
     }
 
     @Override
-    public void compact() {
-        for (Map.Entry<String, ColumnFamilyHandle> entry : this.columnFamilyHandles.entrySet()) {
-            try {
-                this.db.compactRange(entry.getValue());
-            } catch (RocksDBException cause) {
-                this.logger.error("compact:[{}]", entry.getKey(), cause);
-            }
+    public void compactRange() {
+        try {
+            this.db.compactRange();
+        } catch (RocksDBException cause) {
+            this.logger.error("compactRange", cause);
         }
+
     }
 
     @Override
