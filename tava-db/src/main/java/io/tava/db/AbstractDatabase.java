@@ -294,4 +294,8 @@ public abstract class AbstractDatabase implements Database, Util {
         }
     }
 
+    @Override
+    public ForkJoinPool forkJoinPool() {
+        return this.forkJoinPool;
+    }
 }

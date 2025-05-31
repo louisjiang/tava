@@ -9,6 +9,7 @@ import one.util.streamex.StreamEx;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ForkJoinTask;
 
 public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<K, V> {
 
@@ -343,14 +344,23 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
 
     @Override
     public Map<K, V> toMap() {
-        Map<K, V> map = new HashMap<>();
+        Map<K, V> map = new HashMap<>(this.size);
+        List<ForkJoinTask<Map<K, V>>> tasks = new ArrayList<>();
         for (int i = 0; i < this.segment; i++) {
             String segmentKey = this.segmentKey(i);
-            Map<K, V> m = this.database.get(this.tableName, segmentKey);
-            if (m == null) {
-                continue;
+            ForkJoinTask<Map<K, V>> task = this.database.forkJoinPool().submit(() -> this.database.get(this.tableName, segmentKey));
+            tasks.add(task);
+        }
+        for (ForkJoinTask<Map<K, V>> task : tasks) {
+            try {
+                Map<K, V> m = task.get();
+                if (m == null) {
+                    continue;
+                }
+                map.putAll(m);
+            } catch (Throwable ignored) {
+
             }
-            map.putAll(m);
         }
         return map;
     }

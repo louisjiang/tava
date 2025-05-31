@@ -8,6 +8,7 @@ import io.tava.lang.Option;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ForkJoinPool;
 
 /**
  * @author louisjiang <493509534@qq.com>
@@ -129,4 +130,5 @@ public interface Database {
 
     void compactRange();
 
+    ForkJoinPool forkJoinPool();
 }
