@@ -30,8 +30,6 @@ public interface SegmentList<V> extends Segment {
 
     boolean retainAll(Collection<? extends V> collection);
 
-    void clear();
-
     V get(int index);
 
     V set(int index, V value);

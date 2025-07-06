@@ -8,6 +8,8 @@ public interface Segment extends Util {
 
     void commit();
 
+    void clear();
+
     void destroy();
 
     void updateStatusData(Object statusData);

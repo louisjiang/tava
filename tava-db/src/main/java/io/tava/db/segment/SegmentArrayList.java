@@ -331,7 +331,7 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
         }
         segmentList.updateStatusData(status);
         segmentList.commit();
-        this.destroy();
+        this.clear();
         return segmentList;
     }
 

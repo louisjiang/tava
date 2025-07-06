@@ -40,8 +40,6 @@ public interface SegmentMap<K, V> extends Segment {
 
     void putAll(Map<? extends K, ? extends V> map);
 
-    void clear();
-
     Set<K> keySet();
 
     Collection<V> values();

@@ -84,6 +84,9 @@ public class RocksdbDatabase extends AbstractDatabase {
         columnFamilyOptions.setMaxWriteBufferNumber(configuration.getInt("max_write_buffer_number", 5));
         columnFamilyOptions.setMinWriteBufferNumberToMerge(configuration.getInt("min_write_buffer_number_to_merge", 1));
 
+        long periodicCompactionSeconds = configuration.getLong("periodic_compaction_seconds", 6 * 60 * 60);
+        columnFamilyOptions.setTtl(periodicCompactionSeconds);
+        columnFamilyOptions.setPeriodicCompactionSeconds(periodicCompactionSeconds);
         columnFamilyOptions.setCompressionType(CompressionType.LZ4_COMPRESSION);
         columnFamilyOptions.setTargetFileSizeBase(targetFileSize * SizeUnit.MB);
         CompressionOptions bottommostCompressionOptions = new CompressionOptions();

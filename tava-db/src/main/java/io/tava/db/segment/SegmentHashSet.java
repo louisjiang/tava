@@ -208,7 +208,7 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
         }
         segmentSet.updateStatusData(status);
         segmentSet.commit();
-        this.destroy();
+        this.clear();
         return segmentSet;
     }
 

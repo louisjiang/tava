@@ -272,17 +272,6 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
 
 
     @Override
-    public void clear() {
-        for (int i = 0; i < this.segment; i++) {
-            String segmentKey = this.segmentKey(i);
-            this.database.delete(this.tableName, segmentKey);
-        }
-        this.size = 0;
-        this.updateStatusData(null);
-        this.commit();
-    }
-
-    @Override
     public Set<K> keySet() {
         return toMap().keySet();
     }
@@ -335,14 +324,6 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
     }
 
     @Override
-    public void destroy() {
-        for (int i = 0; i < this.segment; i++) {
-            this.database.delete(this.tableName, this.segmentKey(i));
-        }
-        this.commit();
-    }
-
-    @Override
     public Map<K, V> toMap() {
         Map<K, V> map = new HashMap<>(this.size);
         List<ForkJoinTask<Map<K, V>>> tasks = new ArrayList<>();
@@ -382,7 +363,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         Object status = this.getStatusData();
         this.commit();
         Map<K, V> map = toMap();
-        this.destroy();
+        this.clear();
         SegmentMap<K, V> segmentMap = new SegmentHashMap<>(this.database, this.tableName, this.key, newSegment, true);
         segmentMap.putAll(map);
         segmentMap.updateStatusData(status);
@@ -401,6 +382,29 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
             }
         }
     }
+
+
+    @Override
+    public void clear() {
+        for (int i = 0; i < this.segment; i++) {
+            String segmentKey = this.segmentKey(i);
+            this.database.delete(this.tableName, segmentKey);
+        }
+        this.size = 0;
+        this.updateStatusData(null);
+        this.commit();
+    }
+
+
+    @Override
+    public void destroy() {
+        for (int i = 0; i < this.segment; i++) {
+            this.database.delete(this.tableName, this.segmentKey(i));
+        }
+        this.database.delete(this.tableName + "@status", this.key);
+        this.commit();
+    }
+
 
     private void incrementSize() {
         this.size++;

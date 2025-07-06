@@ -26,8 +26,6 @@ public interface SegmentSet<V> extends Segment {
 
     boolean removeAll(Collection<? extends V> collection);
 
-    void clear();
-
     Set<V> toSet();
 
     SegmentSet<V> reset(int capacity);

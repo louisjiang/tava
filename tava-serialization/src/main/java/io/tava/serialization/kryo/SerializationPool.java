@@ -78,7 +78,7 @@ public class SerializationPool extends BasePooledObjectFactory<Kryo> implements 
 
     @Override
     public Kryo create() throws Exception {
-        KryoSerialization kryo = new KryoSerialization(new SubclassResolver(), new MapReferenceResolver());
+        KryoSerialization kryo = new KryoSerialization(new SubclassResolver(), new MapReferenceResolver(10240));
         if (this.configurator != null) {
             this.configurator.accept(kryo);
         }
