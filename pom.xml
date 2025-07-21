@@ -32,7 +32,7 @@
     </distributionManagement>
 
     <properties>
-        <typesafe.config.version>1.4.3</typesafe.config.version>
+        <typesafe.config.version>1.4.4</typesafe.config.version>
         <rocksdbjni.version>10.2.1</rocksdbjni.version>
         <netty.version>4.1.112.Final</netty.version>
         <agrona.version>2.2.4</agrona.version>
@@ -43,7 +43,7 @@
         <kotlin.version>2.0.20</kotlin.version>
         <failsafe.version>2.4.4</failsafe.version>
         <slf4j.version>2.0.16</slf4j.version>
-        <rxjava.version>3.1.10</rxjava.version>
+        <rxjava.version>3.1.11</rxjava.version>
         <joda.time.version>2.14.0</joda.time.version>
         <spring.boot.version>3.5.3</spring.boot.version>
         <spring.context.version>6.2.2</spring.context.version>
@@ -54,11 +54,11 @@
         <lmdbjava.version>0.9.1</lmdbjava.version>
         <mapdb.version>3.1.0</mapdb.version>
         <commons.pool2.version>2.12.1</commons.pool2.version>
-        <caffeine.version>3.2.1</caffeine.version>
+        <caffeine.version>3.2.2</caffeine.version>
         <kryo.version>5.6.2</kryo.version>
         <guava.version>33.4.8-jre</guava.version>
         <junit.version>5.13.1</junit.version>
-        <zero.allocation.hashing.version>0.27ea0</zero.allocation.hashing.version>
+        <zero.allocation.hashing.version>0.27ea1</zero.allocation.hashing.version>
     </properties>
 
     <dependencyManagement>
