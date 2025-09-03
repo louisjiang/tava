@@ -202,6 +202,11 @@ public abstract class AbstractDatabase implements Database, Util {
     }
 
     @Override
+    public boolean hasTable(String tableName) {
+        return this.tableNameToOperationMap.containsKey(tableName);
+    }
+
+    @Override
     public Set<String> getTableNames() {
         return new HashSet<>(this.tableNameToOperationMap.keySet());
     }
@@ -226,7 +231,7 @@ public abstract class AbstractDatabase implements Database, Util {
         }
     }
 
-    private String byteToString(int byteLength) {
+    protected String byteToString(long byteLength) {
         if (byteLength < 1024) {
             return byteLength + "B";
         }

@@ -328,7 +328,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
 
     @Override
     public Map<K, V> toMap() {
-        Map<K, V> map = new HashMap<>(this.size);
+        Map<K, V> map = new HashMap<>();
         List<ForkJoinTask<Map<K, V>>> tasks = new ArrayList<>();
         for (int i = 0; i < this.segment; i++) {
             String segmentKey = this.segmentKey(i);

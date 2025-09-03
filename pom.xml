@@ -36,8 +36,8 @@
         <rocksdbjni.version>10.2.1</rocksdbjni.version>
         <netty.version>4.1.112.Final</netty.version>
         <agrona.version>2.2.4</agrona.version>
-        <streamex.version>0.8.3</streamex.version>
-        <fastjson2.version>2.0.57</fastjson2.version>
+        <streamex.version>0.8.4</streamex.version>
+        <fastjson2.version>2.0.58</fastjson2.version>
         <disruptor.version>4.0.0</disruptor.version>
         <okhttp.version>4.12.0</okhttp.version>
         <kotlin.version>2.0.20</kotlin.version>

@@ -40,7 +40,7 @@ public class ResponseUtil {
     }
 
     public static Option<String> toString(Response response) {
-        if (response == null || response.code() != 200) {
+        if (response == null || response.code() != 200 && response.code() != 201) {
             close(response);
             return Option.none();
         }

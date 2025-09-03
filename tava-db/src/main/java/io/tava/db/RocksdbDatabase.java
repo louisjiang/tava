@@ -1,5 +1,6 @@
 package io.tava.db;
 
+import com.alibaba.fastjson2.JSONObject;
 import io.tava.Tava;
 import io.tava.configuration.Configuration;
 import io.tava.lang.Tuple2;
@@ -68,6 +69,7 @@ public class RocksdbDatabase extends AbstractDatabase {
         dbOptions.setMaxTotalWalSize(configuration.getInt("max_total_wal_size", 1024) * SizeUnit.MB);
         dbOptions.setWalBytesPerSync(configuration.getLong("wal_bytes_per_sync", 4) * SizeUnit.MB);
         dbOptions.setMaxSubcompactions(configuration.getInt("max_sub_compactions", availableProcessors / 2));
+        dbOptions.setInfoLogLevel(InfoLogLevel.valueOf(configuration.getString("info_log_level", "ERROR_LEVEL")));
 
 
         long writeBufferSize = configuration.getInt("db_write_buffer_size", 256) * SizeUnit.MB;
@@ -312,6 +314,29 @@ public class RocksdbDatabase extends AbstractDatabase {
         for (Map.Entry<String, ColumnFamilyHandle> entry : this.columnFamilyHandles.entrySet()) {
             compactRange(entry.getKey());
         }
+    }
+
+    @Override
+    public JSONObject metaData() {
+        JSONObject metaData = new JSONObject();
+        long totalSize = 0;
+        long totalFileCount = 0;
+        for (Map.Entry<String, ColumnFamilyHandle> entry : columnFamilyHandles.entrySet()) {
+            ColumnFamilyMetaData columnFamilyMetaData = db.getColumnFamilyMetaData(entry.getValue());
+            JSONObject jsonObject = new JSONObject();
+            long size = columnFamilyMetaData.size();
+            long fileCount = columnFamilyMetaData.fileCount();
+            jsonObject.put("size", byteToString(size));
+            jsonObject.put("fileCount", fileCount);
+            metaData.put(entry.getKey(), jsonObject);
+            totalSize += size;
+            totalFileCount += fileCount;
+        }
+
+        metaData.put("totalSize", byteToString(totalSize));
+        metaData.put("totalFileCount", totalFileCount);
+
+        return metaData;
     }
 
     @Override

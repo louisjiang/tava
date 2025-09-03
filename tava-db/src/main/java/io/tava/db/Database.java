@@ -1,5 +1,6 @@
 package io.tava.db;
 
+import com.alibaba.fastjson2.JSONObject;
 import io.tava.db.segment.SegmentList;
 import io.tava.db.segment.SegmentMap;
 import io.tava.db.segment.SegmentSet;
@@ -118,6 +119,8 @@ public interface Database {
 
     boolean dropTable(String tableName);
 
+    boolean hasTable(String tableName);
+
     Set<String> getTableNames();
 
     void close();
@@ -129,6 +132,8 @@ public interface Database {
     void compactRange(String tableName);
 
     void compactRange();
+
+    JSONObject metaData();
 
     ForkJoinPool forkJoinPool();
 }
