@@ -202,16 +202,6 @@ public abstract class AbstractDatabase implements Database, Util {
     }
 
     @Override
-    public boolean hasTable(String tableName) {
-        return this.tableNameToOperationMap.containsKey(tableName);
-    }
-
-    @Override
-    public Set<String> getTableNames() {
-        return new HashSet<>(this.tableNameToOperationMap.keySet());
-    }
-
-    @Override
     public byte[] toBytes(Object value) {
         try {
             return this.serialization.toBytes(value);
@@ -290,7 +280,7 @@ public abstract class AbstractDatabase implements Database, Util {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             Operation operation = (Operation) o;
-            return version.equals(operation.version) && delete == operation.delete && Objects.equals(value, operation.value);
+            return (version.get() == operation.version.get()) && delete == operation.delete && Objects.equals(value, operation.value);
         }
 
         @Override

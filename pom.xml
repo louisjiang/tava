@@ -32,31 +32,31 @@
     </distributionManagement>
 
     <properties>
-        <typesafe.config.version>1.4.4</typesafe.config.version>
-        <rocksdbjni.version>10.2.1</rocksdbjni.version>
-        <netty.version>4.1.112.Final</netty.version>
-        <agrona.version>2.2.4</agrona.version>
+        <typesafe.config.version>1.4.5</typesafe.config.version>
+        <rocksdbjni.version>10.4.2</rocksdbjni.version>
+        <netty.version>4.2.7.Final</netty.version>
+        <agrona.version>2.3.2</agrona.version>
         <streamex.version>0.8.4</streamex.version>
-        <fastjson2.version>2.0.58</fastjson2.version>
+        <fastjson2.version>2.0.60</fastjson2.version>
         <disruptor.version>4.0.0</disruptor.version>
         <okhttp.version>4.12.0</okhttp.version>
         <kotlin.version>2.0.20</kotlin.version>
         <failsafe.version>2.4.4</failsafe.version>
-        <slf4j.version>2.0.16</slf4j.version>
-        <rxjava.version>3.1.11</rxjava.version>
+        <slf4j.version>2.0.17</slf4j.version>
+        <rxjava.version>3.1.12</rxjava.version>
         <joda.time.version>2.14.0</joda.time.version>
-        <spring.boot.version>3.5.3</spring.boot.version>
-        <spring.context.version>6.2.2</spring.context.version>
+        <spring.boot.version>4.0.0</spring.boot.version>
+        <spring.context.version>7.0.1</spring.context.version>
         <aopalliance.version>1.0</aopalliance.version>
         <mustache.version>0.9.14</mustache.version>
         <javassist.version>3.30.2-GA</javassist.version>
-        <asm.version>9.8</asm.version>
-        <lmdbjava.version>0.9.1</lmdbjava.version>
+        <asm.version>9.9</asm.version>
+        <lmdbjava.version>0.9.2</lmdbjava.version>
         <mapdb.version>3.1.0</mapdb.version>
         <commons.pool2.version>2.12.1</commons.pool2.version>
-        <caffeine.version>3.2.2</caffeine.version>
+        <caffeine.version>3.2.3</caffeine.version>
         <kryo.version>5.6.2</kryo.version>
-        <guava.version>33.4.8-jre</guava.version>
+        <guava.version>33.5.0-jre</guava.version>
         <junit.version>5.13.1</junit.version>
         <zero.allocation.hashing.version>0.27ea1</zero.allocation.hashing.version>
     </properties>
@@ -76,6 +76,18 @@
             <dependency>
                 <groupId>org.rocksdb</groupId>
                 <artifactId>rocksdbjni</artifactId>
+                <version>${rocksdbjni.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.rocksdb</groupId>
+                <artifactId>rocksdbjni</artifactId>
+                <classifier>linux64</classifier>
+                <version>${rocksdbjni.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.rocksdb</groupId>
+                <artifactId>rocksdbjni</artifactId>
+                <classifier>osx</classifier>
                 <version>${rocksdbjni.version}</version>
             </dependency>
             <dependency>

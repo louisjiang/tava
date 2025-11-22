@@ -133,7 +133,11 @@ public interface Database {
 
     void compactRange();
 
+    int flush();
+
     JSONObject metaData();
+
+    JSONObject statistics();
 
     ForkJoinPool forkJoinPool();
 }

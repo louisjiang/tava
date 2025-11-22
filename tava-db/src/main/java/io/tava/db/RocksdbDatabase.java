@@ -4,7 +4,7 @@ import com.alibaba.fastjson2.JSONObject;
 import io.tava.Tava;
 import io.tava.configuration.Configuration;
 import io.tava.lang.Tuple2;
-import io.tava.lang.Tuple3;
+import io.tava.lang.Tuple5;
 import io.tava.serialization.kryo.Serialization;
 import org.rocksdb.*;
 import org.rocksdb.util.SizeUnit;
@@ -12,10 +12,7 @@ import org.rocksdb.util.SizeUnit;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -31,20 +28,24 @@ public class RocksdbDatabase extends AbstractDatabase {
     private final ColumnFamilyOptions columnFamilyOptions;
     private final File directory;
     private final RocksDB db;
+    private final Statistics statistics;
+    private final Cache cache;
 
     public RocksdbDatabase(Configuration configuration, Serialization serialization) {
         this(configuration, serialization, createOptions(configuration));
     }
 
-    public RocksdbDatabase(Configuration configuration, Serialization serialization, Tuple3<DBOptions, ColumnFamilyOptions, List<ColumnFamilyDescriptor>> tuple3) {
+    public RocksdbDatabase(Configuration configuration, Serialization serialization, Tuple5<DBOptions, Statistics, Cache, ColumnFamilyOptions, List<ColumnFamilyDescriptor>> tuple5) {
         super(configuration, serialization);
         String path = configuration.getString("path");
         this.directory = new File(path);
         this.directory.mkdirs();
-        this.columnFamilyOptions = tuple3.getValue2();
+        this.statistics = tuple5.getValue2();
+        this.cache = tuple5.getValue3();
+        this.columnFamilyOptions = tuple5.getValue4();
         try {
             List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
-            this.db = RocksDB.open(tuple3.getValue1(), path, tuple3.getValue3(), columnFamilyHandles);
+            this.db = RocksDB.open(tuple5.getValue1(), path, tuple5.getValue5(), columnFamilyHandles);
             for (ColumnFamilyHandle columnFamilyHandle : columnFamilyHandles) {
                 this.columnFamilyHandles.put(new String(columnFamilyHandle.getName(), StandardCharsets.UTF_8), columnFamilyHandle);
             }
@@ -54,7 +55,7 @@ public class RocksdbDatabase extends AbstractDatabase {
         this.writeOptions.setSync(false);
     }
 
-    private static Tuple3<DBOptions, ColumnFamilyOptions, List<ColumnFamilyDescriptor>> createOptions(Configuration configuration) {
+    private static Tuple5<DBOptions, Statistics, Cache, ColumnFamilyOptions, List<ColumnFamilyDescriptor>> createOptions(Configuration configuration) {
         int availableProcessors = Runtime.getRuntime().availableProcessors();
         DBOptions dbOptions = new DBOptions();
         dbOptions.setAtomicFlush(configuration.getBoolean("auto_flush", false));
@@ -71,10 +72,12 @@ public class RocksdbDatabase extends AbstractDatabase {
         dbOptions.setMaxSubcompactions(configuration.getInt("max_sub_compactions", availableProcessors / 2));
         dbOptions.setInfoLogLevel(InfoLogLevel.valueOf(configuration.getString("info_log_level", "ERROR_LEVEL")));
 
+        Statistics statistics = new Statistics();
+        dbOptions.setStatistics(statistics);
 
         long writeBufferSize = configuration.getInt("db_write_buffer_size", 256) * SizeUnit.MB;
         int targetFileSize = configuration.getInt("target_file_size", 64);
-        LRUCache blockCache = new LRUCache(configuration.getInt("block_cache_size", 64) * SizeUnit.MB);
+        LRUCache blockCache = new LRUCache(configuration.getInt("block_cache_size", 64) * SizeUnit.MB, configuration.getInt("block_cache_num-shard-bits", 16), false);
         dbOptions.setWriteBufferManager(new WriteBufferManager(writeBufferSize, blockCache, true));
         Env env = Env.getDefault();
         env.setBackgroundThreads(availableProcessors, Priority.HIGH);
@@ -145,7 +148,7 @@ public class RocksdbDatabase extends AbstractDatabase {
         } catch (RocksDBException cause) {
             throw new RuntimeException("listColumnFamilies", cause);
         }
-        return Tava.of(dbOptions, columnFamilyOptions, columnFamilyDescriptors);
+        return Tava.of(dbOptions, statistics, blockCache, columnFamilyOptions, columnFamilyDescriptors);
     }
 
     @Override
@@ -290,9 +293,18 @@ public class RocksdbDatabase extends AbstractDatabase {
 
     @Override
     public Set<String> getTableNames() {
-        Set<String> tableNames = super.getTableNames();
+        Set<String> tableNames = new HashSet<>();
+        tableNames.addAll(this.tableNameToOperationMap.keySet());
         tableNames.addAll(this.columnFamilyHandles.keySet());
         return tableNames;
+    }
+
+    @Override
+    public boolean hasTable(String tableName) {
+        if (this.tableNameToOperationMap.containsKey(tableName)) {
+            return true;
+        }
+        return this.columnFamilyHandles.containsKey(tableName);
     }
 
     @Override
@@ -317,6 +329,21 @@ public class RocksdbDatabase extends AbstractDatabase {
     }
 
     @Override
+    public int flush() {
+        FlushOptions flushOptions = new FlushOptions();
+        flushOptions.setWaitForFlush(true);
+        int count = 0;
+        for (Map.Entry<String, ColumnFamilyHandle> entry : this.columnFamilyHandles.entrySet()) {
+            try {
+                this.db.flush(flushOptions, entry.getValue());
+                count++;
+            } catch (RocksDBException ignored) {
+            }
+        }
+        return count;
+    }
+
+    @Override
     public JSONObject metaData() {
         JSONObject metaData = new JSONObject();
         long totalSize = 0;
@@ -337,6 +364,32 @@ public class RocksdbDatabase extends AbstractDatabase {
         metaData.put("totalFileCount", totalFileCount);
 
         return metaData;
+    }
+
+
+    @Override
+    public JSONObject statistics() {
+        JSONObject jsonObject = new JSONObject();
+        JSONObject tickers = new JSONObject();
+
+        for (TickerType tickerType : TickerType.values()) {
+            long tickerCount = this.statistics.getTickerCount(tickerType);
+            tickers.put(tickerType.name(), tickerCount);
+        }
+
+        JSONObject histograms = new JSONObject();
+        for (HistogramType histogramType : HistogramType.values()) {
+            String histogramString = this.statistics.getHistogramString(histogramType);
+            histograms.put(histogramType.name(), histogramString);
+        }
+
+        jsonObject.put("tickers", tickers);
+        jsonObject.put("histograms", histograms);
+
+        jsonObject.put("pinnedUsage", cache.getPinnedUsage());
+        jsonObject.put("usage", cache.getUsage());
+
+        return jsonObject;
     }
 
     @Override

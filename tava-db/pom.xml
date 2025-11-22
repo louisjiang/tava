@@ -26,10 +26,12 @@
         <dependency>
             <groupId>org.rocksdb</groupId>
             <artifactId>rocksdbjni</artifactId>
+            <classifier>linux64</classifier>
         </dependency>
         <dependency>
-            <groupId>org.mapdb</groupId>
-            <artifactId>mapdb</artifactId>
+            <groupId>org.rocksdb</groupId>
+            <artifactId>rocksdbjni</artifactId>
+            <classifier>osx</classifier>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
