@@ -3,10 +3,14 @@ package io.tava.okhttp.util;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
+import io.tava.lang.Either;
 import io.tava.lang.Option;
 import okhttp3.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 
 /**
@@ -15,39 +19,71 @@ import java.util.Objects;
  */
 public class ResponseUtil {
 
-    public static Option<JSONObject> toJSONObject(Response response) {
-        return toString(response).map(ResponseUtil::parseObject);
+    private static final Logger logger = LoggerFactory.getLogger(ResponseUtil.class);
+
+    public static Either<Throwable, Option<JSONObject>> toJSONObject(Either<Response, Exception> either) {
+        if (either.isRight()) {
+            return Either.right(Option.none());
+        }
+        return toJSONObject(either.left());
     }
 
-    private static JSONObject parseObject(String value) {
+    public static Either<Throwable, Option<JSONObject>> toJSONObject(Response response) {
+        Either<Throwable, Option<String>> either = toString(response);
+        if (either.isLeft()) {
+            return Either.left(either.left());
+        }
+        Option<String> option = either.right();
+        if (option.isEmpty()) {
+            return Either.right(Option.none());
+        }
+        return parseObject(option.get());
+    }
+
+    private static Either<Throwable, Option<JSONObject>> parseObject(String value) {
         try {
-            return JSON.parseObject(value);
+            return Either.right(Option.option(JSON.parseObject(value)));
         } catch (Exception cause) {
-            return null;
+            return Either.left(cause);
         }
     }
 
-    public static Option<JSONArray> toJSONArray(Response response) {
-        return toString(response).map(ResponseUtil::parseArray);
+    public static Either<Throwable, Option<JSONArray>> toJSONArray(Either<Response, Exception> either) {
+        if (either.isRight()) {
+            return Either.right(Option.none());
+        }
+        return toJSONArray(either.left());
     }
 
-    private static JSONArray parseArray(String value) {
+    public static Either<Throwable, Option<JSONArray>> toJSONArray(Response response) {
+        Either<Throwable, Option<String>> either = toString(response);
+        if (either.isLeft()) {
+            return Either.left(either.left());
+        }
+        Option<String> option = either.right();
+        if (option.isEmpty()) {
+            return Either.right(Option.none());
+        }
+        return parseArray(option.get());
+    }
+
+    private static Either<Throwable, Option<JSONArray>> parseArray(String value) {
         try {
-            return JSON.parseArray(value);
+            return Either.right(Option.option(JSON.parseArray(value)));
         } catch (Exception cause) {
-            return null;
+            return Either.right(Option.none());
         }
     }
 
-    public static Option<String> toString(Response response) {
+    public static Either<Throwable, Option<String>> toString(Response response) {
         if (response == null || response.code() != 200 && response.code() != 201) {
             close(response);
-            return Option.none();
+            return Either.right(Option.none());
         }
         try {
-            return Option.option(Objects.requireNonNull(response.body()).string());
-        } catch (IOException e) {
-            return Option.none();
+            return Either.right(Option.option(Objects.requireNonNull(response.body()).string()));
+        } catch (IOException cause) {
+            return Either.left(cause);
         } finally {
             close(response);
         }

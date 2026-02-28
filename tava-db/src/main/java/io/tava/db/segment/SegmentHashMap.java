@@ -184,16 +184,16 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         V newValue = update.apply(oldValue);
         if (newValue == null) {
             map.remove(key);
-            if (map.size() + 1 == size) {
-                this.decrementSize();
+            if (size - map.size() == 1) {
+                this.decrementSize(1);
                 this.database.put(this.tableName, segmentKey, map);
             }
             return null;
         }
 
         map.put(key, newValue);
-        if (map.size() - 1 == size) {
-            this.incrementSize();
+        if (map.size() - size == 1) {
+            this.incrementSize(1);
         }
         this.database.put(this.tableName, segmentKey, map);
         return newValue;
@@ -208,9 +208,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         }
         int size = map.size();
         map.put(key, value);
-        if (map.size() - 1 == size) {
-            this.incrementSize();
-        }
+        this.incrementSize(map.size() - size);
         this.database.put(this.tableName, segmentKey, map);
         return value;
     }
@@ -248,8 +246,8 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         }
         int size = map.size();
         V v = map.remove(key);
-        if (map.size() + 1 == size) {
-            this.decrementSize();
+        if (size - map.size() == 1) {
+            this.decrementSize(1);
             this.database.put(this.tableName, segmentKey, map);
         }
         return v;
@@ -408,18 +406,9 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         this.commit();
     }
 
-
-    private void incrementSize() {
-        incrementSize(1);
-    }
-
     private void incrementSize(int value) {
         this.size = this.size + value;
         this.updateStatus();
-    }
-
-    private void decrementSize() {
-        decrementSize(1);
     }
 
     private void decrementSize(int value) {

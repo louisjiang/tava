@@ -102,7 +102,7 @@ public abstract class AbstractDatabase implements Database, Util {
         if (bytes == null || bytes.length == 0) {
             return null;
         }
-        return (T) this.toObject(bytes);
+        return (T) this.toObject(tableName, key, bytes);
     }
 
     @Override
@@ -152,7 +152,7 @@ public abstract class AbstractDatabase implements Database, Util {
             }
 
             ForkJoinTask<Tuple4<byte[], byte[], String, Operation>> task = this.forkJoinPool.submit(() -> {
-                byte[] bytes = this.toBytes(operation.getValue());
+                byte[] bytes = this.toBytes(tableName, key, operation.getValue());
                 return Tava.of(bytesKey, bytes, key, operation);
             });
             tasks.add(task);
@@ -202,21 +202,21 @@ public abstract class AbstractDatabase implements Database, Util {
     }
 
     @Override
-    public byte[] toBytes(Object value) {
+    public byte[] toBytes(String tableName, String key, Object value) {
         try {
             return this.serialization.toBytes(value);
         } catch (Exception cause) {
-            this.logger.warn("toBytes", cause);
+            this.logger.warn("toBytes:{},{}", tableName, key, cause);
             return EMPTY;
         }
     }
 
     @Override
-    public Object toObject(byte[] bytes) {
+    public Object toObject(String tableName, String key, byte[] bytes) {
         try {
             return this.serialization.toObject(bytes);
         } catch (Exception cause) {
-            this.logger.error("toObject", cause);
+            this.logger.error("toObject:{}:{}", tableName, key, cause);
             return null;
         }
     }
