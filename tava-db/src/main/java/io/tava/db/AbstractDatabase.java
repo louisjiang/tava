@@ -184,11 +184,27 @@ public abstract class AbstractDatabase implements Database, Util {
 
         long elapsedTime = System.currentTimeMillis() - now;
 
-        for (Tuple2<Map<byte[], byte[]>, Integer> entry : values) {
-            Map<byte[], byte[]> value1 = entry.getValue1();
-            Integer value2 = entry.getValue2();
+        for (Tuple2<Map<byte[], byte[]>, Integer> tuple2 : values) {
+            Map<byte[], byte[]> value1 = tuple2.getValue1();
+            Integer value2 = tuple2.getValue2();
             this.commit(tableName, value1, deletes, value2);
-            logger.info("commit data to db [{}][{}][{}][{}][{}][{}][{}]", path(), tableName, value1.size(), deletes.size(), byteToString(value2), elapsedTime, System.currentTimeMillis() - now);
+
+            int changed = 0;
+            for (Map.Entry<String, Integer> entry : versions.entrySet()) {
+                String key = entry.getKey();
+                Integer version = entry.getValue();
+                Operation operation = operationMap.get(key);
+                if (operation == null) {
+                    continue;
+                }
+                if (operation.getVersion() == version) {
+                    operationMap.remove(key);
+                    continue;
+                }
+                changed++;
+            }
+
+            logger.info("commit data to db [{}][{}][{}][{}][{}][{}][{}][{}]", path(), tableName, value1.size(), deletes.size(), changed, byteToString(value2), elapsedTime, System.currentTimeMillis() - now);
             value1.clear();
             deletes.clear();
         }
