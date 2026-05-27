@@ -178,13 +178,17 @@ public abstract class AbstractDatabase implements Database, Util {
             } catch (InterruptedException | ExecutionException ignored) {
             }
         }
+        if (puts.size() > 0) {
+            values.add(Tava.of(puts, totalBytes));
+        }
 
         long elapsedTime = System.currentTimeMillis() - now;
 
         for (Tuple2<Map<byte[], byte[]>, Integer> entry : values) {
             Map<byte[], byte[]> value1 = entry.getValue1();
-            this.commit(tableName, value1, deletes, entry.getValue2());
-            logger.info("commit data to db [{}][{}][{}][{}][{}][{}][{}]", path(), tableName, puts.size(), deletes.size(), byteToString(totalBytes), elapsedTime, System.currentTimeMillis() - now);
+            Integer value2 = entry.getValue2();
+            this.commit(tableName, value1, deletes, value2);
+            logger.info("commit data to db [{}][{}][{}][{}][{}][{}][{}]", path(), tableName, value1.size(), deletes.size(), byteToString(value2), elapsedTime, System.currentTimeMillis() - now);
             value1.clear();
             deletes.clear();
         }
