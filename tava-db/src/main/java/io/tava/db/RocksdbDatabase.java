@@ -58,26 +58,26 @@ public class RocksdbDatabase extends AbstractDatabase {
     private static Tuple5<DBOptions, Statistics, Cache, ColumnFamilyOptions, List<ColumnFamilyDescriptor>> createOptions(Configuration configuration) {
         int availableProcessors = Runtime.getRuntime().availableProcessors();
         DBOptions dbOptions = new DBOptions();
-        dbOptions.setAtomicFlush(configuration.getBoolean("auto_flush", false));
+        dbOptions.setAtomicFlush(configuration.getBoolean("auto-flush", false));
         dbOptions.setCreateIfMissing(true);
         dbOptions.setParanoidChecks(true);
-        dbOptions.setMaxOpenFiles(configuration.getInt("max_open_files", 1024));
+        dbOptions.setMaxOpenFiles(configuration.getInt("max-open-files", 1024));
         dbOptions.setMaxBackgroundJobs(availableProcessors * 2);
-        dbOptions.setBytesPerSync(configuration.getInt("bytes_per_sync", 4) * SizeUnit.MB);
+        dbOptions.setBytesPerSync(configuration.getInt("bytes-per-sync", 4) * SizeUnit.MB);
         dbOptions.setAllowMmapWrites(true);
         dbOptions.setAllowMmapReads(true);
-        dbOptions.setEnablePipelinedWrite(configuration.getBoolean("enable_pipelined_write", true));
-        dbOptions.setMaxTotalWalSize(configuration.getInt("max_total_wal_size", 1024) * SizeUnit.MB);
-        dbOptions.setWalBytesPerSync(configuration.getLong("wal_bytes_per_sync", 4) * SizeUnit.MB);
-        dbOptions.setMaxSubcompactions(configuration.getInt("max_sub_compactions", availableProcessors / 2));
-        dbOptions.setInfoLogLevel(InfoLogLevel.valueOf(configuration.getString("info_log_level", "ERROR_LEVEL")));
+        dbOptions.setEnablePipelinedWrite(configuration.getBoolean("enable-pipelined-write", true));
+        dbOptions.setMaxTotalWalSize(configuration.getInt("max-total-wal-size", 1024) * SizeUnit.MB);
+        dbOptions.setWalBytesPerSync(configuration.getLong("wal-bytes-per-sync", 4) * SizeUnit.MB);
+        dbOptions.setMaxSubcompactions(configuration.getInt("max-sub-compactions", availableProcessors / 2));
+        dbOptions.setInfoLogLevel(InfoLogLevel.valueOf(configuration.getString("info-log-level", "ERROR_LEVEL")));
 
         Statistics statistics = new Statistics();
         dbOptions.setStatistics(statistics);
 
-        long writeBufferSize = configuration.getInt("db_write_buffer_size", 256) * SizeUnit.MB;
-        int targetFileSize = configuration.getInt("target_file_size", 64);
-        LRUCache blockCache = new LRUCache(configuration.getInt("block_cache_size", 64) * SizeUnit.MB, configuration.getInt("block_cache_num-shard-bits", 16), false);
+        long writeBufferSize = configuration.getInt("db-write-buffer-size", 256) * SizeUnit.MB;
+        int targetFileSize = configuration.getInt("target-file-size", 64);
+        LRUCache blockCache = new LRUCache(configuration.getInt("block-cache-size", 64) * SizeUnit.MB, configuration.getInt("block-cache-num-shard-bits", 16), false);
         dbOptions.setWriteBufferManager(new WriteBufferManager(writeBufferSize, blockCache, true));
         Env env = Env.getDefault();
         env.setBackgroundThreads(availableProcessors, Priority.HIGH);
@@ -85,11 +85,11 @@ public class RocksdbDatabase extends AbstractDatabase {
         dbOptions.setEnv(env);
 
         ColumnFamilyOptions columnFamilyOptions = new ColumnFamilyOptions();
-        columnFamilyOptions.setWriteBufferSize(configuration.getInt("write_buffer_size", 64) * SizeUnit.MB);
-        columnFamilyOptions.setMaxWriteBufferNumber(configuration.getInt("max_write_buffer_number", 5));
-        columnFamilyOptions.setMinWriteBufferNumberToMerge(configuration.getInt("min_write_buffer_number_to_merge", 1));
+        columnFamilyOptions.setWriteBufferSize(configuration.getInt("write-buffer-size", 64) * SizeUnit.MB);
+        columnFamilyOptions.setMaxWriteBufferNumber(configuration.getInt("max-write-buffer-number", 5));
+        columnFamilyOptions.setMinWriteBufferNumberToMerge(configuration.getInt("min-write-buffer-number-to-merge", 1));
 
-        long periodicCompactionSeconds = configuration.getLong("periodic_compaction_seconds", 6 * 60 * 60);
+        long periodicCompactionSeconds = configuration.getLong("periodic-compaction-seconds", 6 * 60 * 60);
         columnFamilyOptions.setTtl(periodicCompactionSeconds);
         columnFamilyOptions.setPeriodicCompactionSeconds(periodicCompactionSeconds);
         columnFamilyOptions.setCompressionType(CompressionType.LZ4_COMPRESSION);
@@ -106,8 +106,8 @@ public class RocksdbDatabase extends AbstractDatabase {
         columnFamilyOptions.setCompactionStyle(CompactionStyle.LEVEL);
 
         columnFamilyOptions.setNumLevels(7);
-        columnFamilyOptions.setMaxBytesForLevelBase(configuration.getInt("max_bytes_for_level_base", targetFileSize * 10) * SizeUnit.MB);
-        columnFamilyOptions.setMaxBytesForLevelMultiplier(configuration.getInt("max_bytes_for_level_multiplier", 10));
+        columnFamilyOptions.setMaxBytesForLevelBase(configuration.getInt("max-bytes-for-level-base", targetFileSize * 10) * SizeUnit.MB);
+        columnFamilyOptions.setMaxBytesForLevelMultiplier(configuration.getInt("max-bytes-for-level-multiplier", 10));
         columnFamilyOptions.setLevel0FileNumCompactionTrigger(4);
         columnFamilyOptions.setLevel0SlowdownWritesTrigger(16);
         columnFamilyOptions.setLevel0StopWritesTrigger(32);
@@ -121,17 +121,17 @@ public class RocksdbDatabase extends AbstractDatabase {
         tableConfig.setPinTopLevelIndexAndFilter(true);
         tableConfig.setCacheIndexAndFilterBlocksWithHighPriority(true);
         tableConfig.setPinL0FilterAndIndexBlocksInCache(true);
-        tableConfig.setBlockSize(configuration.getInt("block_size", 16) * SizeUnit.KB);
+        tableConfig.setBlockSize(configuration.getInt("block-size", 16) * SizeUnit.KB);
         tableConfig.setBlockCache(blockCache);
         columnFamilyOptions.setTableFormatConfig(tableConfig);
 
-        if (configuration.getBoolean("blob_enable", true)) {
+        if (configuration.getBoolean("blob-enable", true)) {
             columnFamilyOptions.setEnableBlobFiles(true);
-            columnFamilyOptions.setBlobFileSize(configuration.getLong("blob_file_size", 256) * SizeUnit.MB);
-            columnFamilyOptions.setMinBlobSize(configuration.getInt("min_blob_size", 4) * SizeUnit.KB);
+            columnFamilyOptions.setBlobFileSize(configuration.getLong("blob-file-size", 256) * SizeUnit.MB);
+            columnFamilyOptions.setMinBlobSize(configuration.getInt("min-blob-size", 4) * SizeUnit.KB);
             columnFamilyOptions.setBlobCompressionType(CompressionType.ZSTD_COMPRESSION);
-            columnFamilyOptions.setBlobGarbageCollectionAgeCutoff(configuration.getDouble("blob_garbage_collection_age_cutoff", 0.5));
-            columnFamilyOptions.setBlobGarbageCollectionForceThreshold(configuration.getDouble("blob_garbage_collection_force_threshold", 0.5));
+            columnFamilyOptions.setBlobGarbageCollectionAgeCutoff(configuration.getDouble("blob-garbage-collection-age-cutoff", 0.5));
+            columnFamilyOptions.setBlobGarbageCollectionForceThreshold(configuration.getDouble("blob-garbage-collection-force-threshold", 0.5));
             columnFamilyOptions.setEnableBlobGarbageCollection(true);
         }
 

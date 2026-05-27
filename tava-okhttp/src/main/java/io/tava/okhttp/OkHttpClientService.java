@@ -41,12 +41,18 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     private final OkHttpClient okHttpClient;
     private final List<Proxy> proxies = new ArrayList<>();
     private final List<String> proxyHosts = new ArrayList<>();
+    private final boolean disableCookies;
 
     public OkHttpClientService() {
-        this(5, 5, 5, 5, 5, 256, 128, 256, 5);
+        this(true, 5, 5, 5, 5, 5, 256, 128, 256, 5);
     }
 
     public OkHttpClientService(long connectTimeout, long readTimeout, long writeTimeout, long callTimeout, long pingInterval, int maxRequests, int maxRequestsPerHost, int maxIdleConnections, int keepAliveDuration) {
+        this(true, connectTimeout, readTimeout, writeTimeout, callTimeout, pingInterval, maxRequests, maxRequestsPerHost, maxIdleConnections, keepAliveDuration);
+    }
+
+    public OkHttpClientService(boolean disableCookies, long connectTimeout, long readTimeout, long writeTimeout, long callTimeout, long pingInterval, int maxRequests, int maxRequestsPerHost, int maxIdleConnections, int keepAliveDuration) {
+        this.disableCookies = disableCookies;
         SSLSocketFactory sslSocketFactory = buildSSLSocketFactory();
         if (sslSocketFactory == null) {
             throw new NullPointerException("sslSocketFactory is null");
@@ -288,8 +294,11 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     @NotNull
     @Override
     public List<Cookie> loadForRequest(@NotNull HttpUrl httpUrl) {
+        if (disableCookies) {
+            return empty;
+        }
         String url = httpUrl.toString();
-        for (String excludeCookieUrl : excludeCookieUrls) {
+        for (String excludeCookieUrl : this.excludeCookieUrls) {
             if (url.startsWith(excludeCookieUrl)) {
                 return empty;
             }
@@ -304,6 +313,16 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
 
     @Override
     public void saveFromResponse(@NotNull HttpUrl httpUrl, @NotNull List<Cookie> list) {
+        if (disableCookies) {
+            return;
+        }
+        String url = httpUrl.toString();
+        for (String excludeCookieUrl : this.excludeCookieUrls) {
+            if (url.startsWith(excludeCookieUrl)) {
+                return;
+            }
+        }
+
         hostToCookies.computeIfAbsent(httpUrl.host(), k -> new HashSet<>()).addAll(list);
     }
 

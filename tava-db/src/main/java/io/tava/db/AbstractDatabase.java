@@ -5,6 +5,7 @@ import io.tava.configuration.Configuration;
 import io.tava.db.segment.*;
 import io.tava.function.Function1;
 import io.tava.lang.Option;
+import io.tava.lang.Tuple2;
 import io.tava.lang.Tuple4;
 import io.tava.serialization.kryo.Serialization;
 import io.tava.util.Util;
@@ -33,11 +34,13 @@ public abstract class AbstractDatabase implements Database, Util {
     private final int batchSize;
     private final long interval;
     private final Map<String, Long> commitTimestamps = new ConcurrentHashMap<>();
+    private final long maxCommitSize;
 
     protected AbstractDatabase(Configuration configuration, Serialization serialization) {
         this.serialization = serialization;
-        this.batchSize = configuration.getInt("batch_size");
+        this.batchSize = configuration.getInt("batch-size");
         this.interval = configuration.getLong("interval");
+        this.maxCommitSize = configuration.getMemorySize("max-commit-size").toBytes();
         this.forkJoinPool = new ForkJoinPool(configuration.getInt("fork-join-pool-parallelism", Runtime.getRuntime().availableProcessors() * 3));
     }
 
@@ -137,7 +140,6 @@ public abstract class AbstractDatabase implements Database, Util {
         long now = System.currentTimeMillis();
         this.commitTimestamps.put(tableName, now);
         int totalBytes = 0;
-        Map<byte[], byte[]> puts = new HashMap<>();
         Set<byte[]> deletes = new HashSet<>();
         Map<String, Integer> versions = new HashMap<>();
         List<ForkJoinTask<Tuple4<byte[], byte[], String, Operation>>> tasks = new ArrayList<>();
@@ -157,6 +159,8 @@ public abstract class AbstractDatabase implements Database, Util {
             });
             tasks.add(task);
         }
+        List<Tuple2<Map<byte[], byte[]>, Integer>> values = new ArrayList<>();
+        Map<byte[], byte[]> puts = new HashMap<>();
         for (ForkJoinTask<Tuple4<byte[], byte[], String, Operation>> task : tasks) {
             try {
                 Tuple4<byte[], byte[], String, Operation> tuple3 = task.get();
@@ -166,27 +170,25 @@ public abstract class AbstractDatabase implements Database, Util {
                 }
                 totalBytes += bytes.length;
                 puts.put(tuple3.getValue1(), bytes);
+                if (totalBytes >= this.maxCommitSize) {
+                    values.add(Tava.of(puts, totalBytes));
+                    totalBytes = 0;
+                    puts = new HashMap<>();
+                }
             } catch (InterruptedException | ExecutionException ignored) {
             }
         }
 
         long elapsedTime = System.currentTimeMillis() - now;
-        this.commit(tableName, puts, deletes, totalBytes);
-        int changed = 0;
-        for (Map.Entry<String, Integer> entry : versions.entrySet()) {
-            String key = entry.getKey();
-            Integer version = entry.getValue();
-            Operation operation = operationMap.get(key);
-            if (operation == null) {
-                continue;
-            }
-            if (operation.getVersion() == version) {
-                operationMap.remove(key);
-                continue;
-            }
-            changed++;
+
+        for (Tuple2<Map<byte[], byte[]>, Integer> entry : values) {
+            Map<byte[], byte[]> value1 = entry.getValue1();
+            this.commit(tableName, value1, deletes, entry.getValue2());
+            logger.info("commit data to db [{}][{}][{}][{}][{}][{}][{}]", path(), tableName, puts.size(), deletes.size(), byteToString(totalBytes), elapsedTime, System.currentTimeMillis() - now);
+            value1.clear();
+            deletes.clear();
         }
-        logger.info("commit data to db [{}][{}][{}][{}][{}][{}][{}][{}]", path(), tableName, puts.size(), deletes.size(), changed, byteToString(totalBytes), elapsedTime, System.currentTimeMillis() - now);
+
     }
 
     protected abstract List<byte[]> get(String tableName, List<byte[]> keys);

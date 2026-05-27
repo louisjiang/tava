@@ -45,12 +45,12 @@
         <slf4j.version>2.0.17</slf4j.version>
         <rxjava.version>3.1.12</rxjava.version>
         <joda.time.version>2.14.2</joda.time.version>
-        <spring.boot.version>4.0.2</spring.boot.version>
+        <spring.boot.version>4.0.6</spring.boot.version>
         <spring.context.version>7.0.7</spring.context.version>
         <aopalliance.version>1.0</aopalliance.version>
         <mustache.version>0.9.14</mustache.version>
         <javassist.version>3.31.0-GA</javassist.version>
-        <asm.version>9.9.1</asm.version>
+        <asm.version>9.10.1</asm.version>
         <lmdbjava.version>0.9.3</lmdbjava.version>
         <mapdb.version>3.1.0</mapdb.version>
         <commons.pool2.version>2.13.1</commons.pool2.version>
