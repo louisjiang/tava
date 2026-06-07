@@ -26,17 +26,17 @@ public class Queues<E> {
         }
     }
 
-    public long publish(E value, Function1<E, String> hashKey) {
+    public Queue<E> publish(E value, Function1<E, String> hashKey) {
         long hash = longHashFunction.hashChars(hashKey.apply(value));
         hash = hash ^ (hash >>> 16);
         long index = (this.queueSize - 1) & hash;
         Queue<E> queue = this.queues.get((int) index);
         queue.publish(value);
-        return index;
+        return queue;
     }
 
 
-    public long publish(E value) {
+    public Queue<E> publish(E value) {
         long index = this.counter.getAndIncrement();
         if (index == Long.MAX_VALUE) {
             this.counter.set(0);
@@ -44,7 +44,7 @@ public class Queues<E> {
         index = index % this.queues.size();
         Queue<E> queue = this.queues.get((int) index);
         queue.publish(value);
-        return index;
+        return queue;
     }
 
 }

@@ -21,6 +21,7 @@ public class Queue<T> implements ExceptionHandler<Event<T>> {
     private final Logger logger = LoggerFactory.getLogger(Queue.class);
     private final EventTranslatorEvent<T> eventTranslator = new EventTranslatorEvent<>();
     private final Disruptor<Event<T>> disruptor;
+    private final int ringBufferSize;
 
 
     public Queue(int ringBufferSize, EventHandler<T> handler, String threadPrefix) {
@@ -34,6 +35,7 @@ public class Queue<T> implements ExceptionHandler<Event<T>> {
         if (Integer.bitCount(ringBufferSize) != 1) {
             throw new IllegalArgumentException("ringBufferSize must be a power of 2");
         }
+        this.ringBufferSize = ringBufferSize;
         this.disruptor = new Disruptor<>(new EventFactory<>(), ringBufferSize, new NamedThreadFactory(threadPrefix), producerType, waitStrategy);
         this.disruptor.setDefaultExceptionHandler(this);
         this.disruptor.handleEventsWith(handlers(handler, threadNumber).toArray(new EventHandler[0]));
@@ -49,6 +51,13 @@ public class Queue<T> implements ExceptionHandler<Event<T>> {
         return disruptor.getRingBuffer().remainingCapacity();
     }
 
+    public int ringBufferSize() {
+        return ringBufferSize;
+    }
+
+    public float remaining() {
+        return this.remainingCapacity() / (float) this.ringBufferSize;
+    }
 
     public void shutdown() {
         this.disruptor.shutdown();
