@@ -39,14 +39,14 @@
         <streamex.version>0.8.4</streamex.version>
         <fastjson2.version>2.0.60</fastjson2.version>
         <disruptor.version>4.0.0</disruptor.version>
-        <okhttp.version>5.3.2</okhttp.version>
+        <okhttp.version>5.4.0</okhttp.version>
         <kotlin.version>2.4.0</kotlin.version>
         <failsafe.version>2.4.4</failsafe.version>
         <slf4j.version>2.0.17</slf4j.version>
         <rxjava.version>3.1.12</rxjava.version>
         <joda.time.version>2.14.2</joda.time.version>
-        <spring.boot.version>4.0.6</spring.boot.version>
-        <spring.context.version>7.0.7</spring.context.version>
+        <spring.boot.version>4.1.0</spring.boot.version>
+        <spring.context.version>7.0.8</spring.context.version>
         <aopalliance.version>1.0</aopalliance.version>
         <mustache.version>0.9.14</mustache.version>
         <javassist.version>3.31.0-GA</javassist.version>
