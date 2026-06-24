@@ -62,10 +62,10 @@ public class RocksdbDatabase extends AbstractDatabase {
         dbOptions.setCreateIfMissing(true);
         dbOptions.setParanoidChecks(true);
         dbOptions.setMaxOpenFiles(configuration.getInt("max-open-files", 1024));
-        dbOptions.setMaxBackgroundJobs(availableProcessors * 2);
         dbOptions.setBytesPerSync(configuration.getInt("bytes-per-sync", 4) * SizeUnit.MB);
-        dbOptions.setAllowMmapWrites(true);
+        dbOptions.setAllowMmapWrites(false);
         dbOptions.setAllowMmapReads(true);
+        dbOptions.setMaxBackgroundJobs(availableProcessors * 2);
         dbOptions.setEnablePipelinedWrite(configuration.getBoolean("enable-pipelined-write", true));
         dbOptions.setMaxTotalWalSize(configuration.getInt("max-total-wal-size", 1024) * SizeUnit.MB);
         dbOptions.setWalBytesPerSync(configuration.getLong("wal-bytes-per-sync", 4) * SizeUnit.MB);
@@ -81,7 +81,7 @@ public class RocksdbDatabase extends AbstractDatabase {
         dbOptions.setWriteBufferManager(new WriteBufferManager(writeBufferSize, blockCache, true));
         Env env = Env.getDefault();
         env.setBackgroundThreads(availableProcessors, Priority.HIGH);
-        env.setBackgroundThreads(availableProcessors / 2, Priority.LOW);
+        env.setBackgroundThreads(availableProcessors, Priority.LOW);
         dbOptions.setEnv(env);
 
         ColumnFamilyOptions columnFamilyOptions = new ColumnFamilyOptions();
@@ -89,8 +89,7 @@ public class RocksdbDatabase extends AbstractDatabase {
         columnFamilyOptions.setMaxWriteBufferNumber(configuration.getInt("max-write-buffer-number", 5));
         columnFamilyOptions.setMinWriteBufferNumberToMerge(configuration.getInt("min-write-buffer-number-to-merge", 1));
 
-        long periodicCompactionSeconds = configuration.getLong("periodic-compaction-seconds", 6 * 60 * 60);
-        columnFamilyOptions.setTtl(periodicCompactionSeconds);
+        long periodicCompactionSeconds = configuration.getLong("periodic-compaction-seconds", 24 * 60 * 60);
         columnFamilyOptions.setPeriodicCompactionSeconds(periodicCompactionSeconds);
         columnFamilyOptions.setCompressionType(CompressionType.LZ4_COMPRESSION);
         columnFamilyOptions.setTargetFileSizeBase(targetFileSize * SizeUnit.MB);
@@ -108,9 +107,9 @@ public class RocksdbDatabase extends AbstractDatabase {
         columnFamilyOptions.setNumLevels(7);
         columnFamilyOptions.setMaxBytesForLevelBase(configuration.getInt("max-bytes-for-level-base", targetFileSize * 10) * SizeUnit.MB);
         columnFamilyOptions.setMaxBytesForLevelMultiplier(configuration.getInt("max-bytes-for-level-multiplier", 10));
-        columnFamilyOptions.setLevel0FileNumCompactionTrigger(4);
-        columnFamilyOptions.setLevel0SlowdownWritesTrigger(16);
-        columnFamilyOptions.setLevel0StopWritesTrigger(32);
+        columnFamilyOptions.setLevel0FileNumCompactionTrigger(configuration.getInt("level0-file-num-compaction-trigger", 4));
+        columnFamilyOptions.setLevel0SlowdownWritesTrigger(configuration.getInt("level0-slowdown-writes-trigger", 24));
+        columnFamilyOptions.setLevel0StopWritesTrigger(configuration.getInt("level0-stop-writes-trigger", 36));
 
         BlockBasedTableConfig tableConfig = new BlockBasedTableConfig();
         tableConfig.setIndexType(IndexType.kTwoLevelIndexSearch);
