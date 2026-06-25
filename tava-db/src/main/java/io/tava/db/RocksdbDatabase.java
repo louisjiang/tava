@@ -86,11 +86,10 @@ public class RocksdbDatabase extends AbstractDatabase {
 
         ColumnFamilyOptions columnFamilyOptions = new ColumnFamilyOptions();
         columnFamilyOptions.setWriteBufferSize(configuration.getInt("write-buffer-size", 64) * SizeUnit.MB);
-        columnFamilyOptions.setMaxWriteBufferNumber(configuration.getInt("max-write-buffer-number", 5));
+        columnFamilyOptions.setMaxWriteBufferNumber(configuration.getInt("max-write-buffer-number", 3));
         columnFamilyOptions.setMinWriteBufferNumberToMerge(configuration.getInt("min-write-buffer-number-to-merge", 1));
 
-        long periodicCompactionSeconds = configuration.getLong("periodic-compaction-seconds", 24 * 60 * 60);
-        columnFamilyOptions.setPeriodicCompactionSeconds(periodicCompactionSeconds);
+        columnFamilyOptions.setPeriodicCompactionSeconds(configuration.getLong("periodic-compaction-seconds", 24 * 60 * 60));
         columnFamilyOptions.setCompressionType(CompressionType.LZ4_COMPRESSION);
         columnFamilyOptions.setTargetFileSizeBase(targetFileSize * SizeUnit.MB);
         CompressionOptions bottommostCompressionOptions = new CompressionOptions();
@@ -104,7 +103,7 @@ public class RocksdbDatabase extends AbstractDatabase {
         columnFamilyOptions.setLevelCompactionDynamicLevelBytes(true);
         columnFamilyOptions.setCompactionStyle(CompactionStyle.LEVEL);
 
-        columnFamilyOptions.setNumLevels(7);
+        columnFamilyOptions.setNumLevels(configuration.getInt("num-levels", 7));
         columnFamilyOptions.setMaxBytesForLevelBase(configuration.getInt("max-bytes-for-level-base", targetFileSize * 10) * SizeUnit.MB);
         columnFamilyOptions.setMaxBytesForLevelMultiplier(configuration.getInt("max-bytes-for-level-multiplier", 10));
         columnFamilyOptions.setLevel0FileNumCompactionTrigger(configuration.getInt("level0-file-num-compaction-trigger", 4));
