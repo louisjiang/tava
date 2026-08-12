@@ -139,7 +139,6 @@ public abstract class AbstractDatabase implements Database, Util {
         }
         long now = System.currentTimeMillis();
         this.commitTimestamps.put(tableName, now);
-        int totalBytes = 0;
         Set<byte[]> deletes = new HashSet<>();
         Map<String, Integer> deleteVersions = new HashMap<>();
         List<ForkJoinTask<Tuple4<byte[], byte[], String, Integer>>> tasks = new ArrayList<>();
@@ -147,34 +146,35 @@ public abstract class AbstractDatabase implements Database, Util {
             String key = entry.getKey();
             byte[] bytesKey = key.getBytes(StandardCharsets.UTF_8);
             Operation operation = entry.getValue();
-            deleteVersions.put(key, operation.getVersion());
             if (operation.isDelete()) {
                 deletes.add(bytesKey);
+                deleteVersions.put(key, operation.getVersion());
                 continue;
             }
 
             ForkJoinTask<Tuple4<byte[], byte[], String, Integer>> task = this.forkJoinPool.submit(() -> {
                 int version = operation.getVersion();
-                byte[] bytes = this.toBytes(tableName, key, operation.getValue());
-                return Tava.of(bytesKey, bytes, key, version);
+                byte[] bytesValue = this.toBytes(tableName, key, operation.getValue());
+                return Tava.of(bytesKey, bytesValue, key, version);
             });
             tasks.add(task);
         }
-        List<Tuple3<Map<byte[], byte[]>, Map<String, Integer>, Integer>> values = new ArrayList<>();
-        Map<byte[], byte[]> puts = new HashMap<>();
+        List<Tuple3<Map<byte[], byte[]>, Map<String, Integer>, Integer>> batch = new ArrayList<>();
         Map<String, Integer> putVersions = new HashMap<>();
+        Map<byte[], byte[]> puts = new HashMap<>();
+        int totalBytes = 0;
         for (ForkJoinTask<Tuple4<byte[], byte[], String, Integer>> task : tasks) {
             try {
                 Tuple4<byte[], byte[], String, Integer> tuple4 = task.get();
-                byte[] bytes = tuple4.getValue2();
-                if (bytes == EMPTY) {
+                byte[] bytesValue = tuple4.getValue2();
+                if (bytesValue == EMPTY) {
                     continue;
                 }
                 putVersions.put(tuple4.getValue3(), tuple4.getValue4());
-                puts.put(tuple4.getValue1(), bytes);
-                totalBytes += bytes.length;
+                puts.put(tuple4.getValue1(), bytesValue);
+                totalBytes += bytesValue.length;
                 if (totalBytes >= this.maxCommitSize) {
-                    values.add(Tava.of(puts, putVersions, totalBytes));
+                    batch.add(Tava.of(puts, putVersions, totalBytes));
                     putVersions = new HashMap<>();
                     puts = new HashMap<>();
                     totalBytes = 0;
@@ -183,10 +183,12 @@ public abstract class AbstractDatabase implements Database, Util {
             }
         }
         if (puts.size() > 0) {
-            values.add(Tava.of(puts, putVersions, totalBytes));
+            batch.add(Tava.of(puts, putVersions, totalBytes));
         }
 
-        if (values.isEmpty()) {
+        long elapsedTime = System.currentTimeMillis() - now;
+
+        if (batch.isEmpty()) {
             this.commit(tableName, new HashMap<>(), deletes, 1024);
             for (Map.Entry<String, Integer> entry : deleteVersions.entrySet()) {
                 String key = entry.getKey();
@@ -202,9 +204,7 @@ public abstract class AbstractDatabase implements Database, Util {
             return;
         }
 
-        long elapsedTime = System.currentTimeMillis() - now;
-
-        for (Tuple3<Map<byte[], byte[]>, Map<String, Integer>, Integer> tuple3 : values) {
+        for (Tuple3<Map<byte[], byte[]>, Map<String, Integer>, Integer> tuple3 : batch) {
             Map<byte[], byte[]> value1 = tuple3.getValue1();
             Integer value3 = tuple3.getValue3();
             this.commit(tableName, value1, deletes, value3);
