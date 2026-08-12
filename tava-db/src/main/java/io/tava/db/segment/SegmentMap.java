@@ -26,6 +26,8 @@ public interface SegmentMap<K, V> extends Segment {
 
     Map<K, V> update(Collection<K> keys, Function2<K, V, V> update);
 
+    Map<K, V> update(Collection<K> keys, Function2<K, V, V> update, Function2<K, V, Boolean> delete);
+
     <T> T map(K key, Function1<V, T> function1);
 
     V get(K key);

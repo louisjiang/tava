@@ -103,6 +103,11 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
 
     @Override
     public Map<K, V> update(Collection<K> keys, Function2<K, V, V> update) {
+        return update(keys, update, null);
+    }
+
+    @Override
+    public Map<K, V> update(Collection<K> keys, Function2<K, V, V> update, Function2<K, V, Boolean> delete) {
         Map<String, List<K>> groupedKeys = StreamEx.of(keys).groupingBy(this::segmentKey);
         Map<K, V> returnMap = new HashMap<>();
         for (Map.Entry<String, List<K>> entry : groupedKeys.entrySet()) {
@@ -121,6 +126,21 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
                     returnMap.put(key, value);
                 }
             }
+            if (delete != null) {
+                map.entrySet().removeIf(kvEntry -> {
+                    K k = kvEntry.getKey();
+                    if (keys.contains(k)) {
+                        return false;
+                    }
+                    Object v = kvEntry.getValue();
+                    if (v instanceof Long) {
+                        System.out.println("tableName:" + tableName + ",key:" + super.key + "," + key + "=>" + v);
+                        return true;
+                    }
+                    return delete.apply(k, (V) v);
+                });
+            }
+
             this.incrementSize(map.size() - size);
             this.database.put(this.tableName, segmentKey, map);
         }

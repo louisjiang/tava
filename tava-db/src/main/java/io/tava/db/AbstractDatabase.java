@@ -5,7 +5,7 @@ import io.tava.configuration.Configuration;
 import io.tava.db.segment.*;
 import io.tava.function.Function1;
 import io.tava.lang.Option;
-import io.tava.lang.Tuple2;
+import io.tava.lang.Tuple3;
 import io.tava.lang.Tuple4;
 import io.tava.serialization.kryo.Serialization;
 import io.tava.util.Util;
@@ -141,55 +141,76 @@ public abstract class AbstractDatabase implements Database, Util {
         this.commitTimestamps.put(tableName, now);
         int totalBytes = 0;
         Set<byte[]> deletes = new HashSet<>();
-        Map<String, Integer> versions = new HashMap<>();
-        List<ForkJoinTask<Tuple4<byte[], byte[], String, Operation>>> tasks = new ArrayList<>();
+        Map<String, Integer> deleteVersions = new HashMap<>();
+        List<ForkJoinTask<Tuple4<byte[], byte[], String, Integer>>> tasks = new ArrayList<>();
         for (Map.Entry<String, Operation> entry : operationMap.entrySet()) {
             String key = entry.getKey();
             byte[] bytesKey = key.getBytes(StandardCharsets.UTF_8);
             Operation operation = entry.getValue();
-            versions.put(key, operation.getVersion());
+            deleteVersions.put(key, operation.getVersion());
             if (operation.isDelete()) {
                 deletes.add(bytesKey);
                 continue;
             }
 
-            ForkJoinTask<Tuple4<byte[], byte[], String, Operation>> task = this.forkJoinPool.submit(() -> {
+            ForkJoinTask<Tuple4<byte[], byte[], String, Integer>> task = this.forkJoinPool.submit(() -> {
+                int version = operation.getVersion();
                 byte[] bytes = this.toBytes(tableName, key, operation.getValue());
-                return Tava.of(bytesKey, bytes, key, operation);
+                return Tava.of(bytesKey, bytes, key, version);
             });
             tasks.add(task);
         }
-        List<Tuple2<Map<byte[], byte[]>, Integer>> values = new ArrayList<>();
+        List<Tuple3<Map<byte[], byte[]>, Map<String, Integer>, Integer>> values = new ArrayList<>();
         Map<byte[], byte[]> puts = new HashMap<>();
-        for (ForkJoinTask<Tuple4<byte[], byte[], String, Operation>> task : tasks) {
+        Map<String, Integer> putVersions = new HashMap<>();
+        for (ForkJoinTask<Tuple4<byte[], byte[], String, Integer>> task : tasks) {
             try {
-                Tuple4<byte[], byte[], String, Operation> tuple3 = task.get();
-                byte[] bytes = tuple3.getValue2();
+                Tuple4<byte[], byte[], String, Integer> tuple4 = task.get();
+                byte[] bytes = tuple4.getValue2();
                 if (bytes == EMPTY) {
                     continue;
                 }
+                putVersions.put(tuple4.getValue3(), tuple4.getValue4());
+                puts.put(tuple4.getValue1(), bytes);
                 totalBytes += bytes.length;
-                puts.put(tuple3.getValue1(), bytes);
                 if (totalBytes >= this.maxCommitSize) {
-                    values.add(Tava.of(puts, totalBytes));
-                    totalBytes = 0;
+                    values.add(Tava.of(puts, putVersions, totalBytes));
+                    putVersions = new HashMap<>();
                     puts = new HashMap<>();
+                    totalBytes = 0;
                 }
             } catch (InterruptedException | ExecutionException ignored) {
             }
         }
         if (puts.size() > 0) {
-            values.add(Tava.of(puts, totalBytes));
+            values.add(Tava.of(puts, putVersions, totalBytes));
+        }
+
+        if (values.isEmpty()) {
+            this.commit(tableName, new HashMap<>(), deletes, 1024);
+            for (Map.Entry<String, Integer> entry : deleteVersions.entrySet()) {
+                String key = entry.getKey();
+                Integer version = entry.getValue();
+                Operation operation = operationMap.get(key);
+                if (operation == null) {
+                    continue;
+                }
+                if (operation.getVersion() == version) {
+                    operationMap.remove(key);
+                }
+            }
+            return;
         }
 
         long elapsedTime = System.currentTimeMillis() - now;
 
-        for (Tuple2<Map<byte[], byte[]>, Integer> tuple2 : values) {
-            Map<byte[], byte[]> value1 = tuple2.getValue1();
-            Integer value2 = tuple2.getValue2();
-            this.commit(tableName, value1, deletes, value2);
+        for (Tuple3<Map<byte[], byte[]>, Map<String, Integer>, Integer> tuple3 : values) {
+            Map<byte[], byte[]> value1 = tuple3.getValue1();
+            Integer value3 = tuple3.getValue3();
+            this.commit(tableName, value1, deletes, value3);
 
             int changed = 0;
+            Map<String, Integer> versions = tuple3.getValue2();
             for (Map.Entry<String, Integer> entry : versions.entrySet()) {
                 String key = entry.getKey();
                 Integer version = entry.getValue();
@@ -204,7 +225,23 @@ public abstract class AbstractDatabase implements Database, Util {
                 changed++;
             }
 
-            logger.info("commit data to db [{}][{}][{}][{}][{}][{}][{}][{}]", path(), tableName, value1.size(), deletes.size(), changed, byteToString(value2), elapsedTime, System.currentTimeMillis() - now);
+            for (Map.Entry<String, Integer> entry : deleteVersions.entrySet()) {
+                String key = entry.getKey();
+                Integer version = entry.getValue();
+                Operation operation = operationMap.get(key);
+                if (operation == null) {
+                    continue;
+                }
+                if (operation.getVersion() == version) {
+                    operationMap.remove(key);
+                    continue;
+                }
+                changed++;
+            }
+
+            logger.info("commit data to db [{}][{}][{}][{}][{}][{}][{}][{}]", path(), tableName, value1.size(), deletes.size(), changed, byteToString(value3), elapsedTime, System.currentTimeMillis() - now);
+            deleteVersions.clear();
+            versions.clear();
             value1.clear();
             deletes.clear();
         }
