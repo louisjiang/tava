@@ -132,12 +132,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
                     if (keys.contains(k)) {
                         return false;
                     }
-                    Object v = kvEntry.getValue();
-                    if (v instanceof Long) {
-                        System.out.println("tableName:" + tableName + ",key:" + super.key + "," + key + "=>" + v);
-                        return true;
-                    }
-                    return delete.apply(k, (V) v);
+                    return delete.apply(k, kvEntry.getValue());
                 });
             }
 
