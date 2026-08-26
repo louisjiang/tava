@@ -7,6 +7,7 @@ import io.tava.function.Function1;
 import io.tava.lang.Option;
 import io.tava.lang.Tuple3;
 import io.tava.lang.Tuple4;
+import io.tava.lock.SegmentLock;
 import io.tava.serialization.kryo.Serialization;
 import io.tava.util.Util;
 import org.slf4j.Logger;
@@ -27,6 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public abstract class AbstractDatabase implements Database, Util {
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
     protected final Map<String, Map<String, Operation>> tableNameToOperationMap = new ConcurrentHashMap<>();
+    private final SegmentLock<String> segmentLock = new SegmentLock<>(256);
     private final byte[] EMPTY = new byte[0];
     private final Serialization serialization;
     private final int initialCapacity = 1024;
@@ -133,6 +135,10 @@ public abstract class AbstractDatabase implements Database, Util {
 
     @Override
     public void commit(String tableName) {
+        this.segmentLock.doWithLock(tableName, () -> commitLock(tableName));
+    }
+
+    private void commitLock(String tableName) {
         Map<String, Operation> operationMap = this.tableNameToOperationMap.get(tableName);
         if (operationMap == null || operationMap.isEmpty()) {
             return;

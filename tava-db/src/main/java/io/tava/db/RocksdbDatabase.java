@@ -65,7 +65,8 @@ public class RocksdbDatabase extends AbstractDatabase {
         dbOptions.setBytesPerSync(configuration.getInt("bytes-per-sync", 4) * SizeUnit.MB);
         dbOptions.setAllowMmapWrites(false);
         dbOptions.setAllowMmapReads(true);
-        dbOptions.setMaxBackgroundJobs(availableProcessors * 2);
+        dbOptions.setMaxBackgroundJobs(availableProcessors);
+//        dbOptions.setIncreaseParallelism(availableProcessors);
         dbOptions.setEnablePipelinedWrite(configuration.getBoolean("enable-pipelined-write", true));
         dbOptions.setMaxTotalWalSize(configuration.getInt("max-total-wal-size", 1024) * SizeUnit.MB);
         dbOptions.setWalBytesPerSync(configuration.getLong("wal-bytes-per-sync", 4) * SizeUnit.MB);

@@ -6,6 +6,8 @@ import io.tava.function.Consumer2;
 import io.tava.function.Function1;
 import io.tava.function.Function2;
 import one.util.streamex.StreamEx;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
@@ -13,6 +15,7 @@ import java.util.concurrent.ForkJoinTask;
 
 public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<K, V> {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(SegmentHashMap.class);
     private final long sequence;
     private final int segment;
     private int size;
@@ -364,12 +367,19 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
 
     @Override
     public boolean remap(int capacity) {
-        int newSegment = this.size / capacity;
-        if (newSegment <= this.segment) {
+        int segment = this.size / capacity;
+        if (segment <= this.segment) {
             return false;
         }
-        newSegment = this.segment * 2;
-        return reinitialize(newSegment);
+        return reinitialize(newSegment(segment));
+    }
+
+    private int newSegment(int segment) {
+        int newSegment = this.segment * 2;
+        if (newSegment < segment) {
+            return newSegment(newSegment);
+        }
+        return newSegment;
     }
 
     public boolean reinitialize(int newSegment) {
@@ -384,6 +394,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         segmentMap.putAll(map);
         segmentMap.updateStatusData(status);
         segmentMap.commit();
+        LOGGER.info("remap {},{},{},{}", tableName, key, segmentMap.segment(), segmentMap.size());
         return true;
     }
 
