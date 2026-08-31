@@ -8,9 +8,17 @@ public interface Segment extends Util {
 
     void commit();
 
-    void clear();
+    default void clear() {
+        clear(true);
+    }
 
-    void destroy();
+    void clear(boolean commit);
+
+    default void destroy() {
+        destroy(true);
+    }
+
+    void destroy(boolean commit);
 
     void updateStatusData(Object statusData);
 

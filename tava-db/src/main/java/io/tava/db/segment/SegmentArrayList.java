@@ -225,14 +225,16 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
     }
 
     @Override
-    public void clear() {
+    public void clear(boolean commit) {
         for (int i = 0; i <= this.segment; i++) {
             this.database.delete(this.tableName, this.segmentKey(i));
         }
         this.size = 0;
         this.segment = 0;
         this.updateStatusData(null);
-        this.commit();
+        if (commit) {
+            this.commit();
+        }
     }
 
     @Override
@@ -352,11 +354,13 @@ public class SegmentArrayList<V> extends AbstractSegment implements SegmentList<
     }
 
     @Override
-    public void destroy() {
+    public void destroy(boolean commit) {
         for (int i = 0; i <= this.segment; i++) {
             this.database.delete(this.tableName, this.segmentKey(i));
         }
-        this.commit();
+        if (commit) {
+            this.commit();
+        }
     }
 
 

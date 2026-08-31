@@ -412,24 +412,28 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
 
 
     @Override
-    public void clear() {
+    public void clear(boolean commit) {
         for (int i = 0; i < this.segment; i++) {
             String segmentKey = this.segmentKey(i);
             this.database.delete(this.tableName, segmentKey);
         }
         this.size = 0;
         this.updateStatusData(null);
-        this.commit();
+        if (commit) {
+            this.commit();
+        }
     }
 
 
     @Override
-    public void destroy() {
+    public void destroy(boolean commit) {
         for (int i = 0; i < this.segment; i++) {
             this.database.delete(this.tableName, this.segmentKey(i));
         }
         this.database.delete(this.tableName + "@status", this.key);
-        this.commit();
+        if (commit) {
+            this.commit();
+        }
     }
 
     private void incrementSize(int value) {
