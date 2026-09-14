@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.Future;
 
 public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<K, V> {
 
@@ -345,13 +345,13 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
     @Override
     public Map<K, V> toMap() {
         Map<K, V> map = new HashMap<>();
-        List<ForkJoinTask<Map<K, V>>> tasks = new ArrayList<>();
+        List<Future<Map<K, V>>> futures = new ArrayList<>();
         for (int i = 0; i < this.segment; i++) {
             String segmentKey = this.segmentKey(i);
-            ForkJoinTask<Map<K, V>> task = this.database.forkJoinPool().submit(() -> this.database.get(this.tableName, segmentKey));
-            tasks.add(task);
+            Future<Map<K, V>> future = this.database.threadPoolExecutor().submit(() -> this.database.get(this.tableName, segmentKey));
+            futures.add(future);
         }
-        for (ForkJoinTask<Map<K, V>> task : tasks) {
+        for (Future<Map<K, V>> task : futures) {
             try {
                 Map<K, V> m = task.get();
                 if (m == null) {

@@ -9,7 +9,7 @@ import io.tava.lang.Option;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * @author louisjiang <493509534@qq.com>
@@ -139,5 +139,5 @@ public interface Database {
 
     JSONObject statistics();
 
-    ForkJoinPool forkJoinPool();
+    ThreadPoolExecutor threadPoolExecutor();
 }

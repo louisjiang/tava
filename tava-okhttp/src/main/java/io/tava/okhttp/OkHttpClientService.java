@@ -3,8 +3,6 @@ package io.tava.okhttp;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import io.tava.lang.Either;
-import net.jodah.failsafe.Failsafe;
-import net.jodah.failsafe.RetryPolicy;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -44,14 +42,14 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     private final boolean disableCookies;
 
     public OkHttpClientService() {
-        this(true, 5, 5, 5, 5, 5, 256, 128, 256, 5);
+        this(true, false, 5, 5, 5, 5, 5, 256, 128, 256, 5);
     }
 
     public OkHttpClientService(long connectTimeout, long readTimeout, long writeTimeout, long callTimeout, long pingInterval, int maxRequests, int maxRequestsPerHost, int maxIdleConnections, int keepAliveDuration) {
-        this(true, connectTimeout, readTimeout, writeTimeout, callTimeout, pingInterval, maxRequests, maxRequestsPerHost, maxIdleConnections, keepAliveDuration);
+        this(true, false, connectTimeout, readTimeout, writeTimeout, callTimeout, pingInterval, maxRequests, maxRequestsPerHost, maxIdleConnections, keepAliveDuration);
     }
 
-    public OkHttpClientService(boolean disableCookies, long connectTimeout, long readTimeout, long writeTimeout, long callTimeout, long pingInterval, int maxRequests, int maxRequestsPerHost, int maxIdleConnections, int keepAliveDuration) {
+    public OkHttpClientService(boolean disableCookies, boolean useHttp1_1, long connectTimeout, long readTimeout, long writeTimeout, long callTimeout, long pingInterval, int maxRequests, int maxRequestsPerHost, int maxIdleConnections, int keepAliveDuration) {
         this.disableCookies = disableCookies;
         SSLSocketFactory sslSocketFactory = buildSSLSocketFactory();
         if (sslSocketFactory == null) {
@@ -62,7 +60,11 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
         dispatcher.setMaxRequestsPerHost(maxRequestsPerHost);
 
         ConnectionPool connectionPool = new ConnectionPool(maxIdleConnections, keepAliveDuration, TimeUnit.SECONDS);
-        this.okHttpClient = new OkHttpClient.Builder().connectTimeout(connectTimeout, TimeUnit.SECONDS).readTimeout(readTimeout, TimeUnit.SECONDS).writeTimeout(writeTimeout, TimeUnit.SECONDS).callTimeout(callTimeout, TimeUnit.SECONDS).pingInterval(pingInterval, TimeUnit.SECONDS).sslSocketFactory(sslSocketFactory, this).connectionPool(connectionPool).dispatcher(dispatcher).connectionSpecs(Arrays.asList(ConnectionSpec.COMPATIBLE_TLS, ConnectionSpec.CLEARTEXT)).proxySelector(this).cookieJar(this).build();
+        OkHttpClient.Builder builder = new OkHttpClient.Builder();
+        if (useHttp1_1) {
+            builder.protocols(List.of(Protocol.HTTP_1_1));
+        }
+        this.okHttpClient = builder.connectTimeout(connectTimeout, TimeUnit.SECONDS).readTimeout(readTimeout, TimeUnit.SECONDS).writeTimeout(writeTimeout, TimeUnit.SECONDS).callTimeout(callTimeout, TimeUnit.SECONDS).pingInterval(pingInterval, TimeUnit.SECONDS).sslSocketFactory(sslSocketFactory, this).connectionPool(connectionPool).dispatcher(dispatcher).connectionSpecs(Arrays.asList(ConnectionSpec.COMPATIBLE_TLS, ConnectionSpec.CLEARTEXT)).proxySelector(this).cookieJar(this).build();
     }
 
     private SSLSocketFactory buildSSLSocketFactory() {
@@ -85,23 +87,15 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     }
 
     public Either<Response, Exception> get(String url) {
-        return get(url, 0);
-    }
-
-    public Either<Response, Exception> get(String url, int retry) {
-        return get(url, null, retry);
+        return get(url, null);
     }
 
     public Either<Response, Exception> get(String url, Map<String, String> headers) {
-        return get(url, headers, 0);
-    }
-
-    public Either<Response, Exception> get(String url, Map<String, String> headers, int retry) {
         Request.Builder builder = new Request.Builder().get().url(url);
         if (headers != null && !headers.isEmpty()) {
             headers.forEach(builder::addHeader);
         }
-        return request(builder.build(), retry);
+        return request(builder.build());
     }
 
     public Either<Response, Exception> put(String url, Map<String, String> forms) {
@@ -163,127 +157,74 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     }
 
     public Either<Response, Exception> post(String url, Map<String, String> forms) {
-        return post(url, forms, 0);
+        return post(url, forms, null);
     }
 
-    public Either<Response, Exception> post(String url, Map<String, String> forms, int retry) {
-        return post(url, forms, null, retry);
-    }
 
     public Either<Response, Exception> post(String url, Map<String, String> forms, Map<String, String> headers) {
-        return post(url, forms, headers, 0);
-    }
-
-    public Either<Response, Exception> post(String url, Map<String, String> forms, Map<String, String> headers, int retry) {
         FormBody.Builder formBodyBuilder = new FormBody.Builder();
         if (forms != null && !forms.isEmpty()) {
             forms.forEach(formBodyBuilder::add);
         }
-        return post(url, formBodyBuilder.build(), headers, retry);
+        return post(url, formBodyBuilder.build(), headers);
     }
 
     public Either<Response, Exception> post(String url, JSONObject json) {
-        return post(url, json, 0);
+        return post(url, json, JSON_MEDIA_TYPE);
     }
 
-    public Either<Response, Exception> post(String url, JSONObject json, int retry) {
-        return post(url, json, JSON_MEDIA_TYPE, retry);
-    }
 
     public Either<Response, Exception> post(String url, JSONObject json, Map<String, String> headers) {
-        return post(url, json, headers, 0);
-    }
-
-    public Either<Response, Exception> post(String url, JSONObject json, Map<String, String> headers, int retry) {
-        return post(url, json, JSON_MEDIA_TYPE, headers, retry);
+        return post(url, json, JSON_MEDIA_TYPE, headers);
     }
 
     public Either<Response, Exception> post(String url, JSONObject json, MediaType mediaType) {
-        return post(url, json, mediaType, 0);
-    }
-
-    public Either<Response, Exception> post(String url, JSONObject json, MediaType mediaType, int retry) {
-        return post(url, json, mediaType, null, retry);
+        return post(url, json, mediaType, null);
     }
 
     public Either<Response, Exception> post(String url, JSONObject json, MediaType mediaType, Map<String, String> headers) {
-        return post(url, json, mediaType, headers, 0);
-    }
-
-    public Either<Response, Exception> post(String url, JSONObject json, MediaType mediaType, Map<String, String> headers, int retry) {
         RequestBody requestBody = RequestBody.create(json.toString(), mediaType);
-        return post(url, requestBody, headers, retry);
+        return post(url, requestBody, headers);
     }
-
 
     public Either<Response, Exception> post(String url, JSONArray json) {
-        return post(url, json, 0);
-    }
-
-    public Either<Response, Exception> post(String url, JSONArray json, int retry) {
-        return post(url, json, JSON_MEDIA_TYPE, retry);
+        return post(url, json, JSON_MEDIA_TYPE);
     }
 
     public Either<Response, Exception> post(String url, JSONArray json, Map<String, String> headers) {
-        return post(url, json, headers, 0);
-    }
-
-    public Either<Response, Exception> post(String url, JSONArray json, Map<String, String> headers, int retry) {
-        return post(url, json, JSON_MEDIA_TYPE, headers, retry);
+        return post(url, json, JSON_MEDIA_TYPE, headers);
     }
 
     public Either<Response, Exception> post(String url, JSONArray json, MediaType mediaType) {
-        return post(url, json, mediaType, 0);
-    }
-
-    public Either<Response, Exception> post(String url, JSONArray json, MediaType mediaType, int retry) {
-        return post(url, json, mediaType, null, retry);
+        return post(url, json, mediaType, null);
     }
 
     public Either<Response, Exception> post(String url, JSONArray json, MediaType mediaType, Map<String, String> headers) {
-        return post(url, json, mediaType, headers, 0);
-    }
-
-    public Either<Response, Exception> post(String url, JSONArray json, MediaType mediaType, Map<String, String> headers, int retry) {
         RequestBody requestBody = RequestBody.create(json.toString(), mediaType);
-        return post(url, requestBody, headers, retry);
+        return post(url, requestBody, headers);
     }
 
     public Either<Response, Exception> post(String url, RequestBody requestBody) {
-        return post(url, requestBody, 0);
+        return post(url, requestBody, null);
     }
 
-    public Either<Response, Exception> post(String url, RequestBody requestBody, int retry) {
-        return post(url, requestBody, null, retry);
-    }
 
     public Either<Response, Exception> post(String url, RequestBody requestBody, Map<String, String> headers) {
-        return post(url, requestBody, headers, 0);
-    }
-
-    public Either<Response, Exception> post(String url, RequestBody requestBody, Map<String, String> headers, int retry) {
         Request.Builder builder = new Request.Builder().url(url).post(requestBody);
         if (headers != null && !headers.isEmpty()) {
             headers.forEach(builder::addHeader);
         }
-        return request(builder.build(), retry);
+        return request(builder.build());
     }
 
-    public Either<Response, Exception> request(Request request, int retry) {
-        RetryPolicy<Response> retryPolicy = new RetryPolicy<Response>().withMaxRetries(retry);
+    public Either<Response, Exception> request(Request request) {
         try {
-            return Either.left(Failsafe.with(retryPolicy).get(() -> {
-                Call call = okHttpClient.newCall(request);
-                return call.execute();
-            }));
+            Call call = okHttpClient.newCall(request);
+            return Either.left(call.execute());
         } catch (Exception cause) {
             this.logger.error("[{}],[{}]", request.url(), cause.getLocalizedMessage());
             return Either.right(cause);
         }
-    }
-
-    public Either<Response, Exception> request(Request request) {
-        return request(request, 0);
     }
 
     public WebSocket webSocket(String url, WebSocketListener webSocketListener) {
@@ -354,7 +295,6 @@ public class OkHttpClientService extends ProxySelector implements CookieJar, X50
     public void connectFailed(URI uri, SocketAddress sa, IOException ioe) {
 
     }
-
 
     public List<Proxy> getProxies() {
         return proxies;

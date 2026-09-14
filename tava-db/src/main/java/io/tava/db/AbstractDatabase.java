@@ -9,16 +9,14 @@ import io.tava.lang.Tuple3;
 import io.tava.lang.Tuple4;
 import io.tava.lock.SegmentLock;
 import io.tava.serialization.kryo.Serialization;
+import io.tava.util.NamedThreadFactory;
 import io.tava.util.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -32,7 +30,7 @@ public abstract class AbstractDatabase implements Database, Util {
     private final byte[] EMPTY = new byte[0];
     private final Serialization serialization;
     private final int initialCapacity = 1024;
-    private final ForkJoinPool forkJoinPool;
+    private final ThreadPoolExecutor threadPoolExecutor;
     private final int batchSize;
     private final long interval;
     private final Map<String, Long> commitTimestamps = new ConcurrentHashMap<>();
@@ -43,7 +41,7 @@ public abstract class AbstractDatabase implements Database, Util {
         this.batchSize = configuration.getInt("batch-size");
         this.interval = configuration.getLong("interval");
         this.maxCommitSize = configuration.getMemorySize("max-commit-size").toBytes();
-        this.forkJoinPool = new ForkJoinPool(configuration.getInt("fork-join-pool-parallelism", Runtime.getRuntime().availableProcessors() * 3));
+        this.threadPoolExecutor = new ThreadPoolExecutor(configuration.getInt("core-pool-size"), configuration.getInt("maximum-pool-size"), 15, TimeUnit.SECONDS, new LinkedBlockingQueue<>(512), new NamedThreadFactory("rocksdb", true), new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
     @Override
@@ -147,7 +145,7 @@ public abstract class AbstractDatabase implements Database, Util {
         this.commitTimestamps.put(tableName, now);
         Set<byte[]> deletes = new HashSet<>();
         Map<String, Integer> deleteVersions = new HashMap<>();
-        List<ForkJoinTask<Tuple4<byte[], byte[], String, Integer>>> tasks = new ArrayList<>();
+        List<Future<Tuple4<byte[], byte[], String, Integer>>> futures = new ArrayList<>();
         for (Map.Entry<String, Operation> entry : operationMap.entrySet()) {
             String key = entry.getKey();
             byte[] bytesKey = key.getBytes(StandardCharsets.UTF_8);
@@ -158,20 +156,20 @@ public abstract class AbstractDatabase implements Database, Util {
                 continue;
             }
 
-            ForkJoinTask<Tuple4<byte[], byte[], String, Integer>> task = this.forkJoinPool.submit(() -> {
+            Future<Tuple4<byte[], byte[], String, Integer>> future = this.threadPoolExecutor.submit(() -> {
                 int version = operation.getVersion();
                 byte[] bytesValue = this.toBytes(tableName, key, operation.getValue());
                 return Tava.of(bytesKey, bytesValue, key, version);
             });
-            tasks.add(task);
+            futures.add(future);
         }
         List<Tuple3<Map<byte[], byte[]>, Map<String, Integer>, Integer>> batch = new ArrayList<>();
         Map<String, Integer> putVersions = new HashMap<>();
         Map<byte[], byte[]> puts = new HashMap<>();
         int totalBytes = 0;
-        for (ForkJoinTask<Tuple4<byte[], byte[], String, Integer>> task : tasks) {
+        for (Future<Tuple4<byte[], byte[], String, Integer>> future : futures) {
             try {
-                Tuple4<byte[], byte[], String, Integer> tuple4 = task.get();
+                Tuple4<byte[], byte[], String, Integer> tuple4 = future.get();
                 byte[] bytesValue = tuple4.getValue2();
                 if (bytesValue == EMPTY) {
                     continue;
@@ -355,7 +353,7 @@ public abstract class AbstractDatabase implements Database, Util {
     }
 
     @Override
-    public ForkJoinPool forkJoinPool() {
-        return this.forkJoinPool;
+    public ThreadPoolExecutor threadPoolExecutor() {
+        return this.threadPoolExecutor;
     }
 }
