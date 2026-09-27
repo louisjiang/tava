@@ -41,7 +41,7 @@ public abstract class AbstractDatabase implements Database, Util {
         this.batchSize = configuration.getInt("batch-size");
         this.interval = configuration.getLong("interval");
         this.maxCommitSize = configuration.getMemorySize("max-commit-size").toBytes();
-        this.threadPoolExecutor = new ThreadPoolExecutor(configuration.getInt("core-pool-size"), configuration.getInt("maximum-pool-size"), 15, TimeUnit.SECONDS, new LinkedBlockingQueue<>(512), new NamedThreadFactory("rocksdb", true), new ThreadPoolExecutor.CallerRunsPolicy());
+        this.threadPoolExecutor = new ThreadPoolExecutor(configuration.getInt("core-pool-size"), configuration.getInt("maximum-pool-size"), 1, TimeUnit.MINUTES, new LinkedBlockingQueue<>(512), new NamedThreadFactory("rocksdb", true), new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
     @Override
