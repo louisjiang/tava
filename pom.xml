@@ -33,7 +33,7 @@
 
     <properties>
         <typesafe.config.version>1.4.9</typesafe.config.version>
-        <rocksdbjni.version>10.10.1.1</rocksdbjni.version>
+        <rocksdbjni.version>11.0.4</rocksdbjni.version>
         <netty.version>4.2.15.Final</netty.version>
         <agrona.version>2.6.1</agrona.version>
         <streamex.version>0.9.0</streamex.version>
@@ -44,7 +44,7 @@
         <failsafe.version>2.4.4</failsafe.version>
         <slf4j.version>2.0.18</slf4j.version>
         <rxjava.version>3.1.12</rxjava.version>
-        <joda.time.version>2.14.4</joda.time.version>
+        <joda.time.version>2.15.0</joda.time.version>
         <spring.boot.version>4.1.0</spring.boot.version>
         <spring.context.version>7.0.8</spring.context.version>
         <aopalliance.version>1.0</aopalliance.version>
@@ -55,8 +55,8 @@
         <mapdb.version>3.1.0</mapdb.version>
         <commons.pool2.version>2.13.1</commons.pool2.version>
         <caffeine.version>3.3.0</caffeine.version>
-        <kryo.version>5.6.2</kryo.version>
-        <guava.version>33.7.1-jre</guava.version>
+        <kryo.version>5.7.0</kryo.version>
+        <guava.version>33.7.2-jre</guava.version>
         <junit.version>5.13.1</junit.version>
         <zero.allocation.hashing.version>2026.0</zero.allocation.hashing.version>
     </properties>

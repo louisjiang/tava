@@ -21,7 +21,7 @@ public class Queues<E> {
     public Queues(int queueSize, int ringBufferSize, EventHandler<E> handler, ProducerType producerType, Function0<WaitStrategy> waitStrategy, String threadPrefix) {
         this.queueSize = queueSize;
         for (int i = 0; i < queueSize; i++) {
-            Queue<E> queue = new Queue<>(ringBufferSize, handler, producerType, waitStrategy.apply(), "queues-" + i + "-" + threadPrefix, 1);
+            Queue<E> queue = new Queue<>(ringBufferSize, handler, producerType, waitStrategy.apply(), "queue-" + i + "-" + threadPrefix, 1);
             this.queues.add(queue);
         }
     }

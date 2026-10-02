@@ -192,6 +192,11 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
 
     @Override
     public V update(K key, Function1<V, V> update) {
+        return update(key, update, null);
+    }
+
+    @Override
+    public V update(K key, Function1<V, V> update, Function2<K, V, Boolean> delete) {
         String segmentKey = this.segmentKey(key);
         Map<K, V> map = this.database.get(this.tableName, segmentKey);
         if (map == null) {
@@ -210,9 +215,18 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         }
 
         map.put(key, newValue);
-        if (map.size() - size == 1) {
-            this.incrementSize(1);
+
+        if (delete != null) {
+            map.entrySet().removeIf(kvEntry -> {
+                K k = kvEntry.getKey();
+                if (key.equals(k)) {
+                    return false;
+                }
+                return delete.apply(k, kvEntry.getValue());
+            });
         }
+
+        this.incrementSize(map.size() - size);
         this.database.put(this.tableName, segmentKey, map);
         return newValue;
     }
