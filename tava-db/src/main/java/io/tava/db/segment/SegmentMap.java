@@ -38,7 +38,11 @@ public interface SegmentMap<K, V> extends Segment {
 
     V put(K key, V value);
 
+    V put(K key, V value, Function2<K, V, Boolean> delete);
+
     V remove(K key);
+
+    V remove(K key, Function2<K, V, Boolean> delete);
 
     void removeAll(Collection<K> keys);
 

@@ -109,6 +109,42 @@ public abstract class AbstractDatabase implements Database, Util {
     }
 
     @Override
+    public <T> Map<String, T> getMap(String tableName, List<String> keys) {
+        Map<String, Operation> operationMap = this.tableNameToOperationMap.get(tableName);
+
+        Map<String, T> map = new HashMap<>();
+        List<byte[]> byteKeys = new ArrayList<>();
+        List<String> keys0 = new ArrayList<>();
+
+        Operation operation;
+        for (String key : keys) {
+            if (operationMap != null && (operation = operationMap.get(key)) != null) {
+                map.put(key, (T) operation.getValue());
+                continue;
+            }
+            keys0.add(key);
+            byteKeys.add(key.getBytes(StandardCharsets.UTF_8));
+        }
+
+        if (byteKeys.size() > 0) {
+            List<byte[]> values = get(tableName, byteKeys);
+            int size = values.size();
+            for (int i = 0; i < size; i++) {
+                String key = keys0.get(i);
+                byte[] bytes = values.get(i);
+                if (bytes == null || bytes.length == 0) {
+                    map.put(key, null);
+                    continue;
+                }
+                T t = (T) this.toObject(tableName, key, bytes);
+                map.put(key, t);
+            }
+        }
+
+        return map;
+    }
+
+    @Override
     public void tryCommit(String tableName) {
         Map<String, Operation> operationMap = this.tableNameToOperationMap.get(tableName);
         if (operationMap == null) {

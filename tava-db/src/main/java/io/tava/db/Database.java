@@ -7,6 +7,7 @@ import io.tava.db.segment.SegmentSet;
 import io.tava.function.Function1;
 import io.tava.lang.Option;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -90,6 +91,8 @@ public interface Database {
     }
 
     <T> T get(String tableName, String key);
+
+    <T> Map<String, T> getMap(String tableName, List<String> keys);
 
     default <T> T update(String key, Function1<T, T> update) {
         return this.update("default", key, update);
