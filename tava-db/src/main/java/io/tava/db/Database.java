@@ -1,7 +1,6 @@
 package io.tava.db;
 
 import com.alibaba.fastjson2.JSONObject;
-import io.tava.db.segment.SegmentList;
 import io.tava.db.segment.SegmentMap;
 import io.tava.db.segment.SegmentSet;
 import io.tava.function.Function1;
@@ -17,18 +16,6 @@ import java.util.concurrent.ThreadPoolExecutor;
  * @version 2021-05-07 14:37
  */
 public interface Database {
-
-    default <V> SegmentList<V> newSegmentList(String key, int capacity) {
-        return newSegmentList("default", key, capacity);
-    }
-
-    <V> SegmentList<V> newSegmentList(String tableName, String key, int capacity);
-
-    default <V> Option<SegmentList<V>> getSegmentList(String key) {
-        return getSegmentList("default", key);
-    }
-
-    <V> Option<SegmentList<V>> getSegmentList(String tableName, String key);
 
     default <V> SegmentSet<V> newSegmentSet(String key, int segment) {
         return newSegmentSet("default", key, segment);

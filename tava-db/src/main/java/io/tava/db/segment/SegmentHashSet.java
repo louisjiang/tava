@@ -1,5 +1,6 @@
 package io.tava.db.segment;
 
+import com.alibaba.fastjson2.JSONObject;
 import io.tava.db.Database;
 
 import java.io.IOException;
@@ -9,7 +10,7 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
 
     private final long sequence;
     private final int segment;
-    private int size;
+    private final JSONObject size;
 
     public SegmentHashSet(Database database, String tableName, String key, int segment) {
         this(database, tableName, key, segment, false);
@@ -21,13 +22,13 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
         if (initialize || (status = this.database.get(this.tableName + "@status", this.key)) == null) {
             this.sequence = SnowFlakeUtil.nextId();
             this.segment = segment;
-            this.size = 0;
+            this.size = new JSONObject();
             this.updateStatus();
             return;
         }
         this.sequence = (Long) status.get("sequence");
         this.segment = (Integer) status.get("segment");
-        this.size = (Integer) status.get("size");
+        this.size = (JSONObject) status.get("size");
         this.statusData = status.get("status");
     }
 
@@ -35,7 +36,7 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
         super(database, tableName, key);
         this.sequence = (Long) status.get("sequence");
         this.segment = (Integer) status.get("segment");
-        this.size = (Integer) status.get("size");
+        this.size = (JSONObject) status.get("size");
         this.statusData = status.get("status");
     }
 
@@ -47,7 +48,12 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
 
     @Override
     public int size() {
-        return this.size;
+        int size = 0;
+        for (Map.Entry<String, Object> entry : this.size.entrySet()) {
+            Integer value = (Integer) entry.getValue();
+            size += value;
+        }
+        return size;
     }
 
     @Override
@@ -109,7 +115,7 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
             set = new HashSet<>();
         }
         if (set.add(value)) {
-            this.incrementSize();
+            updateSize(segmentKey, set.size());
             this.database.put(this.tableName, segmentKey, set);
             return true;
         }
@@ -124,7 +130,7 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
             return false;
         }
         if (set.remove(value)) {
-            this.decrementSize();
+            updateSize(segmentKey, set.size());
             this.database.put(this.tableName, segmentKey, set);
             return true;
         }
@@ -132,9 +138,18 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
     }
 
     @Override
-    public boolean containsAll(Collection<? extends V> collection) {
+    public boolean containsAll(Collection<V> collection) {
+        Map<String, Set<V>> segmentMap = new HashMap<>();
         for (V v : collection) {
-            if (!contains(v)) {
+            String segmentKey = this.segmentKey(v);
+            Set<V> set = segmentMap.computeIfAbsent(segmentKey, _ -> new HashSet<>());
+            set.add(v);
+        }
+
+        for (Map.Entry<String, Set<V>> entry : segmentMap.entrySet()) {
+            String segmentKey = entry.getKey();
+            Set<V> values = this.database.get(this.tableName, segmentKey);
+            if (values == null || !values.containsAll(entry.getValue())) {
                 return false;
             }
         }
@@ -142,20 +157,47 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
     }
 
     @Override
-    public boolean addAll(Collection<? extends V> collection) {
+    public boolean addAll(Collection<V> collection) {
+        Map<String, Set<V>> segmentMap = new HashMap<>();
         for (V v : collection) {
-            this.add(v);
+            String segmentKey = this.segmentKey(v);
+            Set<V> set = segmentMap.computeIfAbsent(segmentKey, _ -> new HashSet<>());
+            set.add(v);
+        }
+
+        for (Map.Entry<String, Set<V>> entry : segmentMap.entrySet()) {
+            String segmentKey = entry.getKey();
+            Set<V> values = this.database.get(this.tableName, segmentKey);
+            if (values == null) {
+                values = new HashSet<>();
+            }
+            values.addAll(entry.getValue());
+            this.updateSize(segmentKey, values.size());
+            this.database.put(this.tableName, segmentKey, values);
         }
         return true;
     }
 
     @Override
-    public boolean removeAll(Collection<? extends V> collection) {
-        boolean remove = false;
+    public boolean removeAll(Collection<V> collection) {
+        Map<String, Set<V>> segmentMap = new HashMap<>();
         for (V v : collection) {
-            remove |= remove(v);
+            String segmentKey = this.segmentKey(v);
+            Set<V> set = segmentMap.computeIfAbsent(segmentKey, _ -> new HashSet<>());
+            set.add(v);
         }
-        return remove;
+
+        for (Map.Entry<String, Set<V>> entry : segmentMap.entrySet()) {
+            String segmentKey = entry.getKey();
+            Set<V> values = this.database.get(this.tableName, segmentKey);
+            if (values == null) {
+                values = new HashSet<>();
+            }
+            values.removeAll(entry.getValue());
+            this.updateSize(segmentKey, values.size());
+            this.database.put(this.tableName, segmentKey, values);
+        }
+        return true;
     }
 
     @Override
@@ -163,7 +205,7 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
         for (int i = 0; i < this.segment; i++) {
             this.database.delete(this.tableName, this.segmentKey(i));
         }
-        this.size = 0;
+        this.size.clear();
         this.updateStatusData(null);
         if (commit) {
             this.commit();
@@ -173,24 +215,32 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
     @Override
     public Set<V> toSet() {
         Set<V> set = new HashSet<>();
+        List<String> keys = new ArrayList<>();
         for (int i = 0; i < this.segment; i++) {
             String segmentKey = this.segmentKey(i);
-            Set<V> s = this.database.get(this.tableName, segmentKey);
-            if (s != null) {
-                set.addAll(s);
-            }
+            keys.add(segmentKey);
         }
+
+        Map<String, Set<V>> value = this.database.getMap(this.tableName, keys);
+        for (Map.Entry<String, Set<V>> entry : value.entrySet()) {
+            Set<V> vSet = entry.getValue();
+            if (vSet == null) {
+                continue;
+            }
+            set.addAll(vSet);
+        }
+
         return set;
     }
 
     @Override
     public SegmentSet<V> reset(int capacity) {
-        int newSegment = this.size / capacity;
-        if (newSegment <= this.segment) {
+        int segment = this.size() / capacity;
+        if (segment == this.segment) {
             return this;
         }
-        newSegment = this.segment * 2;
-        return reinitialize(newSegment);
+
+        return reinitialize(newSegment(segment, 4));
     }
 
     public SegmentSet<V> reinitialize(int newSegment) {
@@ -224,15 +274,6 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
         }
     }
 
-    private void incrementSize() {
-        this.size++;
-        this.updateStatus();
-    }
-
-    private void decrementSize() {
-        this.size--;
-        this.updateStatus();
-    }
 
     void updateStatus() {
         Map<String, Object> map = new HashMap<>();
@@ -259,6 +300,11 @@ public class SegmentHashSet<V> extends AbstractSegment implements SegmentSet<V> 
 
     private String segmentKey(int value) {
         return this.key + "@" + sequence + "@" + Math.abs(value);
+    }
+
+    private void updateSize(String segmentKey, int value) {
+        this.size.put(segmentKey, value);
+        this.updateStatus();
     }
 
 }

@@ -20,11 +20,11 @@ public interface SegmentSet<V> extends Segment {
 
     boolean remove(V value);
 
-    boolean containsAll(Collection<? extends V> collection);
+    boolean containsAll(Collection<V> collection);
 
-    boolean addAll(Collection<? extends V> collection);
+    boolean addAll(Collection<V> collection);
 
-    boolean removeAll(Collection<? extends V> collection);
+    boolean removeAll(Collection<V> collection);
 
     Set<V> toSet();
 

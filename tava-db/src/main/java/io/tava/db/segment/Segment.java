@@ -24,4 +24,16 @@ public interface Segment extends Util {
 
     <V> V getStatusData();
 
+    default int newSegment(int segment, int basicSegment) {
+        if (segment < basicSegment) {
+            return basicSegment;
+        }
+
+        int newSegment = basicSegment * 2;
+        if (newSegment < segment) {
+            return newSegment(segment, newSegment);
+        }
+        return newSegment;
+    }
+
 }

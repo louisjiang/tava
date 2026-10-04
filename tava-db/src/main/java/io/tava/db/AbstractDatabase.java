@@ -45,16 +45,6 @@ public abstract class AbstractDatabase implements Database, Util {
     }
 
     @Override
-    public <V> SegmentList<V> newSegmentList(String tableName, String key, int capacity) {
-        return new SegmentArrayList<>(AbstractDatabase.this, tableName, key, capacity);
-    }
-
-    @Override
-    public <V> Option<SegmentList<V>> getSegmentList(String tableName, String key) {
-        return Option.option(SegmentList.get(AbstractDatabase.this, tableName, key));
-    }
-
-    @Override
     public <V> SegmentSet<V> newSegmentSet(String tableName, String key, int segment) {
         return new SegmentHashSet<>(AbstractDatabase.this, tableName, key, segment);
     }

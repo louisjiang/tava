@@ -18,7 +18,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
     private static final Logger LOGGER = LoggerFactory.getLogger(SegmentHashMap.class);
     private final long sequence;
     private final int segment;
-    private JSONObject size;
+    private final JSONObject size;
 
     public SegmentHashMap(Database database, String tableName, String key, int segment) {
         this(database, tableName, key, segment, false);
@@ -402,17 +402,6 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
         return reinitialize(newSegment(segment, 4));
     }
 
-    private int newSegment(int segment, int basicSegment) {
-        if (segment < basicSegment) {
-            return basicSegment;
-        }
-
-        int newSegment = basicSegment * 2;
-        if (newSegment < segment) {
-            return newSegment(segment, newSegment);
-        }
-        return newSegment;
-    }
     public boolean reinitialize(int newSegment) {
         if (newSegment == this.segment) {
             return false;
@@ -448,7 +437,7 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
             String segmentKey = this.segmentKey(i);
             this.database.delete(this.tableName, segmentKey);
         }
-        this.size = new JSONObject();
+        this.size.clear();
         this.updateStatusData(null);
         if (commit) {
             this.commit();
