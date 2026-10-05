@@ -121,11 +121,21 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
 
     @Override
     public Map<K, V> update(Collection<K> keys, Function2<K, V, V> update) {
-        return update(keys, update, null);
+        return update(keys, update, null, null);
     }
 
     @Override
     public Map<K, V> update(Collection<K> keys, Function2<K, V, V> update, Function2<K, V, Boolean> delete) {
+        return update(keys, update, delete, null);
+    }
+
+    @Override
+    public Map<K, V> update(Collection<K> keys, Function2<K, V, V> update, Consumer2<String, Map<K, V>> callback) {
+        return update(keys, update, null, callback);
+    }
+
+    @Override
+    public Map<K, V> update(Collection<K> keys, Function2<K, V, V> update, Function2<K, V, Boolean> delete, Consumer2<String, Map<K, V>> callback) {
         Map<String, List<K>> groupedKeys = StreamEx.of(keys).groupingBy(this::segmentKey);
         Map<K, V> returnMap = new HashMap<>();
         for (Map.Entry<String, List<K>> entry : groupedKeys.entrySet()) {
@@ -151,6 +161,10 @@ public class SegmentHashMap<K, V> extends AbstractSegment implements SegmentMap<
                     }
                     return delete.apply(k, kvEntry.getValue());
                 });
+            }
+
+            if (callback != null) {
+                callback.accept(segmentKey, map);
             }
 
             this.updateSize(segmentKey, map.size());
